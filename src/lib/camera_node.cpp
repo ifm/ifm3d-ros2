@@ -40,6 +40,7 @@
 #include <ifm3d/camera.h>
 #include <ifm3d/fg.h>
 #include <ifm3d/image.h>
+#include <ifm3d_ros2/qos.hpp>
 
 using namespace std::chrono_literals;
 namespace enc = sensor_msgs::image_encodings;
@@ -82,25 +83,25 @@ namespace ifm3d_ros2
     //
     this->uvec_pub_ =
       this->create_publisher<ImageMsg>("~/unit_vectors",
-                                       rclcpp::SensorDataQoS());
+                                       ifm3d_ros2::LatchedQoS());
     this->xyz_pub_ =
       this->create_publisher<ImageMsg>("~/xyz_image",
-                                       rclcpp::SensorDataQoS());
+                                       ifm3d_ros2::LowLatencyQoS());
     this->conf_pub_ =
       this->create_publisher<ImageMsg>("~/confidence",
-                                       rclcpp::SensorDataQoS());
+                                       ifm3d_ros2::LowLatencyQoS());
     this->distance_pub_ =
       this->create_publisher<ImageMsg>("~/distance",
-                                       rclcpp::SensorDataQoS());
+                                       ifm3d_ros2::LowLatencyQoS());
     this->amplitude_pub_ =
       this->create_publisher<ImageMsg>("~/amplitude",
-                                       rclcpp::SensorDataQoS());
+                                       ifm3d_ros2::LowLatencyQoS());
     this->raw_amplitude_pub_ =
       this->create_publisher<ImageMsg>("~/raw_amplitude",
-                                       rclcpp::SensorDataQoS());
+                                       ifm3d_ros2::LowLatencyQoS());
     this->cloud_pub_ =
       this->create_publisher<PCLMsg>("~/cloud",
-                                     rclcpp::SensorDataQoS());
+                                     ifm3d_ros2::LowLatencyQoS());
 
     RCLCPP_INFO(this->logger_, "node created, waiting for `configure()`...");
   }
@@ -583,11 +584,15 @@ namespace ifm3d_ros2
     optical_head.frame_id = this->optical_frame_;
     optical_head.stamp = head.stamp;
 
-    // Construct the unit vector message once
-    auto uvec_msg =
-      cv_bridge::CvImage(optical_head,
-                         enc::TYPE_32FC3,
-                         this->uvec_).toImageMsg();
+    // Construct the unit vector message once and publish once ("latched")
+    {
+      std::lock_guard<std::mutex> lock(this->gil_);
+      auto uvec_msg =
+        cv_bridge::CvImage(optical_head,
+                           enc::TYPE_32FC3,
+                           this->uvec_).toImageMsg();
+      this->uvec_pub_->publish(std::move(*uvec_msg));
+    }
 
     pcl::PointCloud<ifm3d::PointT>::Ptr
       cloud(new pcl::PointCloud<ifm3d::PointT>());
@@ -679,8 +684,8 @@ namespace ifm3d_ros2
         // it.
         //
         //this->uvec_pub_->publish(std::move(*uvec_msg));
-        uvec_msg->header.stamp = optical_head.stamp;
-        this->uvec_pub_->publish(*uvec_msg);
+        //uvec_msg->header.stamp = optical_head.stamp;
+        //this->uvec_pub_->publish(*uvec_msg);
 
         if ((this->schema_mask_ & ifm3d::IMG_CART) == ifm3d::IMG_CART)
           {

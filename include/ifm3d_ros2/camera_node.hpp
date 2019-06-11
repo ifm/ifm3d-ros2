@@ -186,7 +186,9 @@ namespace ifm3d_ros2
 
   private:
     rclcpp::Logger logger_;
-    std::mutex gil_; // global mutex on ifm3d core data structures
+    // global mutex on ifm3d core data structures `cam_`, `fg_`, `im_`
+    // and the cached unit vectors `uvec_`
+    std::mutex gil_;
 
     std::string ip_;
     std::uint16_t xmlrpc_port_;

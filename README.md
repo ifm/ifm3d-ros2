@@ -171,37 +171,37 @@ ROS Interface
   </tr>
   <tr>
     <td>amplitude</td>
-    <td>sensor_msgs/Image</td>
+    <td>sensor_msgs/msg/Image</td>
     <td>The normalized amplitude image</td>
   </tr>
   <tr>
     <td>cloud</td>
-    <td>sensor_msgs/PointCloud2</td>
+    <td>sensor_msgs/msg/PointCloud2</td>
     <td>The point cloud data</td>
   </tr>
   <tr>
     <td>confidence</td>
-    <td>sensor_msgs/Image</td>
+    <td>sensor_msgs/msg/Image</td>
     <td>The confidence image</td>
   </tr>
   <tr>
     <td>distance</td>
-    <td>sensor_msgs/Image</td>
+    <td>sensor_msgs/msg/Image</td>
     <td>The radial distance image</td>
   </tr>
   <tr>
     <td>raw_amplitude</td>
-    <td>sensor_msgs/Image</td>
+    <td>sensor_msgs/msg/Image</td>
     <td>The raw amplitude image</td>
   </tr>
   <tr>
     <td>unit_vectors</td>
-    <td>sensor_msgs/Image</td>
+    <td>sensor_msgs/msg/Image</td>
     <td>The rotated unit vectors</td>
   </tr>
   <tr>
     <td>xyz_image</td>
-    <td>sensor_msgs/Image</td>
+    <td>sensor_msgs/msg/Image</td>
     <td>
       A 3-channel image encoding of the point cloud. Each of the three image
       channels respesent a spatial data plane encoding the x, y, z Cartesian
