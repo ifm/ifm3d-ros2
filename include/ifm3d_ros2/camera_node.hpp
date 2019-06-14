@@ -153,6 +153,7 @@ namespace ifm3d_ros2
      *
      * The following operations are performed:
      *
+     * - The publish_loop thread is stopped (if running)
      * - The cached unit vectors are deallocated
      * - The ifm3d core data structures (camera, framegrabber, image buffer)
      *   have their dtors called
@@ -183,6 +184,12 @@ namespace ifm3d_ros2
      * Thread function that publishes data to clients
      */
     void publish_loop();
+
+    /**
+     * Utility function that makes a best effort to stop the thread publishing
+     * loop.
+     */
+    void stop_publish_loop();
 
   private:
     rclcpp::Logger logger_;

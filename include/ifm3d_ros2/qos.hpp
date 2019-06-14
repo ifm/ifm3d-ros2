@@ -9,7 +9,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distribted on an "AS IS" BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -26,8 +26,10 @@ namespace ifm3d_ros2
   /**
    * A quality of service that implements (as closely as possible) ROS1
    * latching-like behavior. Due to how publishers and subscribers need to
-   * having matching/compatible QoS profiles, we need to make
-   * comprimises. For more information, please see:
+   * having matching/compatible QoS profiles, late subscribers must match this
+   * QoS profile, exactly. There are some viable incompatibilities between the
+   * publisher and subscriber, however, you should be aware of how that affects
+   * the actual connection. For more information, please see:
    *
    * https://index.ros.org/doc/ros2/Concepts/About-Quality-of-Service-Settings/
    */
@@ -63,7 +65,8 @@ namespace ifm3d_ros2
     explicit LowLatencyQoS()
       : rclcpp::SensorDataQoS()
     {
-      this->keep_last(1);
+      // XXX: may ultimately want to make this configurable via parameter
+      this->keep_last(2);
     }
   };
 

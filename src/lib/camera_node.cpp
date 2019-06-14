@@ -8,7 +8,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distribted on an "AS IS" BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -367,21 +367,7 @@ namespace ifm3d_ros2
     // ifm3d and cv::Mat dtors will dealloc the rest of our core data
     // structures.
     //
-    if (! this->test_destroy_)
-      {
-        RCLCPP_INFO(this->logger_, "Stopping publishing thread...");
-        this->test_destroy_ = true;
-        if (this->pub_loop_.joinable())
-          {
-            this->pub_loop_.join();
-            RCLCPP_INFO(this->logger_, "Publishing thread stopped.");
-          }
-        else
-          {
-            RCLCPP_WARN(this->logger_, "Publishing thread is not joinable!");
-          }
-      }
-
+    this->stop_publish_loop();
     return TC_RETVAL::SUCCESS;
   }
 
@@ -390,6 +376,8 @@ namespace ifm3d_ros2
     RCLCPP_INFO(this->logger_, "on_error(): %s -> %s",
                 prev_state.label().c_str(),
                 this->get_current_state().label().c_str());
+
+    this->stop_publish_loop();
 
     std::lock_guard<std::mutex> lock(this->gil_);
     RCLCPP_INFO(this->logger_, "Releasing unit vectors...");
@@ -569,6 +557,24 @@ namespace ifm3d_ros2
     return result;
   }
 
+  void CameraNode::stop_publish_loop()
+  {
+    if (! this->test_destroy_)
+      {
+        RCLCPP_INFO(this->logger_, "Stopping publishing thread...");
+        this->test_destroy_ = true;
+        if (this->pub_loop_.joinable())
+          {
+            this->pub_loop_.join();
+            RCLCPP_INFO(this->logger_, "Publishing thread stopped.");
+          }
+        else
+          {
+            RCLCPP_WARN(this->logger_, "Publishing thread is not joinable!");
+          }
+      }
+  }
+
   //
   // Runs as a separate thread of execution, kicked off in `on_activate()`.
   //
@@ -676,16 +682,6 @@ namespace ifm3d_ros2
           std::move(*(cv_bridge::CvImage(optical_head,
                                          "mono8",
                                          confidence_img).toImageMsg())));
-
-        //
-        // NOTE: Since it is not clear how to mimic ROS 1 latching in ROS 2
-        // (yet), we need to keep pushing out the unit vectors. To that end, we
-        // do not `std::move` the message in to the publisher but rather copy
-        // it.
-        //
-        //this->uvec_pub_->publish(std::move(*uvec_msg));
-        //uvec_msg->header.stamp = optical_head.stamp;
-        //this->uvec_pub_->publish(*uvec_msg);
 
         if ((this->schema_mask_ & ifm3d::IMG_CART) == ifm3d::IMG_CART)
           {
