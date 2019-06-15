@@ -55,7 +55,7 @@ rclcpp_components_register_nodes(
 #
 # Exe to bring up the camera component in a standalone way allow us to manually
 # drive the state machine or some other external "manager" can do so (e.g.,
-# GUI).
+# launch_ros).
 #
 ament_auto_add_executable(camera_standalone src/bin/camera_standalone.cpp)
 target_link_libraries(camera_standalone ifm3d_ros2_camera_node)
@@ -90,6 +90,9 @@ install(
 #############
 ##  Test   ##
 #############
+#find_package(launch_testing_ament_cmake)
+#add_launch_test(test/latched_subscriber.test.py)
+
 
 #############
 ament_auto_package()
