@@ -105,7 +105,7 @@ def generate_launch_description():
                '0', '0', '0',
                '-1.5707963267948966', '0', '-1.5707963267948966',
                str(node_name + "_link"), str(node_name + "_optical_link")],
-               output='screen',
+               #output='screen',
                log_cmd=True
           )
 
