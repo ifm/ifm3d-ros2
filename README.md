@@ -178,43 +178,43 @@ ROS Interface
   <tr>
     <td>amplitude</td>
     <td>sensor_msgs/msg/Image</td>
-    <td>[ifm3d_ros::LowLatencyQoS](include/ifm3d_ros2/qos.hpp)</td>
+    <td><a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a></td>
     <td>The normalized amplitude image</td>
   </tr>
   <tr>
     <td>cloud</td>
     <td>sensor_msgs/msg/PointCloud2</td>
-    <td>[ifm3d_ros::LowLatencyQoS](include/ifm3d_ros2/qos.hpp)</td>
+    <td><a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a></td>
     <td>The point cloud data</td>
   </tr>
   <tr>
     <td>confidence</td>
     <td>sensor_msgs/msg/Image</td>
-    <td>[ifm3d_ros::LowLatencyQoS](include/ifm3d_ros2/qos.hpp)</td>
+    <td><a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a></td>
     <td>The confidence image</td>
   </tr>
   <tr>
     <td>distance</td>
     <td>sensor_msgs/msg/Image</td>
-    <td>[ifm3d_ros::LowLatencyQoS](include/ifm3d_ros2/qos.hpp)</td>
+    <td><a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a></td>
     <td>The radial distance image</td>
   </tr>
   <tr>
     <td>raw_amplitude</td>
     <td>sensor_msgs/msg/Image</td>
-    <td>[ifm3d_ros::LowLatencyQoS](include/ifm3d_ros2/qos.hpp)</td>
+    <td><a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a></td>
     <td>The raw amplitude image</td>
   </tr>
   <tr>
     <td>unit_vectors</td>
     <td>sensor_msgs/msg/Image</td>
-    <td>[ifm3d_ros::LatchedQoS](include/ifm3d_ros2/qos.hpp)</td>
+    <td><a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LatchedQoS</a></td>
     <td>The rotated unit vectors</td>
   </tr>
   <tr>
     <td>xyz_image</td>
     <td>sensor_msgs/msg/Image</td>
-    <td>[ifm3d_ros::LowLatencyQoS](include/ifm3d_ros2/qos.hpp)</td>
+    <td><a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a></td>
     <td>
       A 3-channel image encoding of the point cloud. Each of the three image
       channels respesent a spatial data plane encoding the x, y, z Cartesian
