@@ -16,6 +16,7 @@
 
 import os
 import sys
+from math import pi
 
 import lifecycle_msgs.msg
 import launch
@@ -102,8 +103,7 @@ def generate_launch_description():
     tf_node = \
       ExecuteProcess(
           cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
-               '0', '0', '0',
-               '-1.5707963267948966', '0', '-1.5707963267948966',
+               '0', '0', '0', str(-pi/2.), '0', str(-pi/2.),
                str(node_name + "_link"), str(node_name + "_optical_link")],
                #output='screen',
                log_cmd=True

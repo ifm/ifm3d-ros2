@@ -87,6 +87,15 @@ install(
   DESTINATION share/${PROJECT_NAME}/
   )
 
+install(
+  DIRECTORY examples
+  DESTINATION share/${PROJECT_NAME}/
+  PATTERN "examples/*.py"
+  PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+              GROUP_EXECUTE GROUP_READ
+              WORLD_EXECUTE WORLD_READ
+  )
+
 #############
 ##  Test   ##
 #############
