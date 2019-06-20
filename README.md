@@ -47,15 +47,26 @@ $ mkdir ~/colcon/ifm3d_ros2/src
 ```
 
 Clone the `ifm3d-ros2` github repo into this workspace and build it:
+
+(NOTE: the `--cmake-args -DBUILD_TESTING=ON` part of the `colcon` command below
+is not strictly necessary (tests are `ON` by default), however, it is explicit
+(see: `python3 -mthis`)).
 ```
 $ cd ~/colcon/ifm3d_ros2/src
 $ git clone https://github.com/ifm/ifm3d-ros2.git ifm3d_ros2
 $ cd ..
-$ colcon build
+$ colcon build --cmake-args -DBUILD_TESTING=ON
 Starting >>> ifm3d_ros2
 Finished <<< ifm3d_ros2 [17.6s]
 
 Summary: 1 package finished [17.8s]
+```
+
+Run the test suite (optional, you will need supported hardware connected):
+```
+$ colcon test
+$ colcon test-result --all
+[ ... output omitted ... ]
 ```
 
 Launch the camera node (assuming you are in `~/colcon/ifm3d_ros2`):

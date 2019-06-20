@@ -99,9 +99,10 @@ install(
 #############
 ##  Test   ##
 #############
-#find_package(launch_testing_ament_cmake)
-#add_launch_test(test/latched_subscriber.test.py)
-
+if(BUILD_TESTING)
+  find_package(launch_testing_ament_cmake)
+  add_launch_test(test/lifecycle.test.py)
+endif(BUILD_TESTING)
 
 #############
 ament_auto_package()

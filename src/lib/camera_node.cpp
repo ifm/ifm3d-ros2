@@ -108,7 +108,18 @@ namespace ifm3d_ros2
 
   CameraNode::~CameraNode()
   {
-    RCLCPP_INFO(this->logger_, "Dtor");
+    RCLCPP_INFO(this->logger_, "Dtor...");
+
+    try
+      {
+        this->stop_publish_loop();
+      }
+    catch (...)
+      {
+        RCLCPP_WARN(this->logger_, "Exception caught in dtor!");
+      }
+
+    RCLCPP_INFO(this->logger_, "Dtor done.");
   }
 
   TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
