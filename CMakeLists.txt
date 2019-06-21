@@ -16,6 +16,7 @@ set(IFM3D_ROS2_DEPS
   rclcpp
   rclcpp_components
   rclcpp_lifecycle
+  rcl_interfaces
   rmw
   sensor_msgs
   std_msgs

@@ -4,7 +4,6 @@ TODO
 * Expose the intrinsic camera calibration via CameraInfo
 * Expose the on-camera extrinsic calibration
 * Investigate performance through the ROS middleware, tune QoS for our camera
-* Unit tests (investigate `launch_test` for node integration tests)
 * Write an inproc demo node
   * Enable intra-process comms
   * pub/sub w/ std::unique_ptr
