@@ -37,6 +37,7 @@
 #include <ifm3d/camera.h>
 #include <ifm3d/fg.h>
 #include <ifm3d/image.h>
+#include <ifm3d_ros2/msg/extrinsics.hpp>
 
 namespace
 {
@@ -50,6 +51,10 @@ namespace
   using PCLMsg = sensor_msgs::msg::PointCloud2;
   using PCLPublisher =
     std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<PCLMsg>>;
+
+  using ExtrinsicsMsg = ifm3d_ros2::msg::Extrinsics;
+  using ExtrinsicsPublisher =
+    std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ExtrinsicsMsg>>;
 }
 
 namespace ifm3d_ros2
@@ -218,6 +223,7 @@ namespace ifm3d_ros2
     ImagePublisher amplitude_pub_;
     ImagePublisher raw_amplitude_pub_;
     PCLPublisher cloud_pub_;
+    ExtrinsicsPublisher extrinsics_pub_;
 
     std::thread pub_loop_;
     std::atomic_bool test_destroy_;

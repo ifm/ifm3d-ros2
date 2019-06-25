@@ -10,6 +10,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 set(IFM3D_ROS2_DEPS
+  builtin_interfaces
   cv_bridge
   lifecycle_msgs
   pcl_conversions
@@ -18,6 +19,7 @@ set(IFM3D_ROS2_DEPS
   rclcpp_lifecycle
   rcl_interfaces
   rmw
+  rosidl_default_generators
   sensor_msgs
   std_msgs
   vision_opencv
@@ -32,6 +34,11 @@ find_package(ament_cmake_auto REQUIRED)
 find_package(ament_cmake_ros REQUIRED)
 
 ament_auto_find_build_dependencies(REQUIRED ${IFM3D_ROS2_DEPS})
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/Extrinsics.msg"
+  DEPENDENCIES builtin_interfaces std_msgs
+  )
 
 #############
 ##  Build  ##
@@ -52,6 +59,9 @@ ament_target_dependencies(ifm3d_ros2_camera_node ${IFM3D_ROS2_DEPS})
 rclcpp_components_register_nodes(
   ifm3d_ros2_camera_node "ifm3d_ros2::CameraNode"
   )
+rosidl_target_interfaces(ifm3d_ros2_camera_node
+  ${PROJECT_NAME} "rosidl_typesupport_cpp"
+  )
 
 #
 # Exe to bring up the camera component in a standalone way allow us to manually
@@ -61,6 +71,9 @@ rclcpp_components_register_nodes(
 ament_auto_add_executable(camera_standalone src/bin/camera_standalone.cpp)
 target_link_libraries(camera_standalone ifm3d_ros2_camera_node)
 ament_target_dependencies(camera_standalone ${IFM3D_ROS2_DEPS})
+rosidl_target_interfaces(camera_standalone
+  ${PROJECT_NAME} "rosidl_typesupport_cpp"
+  )
 
 ##############
 ## Install  ##
@@ -103,6 +116,16 @@ install(
 if(BUILD_TESTING)
   find_package(launch_testing_ament_cmake)
   add_launch_test(test/lifecycle.test.py)
+  #
+  # At the moment, the test(s) below cannot be run with `colcon test` b/c the
+  # python scripts which implement the tests cannot load `ifm3d_ros2.msg`
+  # module. I am not sure if this is a problem with colon or how I have set up
+  # my tests.
+  #
+  # Despite not being able to run the tests with `colcon test`, they can be
+  # direclty run with `launch_test`. In this method, the tests should pass.
+  #
+  #add_launch_test(test/pointcloud.test.py)
 endif(BUILD_TESTING)
 
 #############

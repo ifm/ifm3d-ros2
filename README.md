@@ -21,7 +21,7 @@ Software Compatibility Matrix
   </tr>
   <tr>
     <td>0.1.1</td>
-    <td>0.12.0</td>
+    <td>0.12.0, 0.13.0</td>
     <td>Dashing</td>
   </tr>
 </table>
