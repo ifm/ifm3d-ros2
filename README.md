@@ -24,6 +24,11 @@ Software Compatibility Matrix
     <td>0.12.0, 0.13.0</td>
     <td>Dashing</td>
   </tr>
+  <tr>
+    <td>0.2.0</td>
+    <td>0.12.0, 0.13.0</td>
+    <td>Dashing</td>
+  </tr>
 </table>
 
 Building and Installing the Software

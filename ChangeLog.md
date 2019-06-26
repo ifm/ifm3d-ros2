@@ -1,3 +1,8 @@
+## 0.2.0 (2019-06-??)
+
+* Provided an implementation of the `Dump` service
+* Provided an implementation of the `dump` command-line tool
+
 ## 0.1.1 (2019-06-25)
 
 * Unit vectors are published on a "latched topic". Please see `qos.hpp` for
