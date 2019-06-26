@@ -1,5 +1,5 @@
 
-ifm3d0-ros2: Dump and Config
+ifm3d-ros2: Dump and Config
 ============================
 
 `ifm3d-ros2` provides access to the camera/imager parameters via the `Dump` and
