@@ -1,7 +1,9 @@
-## 0.2.0 (2019-06-??)
+## 0.2.0 (2019-06-26)
 
 * Provided an implementation of the `Dump` service
 * Provided an implementation of the `dump` command-line tool
+* Provided an implementation of the `Config` service
+* Provided an implementation of the `config` command-line tool
 
 ## 0.1.1 (2019-06-25)
 
