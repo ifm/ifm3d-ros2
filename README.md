@@ -245,8 +245,6 @@ None.
 
 ### Advertised Services
 
-### Advertised Services
-
 <table>
   <tr>
     <th>Name</th>
@@ -271,7 +269,7 @@ None.
 
 Additional Documentation
 ========================
-Coming soon.
+* [Inspecting and configuring the camera/imager settings](doc/dump_and_config.md)
 
 TODO
 ====
