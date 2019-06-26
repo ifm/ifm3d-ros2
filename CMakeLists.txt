@@ -38,6 +38,7 @@ ament_auto_find_build_dependencies(REQUIRED ${IFM3D_ROS2_DEPS})
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Extrinsics.msg"
   "srv/Dump.srv"
+  "srv/Config.srv"
   DEPENDENCIES builtin_interfaces std_msgs
   )
 
@@ -93,7 +94,7 @@ install(
   )
 
 install(
-  PROGRAMS scripts/dump
+  PROGRAMS scripts/dump scripts/config
   DESTINATION lib/${PROJECT_NAME}/
   )
 

@@ -245,11 +245,29 @@ None.
 
 ### Advertised Services
 
-Currently none. However, we are actively working to round out the features of
-our ROS2 interface to be, at least, equivalent to that of our ROS1 node. Check
-back soon for things like `Dump`, `Config`, etc. In the interim, to configure
-imager parameters, you should use the underlying (non-ROS) utilities available
-in [ifm3d](https://github.com/ifm/ifm3d).
+### Advertised Services
+
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Service Definition</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>Dump</td>
+    <td><a href="srv/Dump.srv">ifm3d/Dump</a></td>
+    <td>Dumps the state of the camera parameters to JSON</td>
+  </tr>
+  <tr>
+    <td>Config</td>
+    <td><a href="srv/Config.srv">ifm3d/Config</a></td>
+    <td>
+      Provides a means to configure the camera and imager settings,
+      declaratively from a JSON encoding of the desired settings.
+    </td>
+  </tr>
+</table>
+
 
 Additional Documentation
 ========================

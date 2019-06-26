@@ -7,9 +7,6 @@ TODO
 * Write an inproc demo node
   * Enable intra-process comms
   * pub/sub w/ std::unique_ptr
-* Port ROS Services from our ROS 1 Node (e.g., dump, config, etc.). For now,
-  users should use the underlying `ifm3d dump ...` and `ifm3d config ...`
-  command line utilities.
 * Investigate using/need for ImageTransport (compressed image topics?) like our
   ROS 1 node.
 * Create an installable `snap` for `snapd` supported systems

@@ -40,6 +40,7 @@
 #include <ifm3d/image.h>
 #include <ifm3d_ros2/msg/extrinsics.hpp>
 #include <ifm3d_ros2/srv/dump.hpp>
+#include <ifm3d_ros2/srv/config.hpp>
 
 namespace
 {
@@ -62,6 +63,11 @@ namespace
   using DumpResponse = std::shared_ptr<ifm3d_ros2::srv::Dump::Response>;
   using DumpService = ifm3d_ros2::srv::Dump;
   using DumpServer = rclcpp::Service<ifm3d_ros2::srv::Dump>::SharedPtr;
+
+  using ConfigRequest = std::shared_ptr<ifm3d_ros2::srv::Config::Request>;
+  using ConfigResponse = std::shared_ptr<ifm3d_ros2::srv::Config::Response>;
+  using ConfigService = ifm3d_ros2::srv::Config;
+  using ConfigServer = rclcpp::Service<ifm3d_ros2::srv::Config>::SharedPtr;
 }
 
 namespace ifm3d_ros2
@@ -180,6 +186,12 @@ namespace ifm3d_ros2
               const DumpRequest req, const DumpResponse resp);
 
     /**
+     * Implementation of the Config service.
+     */
+    void Config(const std::shared_ptr<rmw_request_id_t> request_header,
+                const ConfigRequest req, const ConfigResponse resp);
+
+    /**
      * Callback that gets called when a parameter(s) is attempted to be set
      *
      * Some parameters can be changed on the fly while others, if changed,
@@ -225,6 +237,7 @@ namespace ifm3d_ros2
     bool sync_clocks_;
 
     DumpServer dump_srv_;
+    ConfigServer config_srv_;
 
     ifm3d::Camera::Ptr cam_;
     ifm3d::FrameGrabber::Ptr fg_;
