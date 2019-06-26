@@ -29,6 +29,7 @@
 #include <rclcpp/logger.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <rclcpp/parameter.hpp>
+#include <rclcpp/service.hpp>
 #include <rmw/rmw.h>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -38,6 +39,7 @@
 #include <ifm3d/fg.h>
 #include <ifm3d/image.h>
 #include <ifm3d_ros2/msg/extrinsics.hpp>
+#include <ifm3d_ros2/srv/dump.hpp>
 
 namespace
 {
@@ -55,6 +57,11 @@ namespace
   using ExtrinsicsMsg = ifm3d_ros2::msg::Extrinsics;
   using ExtrinsicsPublisher =
     std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ExtrinsicsMsg>>;
+
+  using DumpRequest = std::shared_ptr<ifm3d_ros2::srv::Dump::Request>;
+  using DumpResponse = std::shared_ptr<ifm3d_ros2::srv::Dump::Response>;
+  using DumpService = ifm3d_ros2::srv::Dump;
+  using DumpServer = rclcpp::Service<ifm3d_ros2::srv::Dump>::SharedPtr;
 }
 
 namespace ifm3d_ros2
@@ -167,6 +174,12 @@ namespace ifm3d_ros2
 
   protected:
     /**
+     * Implementation of the Dump service.
+     */
+    void Dump(const std::shared_ptr<rmw_request_id_t> request_header,
+              const DumpRequest req, const DumpResponse resp);
+
+    /**
      * Callback that gets called when a parameter(s) is attempted to be set
      *
      * Some parameters can be changed on the fly while others, if changed,
@@ -210,6 +223,8 @@ namespace ifm3d_ros2
     float timeout_tolerance_secs_;
     float frame_latency_thresh_; // seconds
     bool sync_clocks_;
+
+    DumpServer dump_srv_;
 
     ifm3d::Camera::Ptr cam_;
     ifm3d::FrameGrabber::Ptr fg_;

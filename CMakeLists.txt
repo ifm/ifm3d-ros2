@@ -37,6 +37,7 @@ ament_auto_find_build_dependencies(REQUIRED ${IFM3D_ROS2_DEPS})
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Extrinsics.msg"
+  "srv/Dump.srv"
   DEPENDENCIES builtin_interfaces std_msgs
   )
 
@@ -89,6 +90,11 @@ install(
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+  )
+
+install(
+  PROGRAMS scripts/dump
+  DESTINATION lib/${PROJECT_NAME}/
   )
 
 install(
