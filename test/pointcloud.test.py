@@ -234,13 +234,19 @@ class TestPointCloud(unittest.TestCase):
         y_ = ey * rdis_f + ty
         z_ = ez * rdis_f + tz
 
+        # Account for bad pixels
+        bad_mask = dist == 0
+        x_[bad_mask] = 0
+        y_[bad_mask] = 0
+        z_[bad_mask] = 0
+
         # convert to camera coord frame (we are mm, so we also convert to an int
         # type).
         x = z_.astype(np.int16)
         y = -(x_.astype(np.int16))
         z = -(y_.astype(np.int16))
 
-        tol = 10 # mm
+        tol = 1 # mm
         x_mask = np.fabs(x - cloud[:,:,0]) > tol
         y_mask = np.fabs(y - cloud[:,:,1]) > tol
         z_mask = np.fabs(z - cloud[:,:,2]) > tol
