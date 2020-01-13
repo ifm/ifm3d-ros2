@@ -33,6 +33,7 @@
 #include <rmw/rmw.h>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/temperature.hpp>
 
 #include <ifm3d_ros2/visibility_control.h>
 #include <ifm3d/camera.h>
@@ -58,6 +59,10 @@ namespace
   using ExtrinsicsMsg = ifm3d_ros2::msg::Extrinsics;
   using ExtrinsicsPublisher =
     std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ExtrinsicsMsg>>;
+
+  using TemperatureMsg = sensor_msgs::msg::Temperature;
+  using TemperaturePublisher =
+    std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<TemperatureMsg>>;
 
   using DumpRequest = std::shared_ptr<ifm3d_ros2::srv::Dump::Request>;
   using DumpResponse = std::shared_ptr<ifm3d_ros2::srv::Dump::Response>;
@@ -252,6 +257,7 @@ namespace ifm3d_ros2
     ImagePublisher raw_amplitude_pub_;
     PCLPublisher cloud_pub_;
     ExtrinsicsPublisher extrinsics_pub_;
+    TemperaturePublisher temperature_pub_;
 
     std::thread pub_loop_;
     std::atomic_bool test_destroy_;
