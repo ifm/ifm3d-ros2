@@ -813,7 +813,7 @@ namespace ifm3d_ros2
           amplitude_img = this->im_->AmplitudeImage();
           raw_amplitude_img = this->im_->RawAmplitudeImage();
           extrinsics = this->im_->Extrinsics();
-          temperature = this->im_-> IlluTemp();
+          temperature = this->im_->IlluTemp();
 
         } // closes our GIL scope
 
