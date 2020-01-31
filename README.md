@@ -39,6 +39,19 @@ Building and Installing the Software
 1. [ROS2](https://index.ros.org/doc/ros2/Installation/)
 2. [ifm3d](https://github.com/ifm/ifm3d)
 
+In addition to the base packages found in `ros-*-desktop-full` you will need
+the following ROS packages:
+
+- cv_bridge
+- vision_opencv
+- launch_testing
+
+On debian based systems they may be installed as follows:
+```
+$ sudo apt install ros-eloquent-cv-bridge ros-eloquent-vision-opencv \
+    ros-eloquent-launch-testing
+```
+
 ### Building from source
 
 `ifm3d-ros2` is intended to be built with
@@ -236,6 +249,14 @@ ROS Interface
       channels respesent a spatial data plane encoding the x, y, z Cartesian
       values respectively.
     </td>
+  <tr>
+    <td>temperature</td>
+    <td>sensor_msgs/msg/Temperature</td>
+    <td><a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a></td>
+    <td>
+      The temperature of the illuminators in Celcius
+    </td>
+  </tr>
   </tr>
 </table>
 
