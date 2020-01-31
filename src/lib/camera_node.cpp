@@ -36,6 +36,7 @@
 #include <rclcpp/parameter.hpp>
 #include <rmw/rmw.h>
 #include <sensor_msgs/image_encodings.hpp>
+#include <sensor_msgs/msg/temperature.hpp>
 
 #include <ifm3d/camera.h>
 #include <ifm3d/fg.h>
@@ -104,6 +105,9 @@ namespace ifm3d_ros2
                                      ifm3d_ros2::LowLatencyQoS());
     this->extrinsics_pub_ =
       this->create_publisher<ExtrinsicsMsg>("~/extrinsics",
+                                            ifm3d_ros2::LowLatencyQoS());
+    this->temperature_pub_ =
+      this->create_publisher<TemperatureMsg>("~/temperature",
                                             ifm3d_ros2::LowLatencyQoS());
 
     //
@@ -324,6 +328,7 @@ namespace ifm3d_ros2
     this->raw_amplitude_pub_->on_activate();
     this->cloud_pub_->on_activate();
     this->extrinsics_pub_->on_activate();
+    this->temperature_pub_->on_activate();
     RCLCPP_INFO(this->logger_, "Publishers activated.");
 
     // start the publishing loop
@@ -357,6 +362,7 @@ namespace ifm3d_ros2
 
     // explicitly deactive the publishers
     RCLCPP_INFO(this->logger_, "Deactivating publishers...");
+    this->temperature_pub_->on_deactivate();
     this->extrinsics_pub_->on_deactivate();
     this->cloud_pub_->on_deactivate();
     this->raw_amplitude_pub_->on_deactivate();
@@ -744,6 +750,7 @@ namespace ifm3d_ros2
     cv::Mat amplitude_img;
     cv::Mat raw_amplitude_img;
     std::vector<float> extrinsics(6);
+    double temperature; // illu. temp.
 
     rclcpp::Time last_frame_time = head.stamp;
 
@@ -806,6 +813,7 @@ namespace ifm3d_ros2
           amplitude_img = this->im_->AmplitudeImage();
           raw_amplitude_img = this->im_->RawAmplitudeImage();
           extrinsics = this->im_->Extrinsics();
+          temperature = this->im_->IlluTemp();
 
         } // closes our GIL scope
 
@@ -859,6 +867,14 @@ namespace ifm3d_ros2
                             raw_amplitude_img.type() == CV_32FC1 ?
                             enc::TYPE_32FC1 : enc::TYPE_16UC1,
                             raw_amplitude_img).toImageMsg())));
+          }
+
+        if ((this->schema_mask_ & ifm3d::ILLU_TEMP) == ifm3d::ILLU_TEMP)
+          {
+            sensor_msgs::msg::Temperature temperature_msg;
+            temperature_msg.header = head;
+            temperature_msg.temperature = temperature;
+            this->temperature_pub_->publish(temperature_msg);
           }
 
         //
