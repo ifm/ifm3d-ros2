@@ -3,10 +3,10 @@
             schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>ifm3d_ros2</name>
-  <version>0.2.0</version>
+  <version>0.3.0</version>
   <description>ifm pmd-based ToF Camera ROS2 package</description>
   <author email="tom.panzarella@ifm.com">Tom Panzarella</author>
-  <maintainer email="tom.panzarella@ifm.com">Tom Panzarella</maintainer>
+  <maintainer email="sean.kelly@ifm.com">Sean Kelly</maintainer>
   <license>Apache 2.0</license>
 
   <buildtool_depend>ament_cmake_auto</buildtool_depend>

@@ -1,3 +1,8 @@
+## 0.3.0 (2020-01-31)
+
+* Publish camera temperature (Thanks @dustingooding of Houston Mechatronics)
+* Tested on Eloquent
+
 ## 0.2.0 (2019-06-26)
 
 * Provided an implementation of the `Dump` service

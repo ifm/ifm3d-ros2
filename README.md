@@ -29,6 +29,11 @@ Software Compatibility Matrix
     <td>0.12.0, 0.13.0</td>
     <td>Dashing</td>
   </tr>
+  <tr>
+    <td>0.3.0</td>
+    <td>0.17.0</td>
+    <td>Dashing, Eloquent</td>
+  </tr>
 </table>
 
 Building and Installing the Software
@@ -45,11 +50,13 @@ the following ROS packages:
 - cv_bridge
 - vision_opencv
 - launch_testing
+- launch_testing_ament_cmake
 
-On debian based systems they may be installed as follows:
+On debian based systems they may be installed as follows (replacing `eloquent`
+with your target ROS2 disto)
 ```
 $ sudo apt install ros-eloquent-cv-bridge ros-eloquent-vision-opencv \
-    ros-eloquent-launch-testing
+    ros-eloquent-launch-testing ros-eloquent-launch-testing-ament-cmake
 ```
 
 ### Building from source
