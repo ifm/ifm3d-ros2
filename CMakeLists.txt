@@ -51,7 +51,7 @@ include_directories(include)
 #
 # ifm3d camera "component" (.so) state machine ("lifecycle node")
 #
-add_library(ifm3d_ros2_camera_node SHARED src/lib/camera_node.cpp)
+ament_auto_add_library(ifm3d_ros2_camera_node SHARED src/lib/camera_node.cpp)
 target_link_libraries(ifm3d_ros2_camera_node
   ifm3d::camera
   ifm3d::framegrabber
