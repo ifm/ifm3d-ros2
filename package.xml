@@ -29,6 +29,7 @@
   <build_depend>sensor_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>vision_opencv</build_depend>
+  <build_depend>ifm3d_core</build_depend>
 
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>builtin_interfaces</exec_depend>
@@ -48,6 +49,7 @@
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>vision_opencv</exec_depend>
+  <exec_depend>ifm3d_core</exec_depend>
 
   <test_depend>launch_testing_ament_cmake</test_depend>
   <test_depend>python3-opencv</test_depend>
