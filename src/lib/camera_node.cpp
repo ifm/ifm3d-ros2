@@ -75,7 +75,7 @@ namespace ifm3d_ros2
     // the passed in `opts` (via __params:=/path/to/params.yaml on cmd line)
     // will override our default values specified.
     this->init_params();
-    this->set_on_parameters_set_callback(
+    this->add_on_set_parameters_callback(
       std::bind(&ifm3d_ros2::CameraNode::set_params_cb, this,
                 std::placeholders::_1));
 
