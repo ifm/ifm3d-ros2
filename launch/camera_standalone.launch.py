@@ -97,9 +97,9 @@ def generate_launch_description():
 
         LifecycleNode(
             package=package_name,
-            node_executable=node_exe,
-            node_namespace=node_namespace,
-            node_name=node_name,
+            executable=node_exe,
+            namespace=node_namespace,
+            name=node_name,
             output='screen',
             parameters=parameters,
             remappings=remaps,
