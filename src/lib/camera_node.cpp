@@ -26,19 +26,21 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <iostream>
 
+#include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <lifecycle_msgs/msg/state.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/logging.hpp>
-#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>    
 #include <rclcpp/parameter.hpp>
 #include <rmw/rmw.h>
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
 
-#include <ifm3d/camera.h>
+#include <ifm3d/camera/camera_base.h>
 #include <ifm3d/fg.h>
 #include <ifm3d/image.h>
 #include <ifm3d_ros2/qos.hpp>
@@ -53,7 +55,7 @@ namespace ifm3d_ros2
   {}
 
   CameraNode::CameraNode(const std::string& node_name,
-                         const rclcpp::NodeOptions& opts)
+                         const rclcpp::NodeOptions& opts) 
     : rclcpp_lifecycle::LifecycleNode(node_name, "", opts),
     logger_(this->get_logger()),
     test_destroy_(false),
@@ -62,7 +64,6 @@ namespace ifm3d_ros2
   {
     // unbuffered I/O to stdout (so we can see our log messages)
     std::setvbuf(stdout, NULL, _IONBF, BUFSIZ);
-
     RCLCPP_INFO(this->logger_, "namespace: %s", this->get_namespace());
     RCLCPP_INFO(this->logger_, "node name: %s", this->get_name());
     RCLCPP_INFO(this->logger_,
@@ -75,10 +76,11 @@ namespace ifm3d_ros2
     // the passed in `opts` (via __params:=/path/to/params.yaml on cmd line)
     // will override our default values specified.
     this->init_params();
-    this->set_on_parameters_set_callback(
+    this->add_on_set_parameters_callback(
       std::bind(&ifm3d_ros2::CameraNode::set_params_cb, this,
                 std::placeholders::_1));
 
+    RCLCPP_INFO(this->logger_, "After the parameters declaration");
     //
     // Set up our publishers.
     //
@@ -109,6 +111,12 @@ namespace ifm3d_ros2
     this->temperature_pub_ =
       this->create_publisher<TemperatureMsg>("~/temperature",
                                             ifm3d_ros2::LowLatencyQoS());
+
+    this->rgb_pub_ = 
+      this->create_publisher<ImageMsg>("~/rgb",
+                                      ifm3d_ros2::LowLatencyQoS());                                            
+
+    RCLCPP_INFO(this->logger_, "After publishers declaration");
 
     //
     // Set up our service servers
@@ -159,6 +167,9 @@ namespace ifm3d_ros2
     //
     RCLCPP_INFO(this->logger_, "Parsing parameters...");
 
+    this->get_parameter("pcic_port", this->pcic_port_);
+    RCLCPP_INFO(this->logger_, "pcic_port: %u", this->pcic_port_);
+
     this->get_parameter("ip", this->ip_);
     RCLCPP_INFO(this->logger_, "ip: %s", this->ip_.c_str());
 
@@ -200,7 +211,7 @@ namespace ifm3d_ros2
     // Initialize the camera interface
     //
     RCLCPP_INFO(this->logger_, "Initializing camera...");
-    this->cam_ = ifm3d::Camera::MakeShared(this->ip_,
+    this->cam_ = ifm3d::CameraBase::MakeShared(this->ip_,
                                            this->xmlrpc_port_,
                                            this->password_);
 
@@ -216,6 +227,8 @@ namespace ifm3d_ros2
     // will be stamped with *reception time* not *acquisition time* (i.e.,
     // there will be some latency.
     //
+    /* 
+    // SetCurrentTime not available for CameraBase class!
     if (this->sync_clocks_)
       {
         RCLCPP_INFO(this->logger_,
@@ -241,6 +254,7 @@ namespace ifm3d_ros2
         RCLCPP_INFO(this->logger_,
                     "Camera clock will not be sync'd to system clock.");
       }
+    */
 
     //
     // Initialize the framegrabber and image buffer so we can capture the unit
@@ -249,10 +263,10 @@ namespace ifm3d_ros2
     RCLCPP_INFO(this->logger_,
                 "Initializing FrameGrabber to fetch unit vectors...");
     this->fg_ =
-      std::make_shared<ifm3d::FrameGrabber>(this->cam_, ifm3d::IMG_UVEC);
+      std::make_shared<ifm3d::FrameGrabber>(this->cam_, ifm3d::IMG_UVEC, this->pcic_port_); 
 
     RCLCPP_INFO(this->logger_, "Initializing ImageBuffer...");
-    this->im_ = std::make_shared<ifm3d::ImageBuffer>();
+    this->im_ = std::make_shared<ifm3d::ImageBuffer>(); 
 
     RCLCPP_INFO(this->logger_, "Attempting to cache unit vectors...");
 
@@ -297,15 +311,15 @@ namespace ifm3d_ros2
     this->cam_.reset();
 
     RCLCPP_INFO(this->logger_, "Initializing camera...");
-    this->cam_ = ifm3d::Camera::MakeShared(this->ip_,
+    this->cam_ = ifm3d::CameraBase::MakeShared(this->ip_,
                                            this->xmlrpc_port_,
-                                           this->password_);
+                                           this->password_); 
     RCLCPP_INFO(this->logger_,
                 "Initializing FrameGrabber with mask: %u",
                 this->schema_mask_);
     this->fg_ =
-      std::make_shared<ifm3d::FrameGrabber>(this->cam_, this->schema_mask_);
-    RCLCPP_INFO(this->logger_, "Initializing ImageBuffer...");
+      std::make_shared<ifm3d::FrameGrabber>(this->cam_, this->schema_mask_, this->pcic_port_);
+    RCLCPP_INFO(this->logger_, "Initializing ImageBuffer..."); 
     this->im_ = std::make_shared<ifm3d::ImageBuffer>();
 
     RCLCPP_INFO(this->logger_, "Configuration complete.");
@@ -329,6 +343,7 @@ namespace ifm3d_ros2
     this->cloud_pub_->on_activate();
     this->extrinsics_pub_->on_activate();
     this->temperature_pub_->on_activate();
+    this->rgb_pub_->on_activate();
     RCLCPP_INFO(this->logger_, "Publishers activated.");
 
     // start the publishing loop
@@ -436,6 +451,13 @@ namespace ifm3d_ros2
   void CameraNode::init_params()
   {
     RCLCPP_INFO(this->logger_, "declaring parameters...");
+
+    rcl_interfaces::msg::ParameterDescriptor pcic_port_descriptor;
+    pcic_port_descriptor.name = "pcic_port";
+    pcic_port_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
+    pcic_port_descriptor.description = " TCP port the on-image processing platform pcic server is listening on. Corresponds to the port the camera head is connected to.";
+    this->declare_parameter("pcic_port", ifm3d::DEFAULT_PCIC_PORT, pcic_port_descriptor);
+    // this->declare_parameter("pcic_port", 50012, pcic_port_descriptor);
 
     rcl_interfaces::msg::ParameterDescriptor ip_descriptor;
     ip_descriptor.name = "ip";
@@ -640,7 +662,7 @@ namespace ifm3d_ros2
 
       try
         {
-          this->cam_->FromJSONStr(req->json);
+          this->cam_->FromJSONStr(req->json); //HERE
         }
       catch (const ifm3d::error_t& ex)
         {
@@ -691,7 +713,7 @@ namespace ifm3d_ros2
 
       try
         {
-          resp->config = this->cam_->ToJSONStr();
+          resp->config = this->cam_->ToJSONStr(); //HERE
         }
       catch (const ifm3d::error_t& ex)
         {
@@ -751,7 +773,7 @@ namespace ifm3d_ros2
     cv::Mat raw_amplitude_img;
     std::vector<float> extrinsics(6);
     double temperature; // illu. temp.
-
+    cv::Mat rgb_img;
     rclcpp::Time last_frame_time = head.stamp;
 
     RCLCPP_INFO(this->logger_, "Starting publishing loop...");
@@ -814,6 +836,7 @@ namespace ifm3d_ros2
           raw_amplitude_img = this->im_->RawAmplitudeImage();
           extrinsics = this->im_->Extrinsics();
           temperature = this->im_->IlluTemp();
+          rgb_img = this->im_->JPEGImage();
 
         } // closes our GIL scope
 
@@ -876,7 +899,11 @@ namespace ifm3d_ros2
             temperature_msg.temperature = temperature;
             this->temperature_pub_->publish(temperature_msg);
           }
-
+        if(!rgb_img.empty())
+        {
+          cv::Mat im_decode = cv::imdecode(rgb_img, cv::IMREAD_UNCHANGED);
+          this->rgb_pub_->publish(std::move(*(cv_bridge::CvImage(optical_head, "bgr8", im_decode).toImageMsg())));
+        }
         //
         // publish extrinsics
         //
@@ -906,4 +933,5 @@ namespace ifm3d_ros2
 } // end: namespace ifm3d_ros2
 
 #include <rclcpp_components/register_node_macro.hpp>
-RCLCPP_COMPONENTS_REGISTER_NODE(ifm3d_ros2::CameraNode)
+
+// RCLCPP_COMPONENTS_REGISTER_NODE(ifm3d_ros2::CameraNode)

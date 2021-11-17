@@ -42,6 +42,7 @@ def generate_launch_description():
     os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = \
       "[{%s}] {%s} [{%s}]: {%s}" % ("severity", "time", "name", "message")
 
+
     # XXX: This is a hack, there does not seem to be a nice way (or at least
     # finding the docs is not obvious) to do this with the ROS2 launch api
     #
@@ -91,8 +92,9 @@ def generate_launch_description():
 
         return tuple(retval)
 
+    print("After add prefix")
     remaps = list(map(add_prefix, remaps))
-
+    print("After remaps")
     #------------------------------------------------------------
     # Nodes
     #------------------------------------------------------------
@@ -108,22 +110,22 @@ def generate_launch_description():
                #output='screen',
                log_cmd=True
           )
-
+    print("After tf node exec")
     #
     # The camera component
     #
     camera_node = \
       LifecycleNode(
           package=package_name,
-          node_executable=node_exe,
-          node_namespace=node_namespace,
-          node_name=node_name,
+          executable=node_exe,
+          namespace=node_namespace,
+          name=node_name,
           output='screen',
           parameters=parameters,
           remappings=remaps,
           log_cmd=True,
           )
-
+    print("After camera node lifecycle def")
     #------------------------------------------------------------
     # Events we need to emit to induce state transitions
     #------------------------------------------------------------
@@ -136,6 +138,7 @@ def generate_launch_description():
               transition_id = lifecycle_msgs.msg.Transition.TRANSITION_CONFIGURE
               )
           )
+    print("After configure evt")
 
     camera_activate_evt = \
       EmitEvent(
@@ -145,6 +148,7 @@ def generate_launch_description():
               transition_id = lifecycle_msgs.msg.Transition.TRANSITION_ACTIVATE
               )
           )
+    print("After activate evt")
 
     camera_cleanup_evt = \
       EmitEvent(
@@ -154,8 +158,10 @@ def generate_launch_description():
               transition_id = lifecycle_msgs.msg.Transition.TRANSITION_CLEANUP
               )
           )
+    print("After cleanup evt")
 
     camera_shutdown_evt = EmitEvent(event=launch.events.Shutdown())
+    print("After shutdown evt")
 
     #------------------------------------------------------------
     # These are the edges of the state machine graph we want to autonomously
@@ -177,7 +183,7 @@ def generate_launch_description():
                   ],
               )
           )
-
+    print("After unconf to inactive")
     #
     # active -> deactivating -> inactive
     #
@@ -193,7 +199,7 @@ def generate_launch_description():
                   ],
               )
           )
-
+    print("After active to inactive")
     #
     # inactive -> cleaningup -> unconfigured
     #
@@ -209,7 +215,7 @@ def generate_launch_description():
                   ],
               )
           )
-
+    print("After inactive to unconfigured")
     #
     # * -> errorprocessing -> unconfigured
     #
@@ -225,7 +231,7 @@ def generate_launch_description():
                   ],
               )
           )
-
+    print("After error to unconfigured")
     #
     # * -> shuttingdown -> finalized
     #
@@ -241,7 +247,7 @@ def generate_launch_description():
                   ],
               )
           )
-
+    print("After shutdown to finalized")
     #------------------------------------------------------------
     # Now, add all the actions to a launch description and return it
     #------------------------------------------------------------

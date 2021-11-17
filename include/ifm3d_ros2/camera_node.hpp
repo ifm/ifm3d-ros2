@@ -36,7 +36,7 @@
 #include <sensor_msgs/msg/temperature.hpp>
 
 #include <ifm3d_ros2/visibility_control.h>
-#include <ifm3d/camera.h>
+#include <ifm3d/camera/camera_base.h>
 #include <ifm3d/fg.h>
 #include <ifm3d/image.h>
 #include <ifm3d_ros2/msg/extrinsics.hpp>
@@ -240,12 +240,13 @@ namespace ifm3d_ros2
     float timeout_tolerance_secs_;
     float frame_latency_thresh_; // seconds
     bool sync_clocks_;
+    std::uint16_t pcic_port_;
 
     DumpServer dump_srv_;
     ConfigServer config_srv_;
 
-    ifm3d::Camera::Ptr cam_;
-    ifm3d::FrameGrabber::Ptr fg_;
+    ifm3d::CameraBase::Ptr cam_;
+    ifm3d::FrameGrabber::Ptr fg_; 
     ifm3d::ImageBuffer::Ptr im_;
 
     cv::Mat uvec_;
@@ -258,6 +259,7 @@ namespace ifm3d_ros2
     PCLPublisher cloud_pub_;
     ExtrinsicsPublisher extrinsics_pub_;
     TemperaturePublisher temperature_pub_;
+    ImagePublisher rgb_pub_;
 
     std::thread pub_loop_;
     std::atomic_bool test_destroy_;
