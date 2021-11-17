@@ -94,11 +94,30 @@ $ colcon test-result --all
 [ ... output omitted ... ]
 ```
 
+We currently require to install and explicitly define the DDS settings:
+```
+# DO ONCE:
+$ sudo apt-get install ros-foxy-rmw-cyclonedds-cpp
+# DO EVERY TIME:
+$ export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+```
+
 Launch the camera node (assuming you are in `~/colcon/ifm3d_ros2`):
 ```
 $ . install/setup.bash
 $ ros2 launch ifm3d_ros2 camera_managed.launch.py
 ```
+
+To visualize data coming from a head plugged in another port than the default one (port 0), use a yaml file to pass in the parameters to the node through the launch file:
+```
+$ ros2 launch ifm3d_ros2 camera_managed.launch.py params:="/path/to/params.yaml"
+```
+
+To launch multiple heads in parallel, one can remap the node name for each launched node, for instance:
+```
+$ ros2 launch ifm3d_ros2 camera_managed.launch.py node:=camera0 params:="/path/to/params.yaml"
+```
+
 
 In a new shell, to visualize the data from the camera in rviz (assuming you are in
 `~/colcon/ifm3d_ros2`):

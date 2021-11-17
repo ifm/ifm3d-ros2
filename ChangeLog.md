@@ -1,3 +1,15 @@
+## 1.0.0 (2021-11) unreleased
+* Update the ROS node for the O3R camera
+* add a 2D RGB data publisher
+* add support for specifying the PCIC data communication TCP port
+* add example yaml file for multi PCIC TCP port settings
+* add boost to the list of dependencies
+
+### known limitations
+* DDS settings need to be set to cyclonedds
+* custom services can result in seg fault errors for ROS2 foxy default dds settings
+
+
 ## 0.3.0 (2020-01-31)
 
 * Publish camera temperature (Thanks @dustingooding of Houston Mechatronics)
