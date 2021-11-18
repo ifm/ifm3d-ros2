@@ -1,5 +1,5 @@
 #
-# Translation uints are mm, rotation units are degrees
+# Translation uints are m, rotation units are rad
 #
 std_msgs/Header header
 float32 tx
