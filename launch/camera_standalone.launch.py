@@ -89,7 +89,7 @@ def generate_launch_description():
     return LaunchDescription([
         ExecuteProcess(
             cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
-                 '0', '0', '0', str(-pi/2.), '0', str(-pi/2.),
+                 '0', '0', '0', '0', '0', '0',
                  str(node_name + "_link"), str(node_name + "_optical_link")],
             #output='screen',
             log_cmd=True

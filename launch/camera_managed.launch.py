@@ -105,12 +105,24 @@ def generate_launch_description():
     tf_node = \
       ExecuteProcess(
           cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
-               '0', '0', '0', str(-pi/2.), '0', str(-pi/2.),
+               '0', '0', '0', '0', '0', '0',
                str(node_name + "_link"), str(node_name + "_optical_link")],
                #output='screen',
                log_cmd=True
           )
     print("After tf node exec")
+    #
+    # (Dummy) Coord frame transform from camera_link to map frame
+    #
+    tf_map_link_node = \
+        ExecuteProcess(
+            cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
+                '0', '0', '0', '0', '0', '0',
+                str(node_name + "_optical_link"), "map"],
+                #output='screen',
+                log_cmd=True
+        )
+
     #
     # The camera component
     #
@@ -259,6 +271,7 @@ def generate_launch_description():
     ld.add_action(camera_node_errorprocessing_to_unconfigured_handler)
     ld.add_action(camera_node_shuttingdown_to_finalized_handler)
     ld.add_action(tf_node)
+    ld.add_action(tf_map_link_node)
     ld.add_action(camera_node)
     ld.add_action(camera_configure_evt)
 
