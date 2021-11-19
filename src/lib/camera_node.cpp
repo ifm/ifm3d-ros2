@@ -1,18 +1,8 @@
 /*
- * Copyright (C) 2019 ifm electronic, gmbh
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* SPDX-License-Identifier: Apache-2.0
+* Copyright (C) 2019 ifm electronic, gmbh
+*/
+
 #include <ifm3d_ros2/camera_node.hpp>
 
 #include <atomic>
@@ -45,6 +35,9 @@
 #include <ifm3d/image.h>
 #include <ifm3d_ros2/qos.hpp>
 
+#include <ifm3d/contrib/nlohmann/json.hpp>
+
+using json = nlohmann::json;
 using namespace std::chrono_literals;
 namespace enc = sensor_msgs::image_encodings;
 
@@ -662,7 +655,7 @@ namespace ifm3d_ros2
 
       try
         {
-          this->cam_->FromJSONStr(req->json); //HERE
+          this->cam_->FromJSON(json::parse(req->json)); //HERE
         }
       catch (const ifm3d::error_t& ex)
         {
@@ -713,7 +706,8 @@ namespace ifm3d_ros2
 
       try
         {
-          resp->config = this->cam_->ToJSONStr(); //HERE
+          json j = this->cam_->ToJSON(); //HERE
+          resp->config = j.dump();
         }
       catch (const ifm3d::error_t& ex)
         {
