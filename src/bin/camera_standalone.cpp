@@ -1,14 +1,14 @@
 /*
-* SPDX-License-Identifier: Apache-2.0
-* Copyright (C) 2019 ifm electronic, gmbh
-*/
+ * SPDX-License-Identifier: Apache-2.0
+ * Copyright (C) 2019 ifm electronic, gmbh
+ */
 
 #include <cstdio>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <ifm3d_ros2/camera_node.hpp>
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   std::setvbuf(stdout, NULL, _IONBF, BUFSIZ);
   std::cout << "Before INIT" << std::endl;
