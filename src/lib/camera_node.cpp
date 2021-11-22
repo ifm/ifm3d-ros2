@@ -28,7 +28,6 @@
 #include <rclcpp/parameter.hpp>
 #include <rmw/rmw.h>
 #include <sensor_msgs/image_encodings.hpp>
-#include <sensor_msgs/msg/temperature.hpp>
 
 #include <ifm3d/camera/camera_base.h>
 #include <ifm3d/fg.h>
@@ -77,9 +76,6 @@ namespace ifm3d_ros2
     //
     // Set up our publishers.
     //
-    this->uvec_pub_ =
-      this->create_publisher<ImageMsg>("~/unit_vectors",
-                                       ifm3d_ros2::LatchedQoS());
     this->xyz_pub_ =
       this->create_publisher<ImageMsg>("~/xyz_image",
                                        ifm3d_ros2::LowLatencyQoS());
@@ -100,9 +96,6 @@ namespace ifm3d_ros2
                                      ifm3d_ros2::LowLatencyQoS());
     this->extrinsics_pub_ =
       this->create_publisher<ExtrinsicsMsg>("~/extrinsics",
-                                            ifm3d_ros2::LowLatencyQoS());
-    this->temperature_pub_ =
-      this->create_publisher<TemperatureMsg>("~/temperature",
                                             ifm3d_ros2::LowLatencyQoS());
 
     this->rgb_pub_ = 
@@ -249,51 +242,9 @@ namespace ifm3d_ros2
       }
     */
 
-    //
-    // Initialize the framegrabber and image buffer so we can capture the unit
-    // vectors from the camera.
-    //
-    RCLCPP_INFO(this->logger_,
-                "Initializing FrameGrabber to fetch unit vectors...");
-    this->fg_ =
-      std::make_shared<ifm3d::FrameGrabber>(this->cam_, ifm3d::IMG_UVEC, this->pcic_port_); 
-
-    RCLCPP_INFO(this->logger_, "Initializing ImageBuffer...");
-    this->im_ = std::make_shared<ifm3d::ImageBuffer>(); 
-
-    RCLCPP_INFO(this->logger_, "Attempting to cache unit vectors...");
-
-    try
-      {
-        auto start = std::chrono::steady_clock::now();
-        while (! this->fg_->WaitForFrame(this->im_.get(),
-                                         this->timeout_millis_))
-          {
-            RCLCPP_WARN(this->logger_, "Timeout waiting for unit vectors");
-            auto diff = std::chrono::steady_clock::now() - start;
-            if (std::chrono::duration<double>(diff).count() >=
-                this->timeout_tolerance_secs_)
-              {
-                RCLCPP_WARN(this->logger_, "Timeout tolerance exceeded!");
-                throw std::runtime_error("Timeout waiting for unit vectors!");
-              }
-            else
-              {
-                RCLCPP_INFO(this->logger_, "Retrying unit vectors...");
-              }
-          }
-        RCLCPP_INFO(this->logger_, "Got unit vectors!");
-        // cache the unit vectors (we publish these on a latched topic)
-        this->uvec_ = this->im_->UnitVectors();
-      }
-    catch (const ifm3d::error_t& ex)
-      {
-        RCLCPP_WARN(this->logger_, ex.what());
-        throw;
-      }
 
     //
-    // Clean up the core ifm3d structures and re-establish with the requested
+    // Clean up the core ifm3d structures and establish with the requested
     // schema mask. Technically, only the `fg` and `im` need to be
     // re-established, but for compat with the ROS 1 node, we will do `cam` as
     // well.
@@ -327,7 +278,6 @@ namespace ifm3d_ros2
 
     //  activate all publishers
     RCLCPP_INFO(this->logger_, "Activating publishers...");
-    this->uvec_pub_->on_activate();
     this->xyz_pub_->on_activate();
     this->conf_pub_->on_activate();
     this->distance_pub_->on_activate();
@@ -335,7 +285,6 @@ namespace ifm3d_ros2
     this->raw_amplitude_pub_->on_activate();
     this->cloud_pub_->on_activate();
     this->extrinsics_pub_->on_activate();
-    this->temperature_pub_->on_activate();
     this->rgb_pub_->on_activate();
     RCLCPP_INFO(this->logger_, "Publishers activated.");
 
@@ -370,7 +319,6 @@ namespace ifm3d_ros2
 
     // explicitly deactive the publishers
     RCLCPP_INFO(this->logger_, "Deactivating publishers...");
-    this->temperature_pub_->on_deactivate();
     this->extrinsics_pub_->on_deactivate();
     this->cloud_pub_->on_deactivate();
     this->raw_amplitude_pub_->on_deactivate();
@@ -378,7 +326,6 @@ namespace ifm3d_ros2
     this->distance_pub_->on_deactivate();
     this->conf_pub_->on_deactivate();
     this->xyz_pub_->on_deactivate();
-    this->uvec_pub_->on_deactivate();
     RCLCPP_INFO(this->logger_, "Publishers deactivated.");
 
     return TC_RETVAL::SUCCESS;
@@ -392,8 +339,6 @@ namespace ifm3d_ros2
                 this->get_current_state().label().c_str());
 
     std::lock_guard<std::mutex> lock(this->gil_);
-    RCLCPP_INFO(this->logger_, "Releasing unit vectors...");
-    this->uvec_.release();
     RCLCPP_INFO(this->logger_, "Resetting core ifm3d data structures...");
     this->im_.reset();
     this->fg_.reset();
@@ -429,8 +374,6 @@ namespace ifm3d_ros2
     this->stop_publish_loop();
 
     std::lock_guard<std::mutex> lock(this->gil_);
-    RCLCPP_INFO(this->logger_, "Releasing unit vectors...");
-    this->uvec_.release();
     RCLCPP_INFO(this->logger_, "Resetting core ifm3d data structures...");
     this->im_.reset();
     this->fg_.reset();
@@ -748,15 +691,6 @@ namespace ifm3d_ros2
     optical_head.frame_id = this->optical_frame_;
     optical_head.stamp = head.stamp;
 
-    // Construct the unit vector message once and publish once ("latched")
-    {
-      std::lock_guard<std::mutex> lock(this->gil_);
-      auto uvec_msg =
-        cv_bridge::CvImage(optical_head,
-                           enc::TYPE_32FC3,
-                           this->uvec_).toImageMsg();
-      this->uvec_pub_->publish(std::move(*uvec_msg));
-    }
 
     pcl::PointCloud<ifm3d::PointT>::Ptr
       cloud(new pcl::PointCloud<ifm3d::PointT>());
@@ -766,7 +700,6 @@ namespace ifm3d_ros2
     cv::Mat amplitude_img;
     cv::Mat raw_amplitude_img;
     std::vector<float> extrinsics(6);
-    double temperature; // illu. temp.
     cv::Mat rgb_img;
     rclcpp::Time last_frame_time = head.stamp;
 
@@ -829,7 +762,6 @@ namespace ifm3d_ros2
           amplitude_img = this->im_->AmplitudeImage();
           raw_amplitude_img = this->im_->RawAmplitudeImage();
           extrinsics = this->im_->Extrinsics();
-          temperature = this->im_->IlluTemp();
           rgb_img = this->im_->JPEGImage();
 
         } // closes our GIL scope
@@ -841,7 +773,7 @@ namespace ifm3d_ros2
         // Confidence image is invariant - no need to check the mask
         this->conf_pub_->publish(
           std::move(*(cv_bridge::CvImage(optical_head,
-                                         "mono8",
+                                         "mono16",
                                          confidence_img).toImageMsg())));
 
         if ((this->schema_mask_ & ifm3d::IMG_CART) == ifm3d::IMG_CART)
@@ -886,13 +818,6 @@ namespace ifm3d_ros2
                             raw_amplitude_img).toImageMsg())));
           }
 
-        if ((this->schema_mask_ & ifm3d::ILLU_TEMP) == ifm3d::ILLU_TEMP)
-          {
-            sensor_msgs::msg::Temperature temperature_msg;
-            temperature_msg.header = head;
-            temperature_msg.temperature = temperature;
-            this->temperature_pub_->publish(temperature_msg);
-          }
         if(!rgb_img.empty())
         {
           cv::Mat im_decode = cv::imdecode(rgb_img, cv::IMREAD_UNCHANGED);
