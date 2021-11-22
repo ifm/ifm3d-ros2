@@ -94,6 +94,14 @@ CameraNode::CameraNode(const std::string& node_name, const rclcpp::NodeOptions& 
       "~/Config", std::bind(&ifm3d_ros2::CameraNode::Config, this, std::placeholders::_1, std::placeholders::_2,
                             std::placeholders::_3));
 
+  this->soft_off_srv_ = this->create_service<SoftoffService>(
+      "~/Softoff", std::bind(&ifm3d_ros2::CameraNode::Softoff, this, std::placeholders::_1, std::placeholders::_2,
+                             std::placeholders::_3));
+
+  this->soft_on_srv_ = this->create_service<SoftonService>(
+      "~/Softon", std::bind(&ifm3d_ros2::CameraNode::Softon, this, std::placeholders::_1, std::placeholders::_2,
+                            std::placeholders::_3));
+
   RCLCPP_INFO(this->logger_, "node created, waiting for `configure()`...");
 }
 
@@ -161,60 +169,6 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   //
   // Initialize the camera interface
   //
-  RCLCPP_INFO(this->logger_, "Initializing camera...");
-  this->cam_ = ifm3d::CameraBase::MakeShared(this->ip_, this->xmlrpc_port_, this->password_);
-
-  //
-  // Sync clocks
-  //
-  // XXX: This "sync" is only to second resolution, so, it is not very
-  // good. Some of the ifm cameras have on-board NTP which is a better option
-  // than using this method.
-  //
-  // NOTE: to remain compatible with the ifm3d ROS 1 node, we will consider
-  // being unable to sync clocks as a non-fatal error. This means that images
-  // will be stamped with *reception time* not *acquisition time* (i.e.,
-  // there will be some latency.
-  //
-  /*
-  // SetCurrentTime not available for CameraBase class!
-  if (this->sync_clocks_)
-    {
-      RCLCPP_INFO(this->logger_,
-                  "Attempting to sync camera clock to system...");
-      RCLCPP_WARN(
-        this->logger_,
-        "For less latency and better precision, try on-camera NTP sync");
-
-      try
-        {
-          this->cam_->SetCurrentTime(-1);
-          RCLCPP_INFO(this->logger_, "clock sync OK.");
-        }
-      catch (const ifm3d::error_t& ex)
-        {
-          RCLCPP_WARN(this->logger_, "Failed to sync clocks!");
-          RCLCPP_WARN(this->logger_, "%d: %s", ex.code(), ex.what());
-          // throw; // <-- forces a state transition to `ErrorProcessing`
-        }
-    }
-  else
-    {
-      RCLCPP_INFO(this->logger_,
-                  "Camera clock will not be sync'd to system clock.");
-    }
-  */
-
-  //
-  // Clean up the core ifm3d structures and establish with the requested
-  // schema mask. Technically, only the `fg` and `im` need to be
-  // re-established, but for compat with the ROS 1 node, we will do `cam` as
-  // well.
-  //
-  RCLCPP_INFO(this->logger_, "Running ifm3d dtors...");
-  this->im_.reset();
-  this->fg_.reset();
-  this->cam_.reset();
 
   RCLCPP_INFO(this->logger_, "Initializing camera...");
   this->cam_ = ifm3d::CameraBase::MakeShared(this->ip_, this->xmlrpc_port_, this->password_);
@@ -589,6 +543,96 @@ void CameraNode::Dump(const std::shared_ptr<rmw_request_id_t>, const DumpRequest
   }
 
   RCLCPP_INFO(this->logger_, "Dump request done.");
+}
+
+void CameraNode::Softoff(const std::shared_ptr<rmw_request_id_t>, const SoftoffRequest, const SoftoffResponse resp)
+{
+  RCLCPP_INFO(this->logger_, "Handling SoftOff request...");
+
+  if (this->get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+  {
+    resp->status = -1;
+    RCLCPP_WARN(this->logger_, "Can only make a service request when node is ACTIVE");
+    return;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(this->gil_);
+    resp->status = 0;
+    int port_arg = -1;
+
+    try
+    {
+      port_arg = static_cast<int>(this->pcic_port_) % 50010;
+      this->cam_->FromJSONStr("{\"ports\":{\"port" + std::to_string(port_arg) + "\": {\"state\": \"IDLE\"}}}");
+    }
+    catch (const ifm3d::error_t& ex)
+    {
+      resp->status = ex.code();
+      RCLCPP_WARN(this->logger_, ex.what());
+    }
+    catch (const std::exception& std_ex)
+    {
+      resp->status = -1;
+      RCLCPP_WARN(this->logger_, std_ex.what());
+    }
+    catch (...)
+    {
+      resp->status = -2;
+    }
+
+    if (resp->status != 0)
+    {
+      RCLCPP_WARN(this->logger_, "SoftOff: %d", resp->status);
+    }
+  }
+
+  RCLCPP_INFO(this->logger_, "SoftOff request done.");
+}
+
+void CameraNode::Softon(const std::shared_ptr<rmw_request_id_t>, const SoftonRequest, const SoftonResponse resp)
+{
+  RCLCPP_INFO(this->logger_, "Handling SoftOn request...");
+
+  if (this->get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+  {
+    resp->status = -1;
+    RCLCPP_WARN(this->logger_, "Can only make a service request when node is ACTIVE");
+    return;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(this->gil_);
+    resp->status = 0;
+    int port_arg = -1;
+
+    try
+    {
+      port_arg = static_cast<int>(this->pcic_port_) % 50010;
+      this->cam_->FromJSONStr("{\"ports\":{\"port" + std::to_string(port_arg) + "\":{\"state\":\"RUN\"}}}");
+    }
+    catch (const ifm3d::error_t& ex)
+    {
+      resp->status = ex.code();
+      RCLCPP_WARN(this->logger_, ex.what());
+    }
+    catch (const std::exception& std_ex)
+    {
+      resp->status = -1;
+      RCLCPP_WARN(this->logger_, std_ex.what());
+    }
+    catch (...)
+    {
+      resp->status = -2;
+    }
+
+    if (resp->status != 0)
+    {
+      RCLCPP_WARN(this->logger_, "SoftOn: %d", resp->status);
+    }
+  }
+
+  RCLCPP_INFO(this->logger_, "SoftOn request done.");
 }
 
 //
