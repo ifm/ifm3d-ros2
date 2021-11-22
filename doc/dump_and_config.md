@@ -1,189 +1,244 @@
+# ifm3d-ros2: Dump and Config
 
-ifm3d-ros2: Dump and Config
-============================
+The ifm3d_ros2 package allows us to configure the O3R camera platform via two separate ways:  
+1. Use ROS native service calls
+2. Use dump and config service proxies
 
-`ifm3d-ros2` provides access to the camera/imager parameters via the `Dump` and
-`Config` services exposed by the `camera_node`. Additionally, command-line
-scripts called `dump` and `config` are provided as wrapper interfaces to those
-services. This gives a feel similar to using the underlying `ifm3d`
-command-line tool from the ROS-independent driver except proxying the calls
-through the ros network.
+## 1. ROS native service calls
+Per camera head connected to the visual processing unit (VPU) of the O3R platform these services are available:  
+
+| Name | Service Definition | Description |
+| ---- | ---- | ---- |
+| Dump | ifm3d_ros2/camera/Dump | Dumps the state of the camera system as a JSON (formatted as a string) |
+| Config | ifm3d_ros2/camera/Config | Provides a means to configure the VPU and Heads (imager settings), declaratively from a JSON (string) encoding of the desired settings. |
+
+As you can see the two services `Dump` and `Config` are also part of this list. 
+
+### Dump
+Calling the native ROS service `/ifm3d_ros2/camera/Dump` for a certain `camera` will return a string containing with the camera configuration as a JSON string. Please notice the use of backslashes (`\` before each `"`) to escape each upper quotation mark. This is necessary to allow us to keep the JSON syntax native to the underlying API (ifm3d).  
+
+Call this service via, e.g. for camera:
+```
+$ ros2 service call /ifm3d/camera/Dump ifm3d_ros2/srv/Dump
+
+1637355550.468025 [0]       ros2: using network interface enp0s31f6 (udp/192.168.0.10) selected arbitrarily from: enp0s31f6, wlp0s20f3, docker0, enx98fc84eebfc8
+requester: making request: ifm3d_ros2.srv.Dump_Request()
+
+response:
+ifm3d_ros2.srv.Dump_Response(status=0, config='{"device":{"clock":{"currentTime":1581110268783361824},"diagnostic":{"temperatures":[],"upTime":19624000000000},"info":{"device":"0301","deviceTreeBinaryBlob":"tegra186-quill-p3310-1000-c03-00-base.dtb","features":{},"name":"","partNumber":"M03975","productionState":"AA","serialNumber":"000201234159","vendor":"0001"},"network":{"authorized_keys":"","ipAddressConfig":0,"macEth0":"00:04:4B:EA:9F:35","macEth1":"00:02:01:23:41:59","networkSpeed":1000,"staticIPv4Address":"192.168.0.69","staticIPv4Gateway":"192.168.0.201","staticIPv4SubNetMask":"255.255.255.0","useDHCP":false},"state":{"errorMessage":"","errorNumber":""},"swVersion":{"kernel":"4.9.140-l4t-r32.4+gc35f5eb9d1d9","l4t":"r32.4.3","os":"0.13.13-221","schema":"v0.1.0","swu":"0.15.12"}},"ports":{"port0":{"acquisition":{"framerate":10.0,"version":{"major":0,"minor":0,"patch":0}},"data":{"algoDebugConfig":{},"availablePCICOutput":[],"pcicTCPPort":50010},"info":{"device":"2301","deviceTreeBinaryBlobOverlay":"001-ov9782.dtbo","features":{"fov":{"horizontal":127,"vertical":80},"resolution":{"height":800,"width":1280},"type":"2D"},"name":"","partNumber":"M03969","productionState":"AA","sensor":"OV9782","sensorID":"OV9782_127x80_noIllu_Csample","serialNumber":"000000000395","vendor":"0001"},"mode":"experimental_autoexposure2D","processing":{"extrinsicHeadToUser":{"rotX":0.0,"rotY":0.0,"rotZ":0.0,"transX":0.0,"transY":0.0,"transZ":0.0},"version":{"major":0,"minor":0,"patch":0}},"state":"RUN"}}')
+```
+
+
+### Config
+Below you can see an example on how to configure your camera via a ROS service call. The JSON string can be a partial JSON string. It only needs to follow basic JSON syntax. Please wrap the JSON string in a YAML syntax and use the field `"json"`.
+
+```
+$ ros2 service call /ifm3d/camera/Config ifm3d_ros2/srv/Config "{json: '{\"ports\":{\"port0\":{\"mode\":\"standard_range4m\"}}}'}"
+1637355711.266033 [0]       ros2: using network interface enp0s31f6 (udp/192.168.0.10) selected arbitrarily from: enp0s31f6, wlp0s20f3, docker0, enx98fc84eebfc8
+requester: making request: ifm3d_ros2.srv.Config_Request(json='{"ports":{"port2":{"mode":"standard_range4m"}}}')
+
+response:
+ifm3d_ros2.srv.Config_Response(status=0, msg='OK')
+```
+
+
+
+## 2. dump and config service proxies
+`ifm3d-ros2` provides access to each camera parameter via the `Dump` and `Config` services exposed by the `camera_node`. 
+
+Additionally, command-line scripts called `dump` and `config` are provided as wrapper interfaces to the native API `ifm3d`. This gives a feel similar to using the underlying C++ API's command-line tool, from the ROS-independent driver except proxying the calls through the ROS network.
 
 For example, to dump the state of the camera:
-
-(exemplary output from an O3D303 is shown)
+(exemplary output from an O3R perception platform with one camera head connected is shown)
 
 ```
 $ ros2 run ifm3d_ros2 dump
 {
-    "ifm3d": {
-        "Apps": [
-            {
-                "Description": "Full-layer Depalletization",
-                "Id": "1999576749",
-                "Imager": {
-                    "AutoExposureMaxExposureTime": "10000",
-                    "AutoExposureReferencePointX": "88",
-                    "AutoExposureReferencePointY": "66",
-                    "AutoExposureReferenceROI": "{\"ROIs\":[{\"id\":0,\"group\":0,\"type\":\"Rect\",\"width\":130,\"height\":100,\"angle\":0,\"center_x\":88,\"center_y\":66}]}",
-                    "AutoExposureReferenceType": "0",
-                    "Channel": "0",
-                    "ClippingBottom": "131",
-                    "ClippingCuboid": "{\"XMin\": -3.402823e+38, \"XMax\": 3.402823e+38, \"YMin\": -3.402823e+38, \"YMax\": 3.402823e+38, \"ZMin\": -3.402823e+38, \"ZMax\": 3.402823e+38}",
-                    "ClippingLeft": "0",
-                    "ClippingRight": "175",
-                    "ClippingTop": "0",
-                    "ContinuousAutoExposure": "false",
-                    "ContinuousUserFrameCalibration": "false",
-                    "EnableAmplitudeCorrection": "true",
-                    "EnableFastFrequency": "false",
-                    "EnableFilterAmplitudeImage": "true",
-                    "EnableFilterDistanceImage": "true",
-                    "EnableRectificationAmplitudeImage": "false",
-                    "EnableRectificationDistanceImage": "false",
-                    "ExposureTime": "5000",
-                    "ExposureTimeList": "125;5000",
-                    "ExposureTimeRatio": "40",
-                    "FrameRate": "5",
-                    "MaxAllowedLEDFrameRate": "11.9",
-                    "MinimumAmplitude": "42",
-                    "Resolution": "0",
-                    "SpatialFilter": {},
-                    "SpatialFilterType": "0",
-                    "SymmetryThreshold": "0.4",
-                    "TemporalFilter": {},
-                    "TemporalFilterType": "0",
-                    "ThreeFreqMax2FLineDistPercentage": "80",
-                    "ThreeFreqMax3FLineDistPercentage": "80",
-                    "TwoFreqMaxLineDistPercentage": "80",
-                    "Type": "upto30m_moderate",
-                    "UseSimpleBinning": "false"
-                },
-                "Index": "1",
-                "LogicGraph": "{\"IOMap\": {\"OUT1\": \"RFT\",\"OUT2\": \"AQUFIN\"},\"blocks\": {\"B00001\": {\"pos\": {\"x\": 200,\"y\": 200},\"properties\": {},\"type\": \"PIN_EVENT_IMAGE_ACQUISITION_FINISHED\"},\"B00002\": {\"pos\": {\"x\": 200,\"y\": 75},\"properties\": {},\"type\": \"PIN_EVENT_READY_FOR_TRIGGER\"},\"B00003\": {\"pos\": {\"x\": 600,\"y\": 75},\"properties\": {\"pulse_duration\": 0},\"type\": \"DIGITAL_OUT1\"},\"B00005\": {\"pos\": {\"x\": 600,\"y\": 200},\"properties\": {\"pulse_duration\": 0},\"type\": \"DIGITAL_OUT2\"}},\"connectors\": {\"C00000\": {\"dst\": \"B00003\",\"dstEP\": 0,\"src\": \"B00002\",\"srcEP\": 0},\"C00001\": {\"dst\": \"B00005\",\"dstEP\": 0,\"src\": \"B00001\",\"srcEP\": 0}}}",
-                "Name": "dpal",
-                "PcicEipResultSchema": "{ \"layouter\": \"flexible\", \"format\": { \"dataencoding\": \"binary\", \"order\": \"big\" }, \"elements\" : [ { \"type\": \"string\", \"value\": \"star\", \"id\": \"start_string\" }, { \"type\": \"records\", \"id\": \"models\", \"elements\": [ { \"type\": \"int16\", \"id\": \"boxFound\" }, { \"type\": \"int16\", \"id\": \"width\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"height\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"length\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"xMidTop\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"yMidTop\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"zMidTop\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"yawAngle\" }, { \"type\": \"int16\", \"id\": \"qualityLength\" }, { \"type\": \"int16\", \"id\": \"qualityWidth\" }, { \"type\": \"int16\", \"id\": \"qualityHeight\" } ] }, { \"type\": \"string\", \"value\": \"stop\", \"id\": \"end_string\" } ] }",
-                "PcicPnioResultSchema": "{\"layouter\" : \"flexible\", \"format\": { \"dataencoding\": \"binary\", \"order\": \"big\" }, \"elements\" : [ { \"type\": \"string\", \"value\": \"star\", \"id\": \"start_string\" }, { \"type\": \"records\", \"id\": \"models\", \"elements\": [ { \"type\": \"int16\", \"id\": \"boxFound\" }, { \"type\": \"int16\", \"id\": \"width\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"height\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"length\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"xMidTop\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"yMidTop\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"zMidTop\", \"format\": { \"scale\": 1000 } }, { \"type\": \"int16\", \"id\": \"yawAngle\" }, { \"type\": \"int16\", \"id\": \"qualityLength\" }, { \"type\": \"int16\", \"id\": \"qualityWidth\" }, { \"type\": \"int16\", \"id\": \"qualityHeight\" } ] }, { \"type\": \"string\", \"value\": \"stop\", \"id\": \"end_string\" } ] }",
-                "PcicTcpResultSchema": "{ \"layouter\": \"flexible\", \"format\": { \"dataencoding\": \"ascii\" }, \"elements\": [ { \"type\": \"string\", \"value\": \"star\", \"id\": \"start_string\" }, { \"type\": \"blob\", \"id\": \"normalized_amplitude_image\" }, { \"type\": \"blob\", \"id\": \"distance_image\" }, { \"type\": \"blob\", \"id\": \"x_image\" }, { \"type\": \"blob\", \"id\": \"y_image\" }, { \"type\": \"blob\", \"id\": \"z_image\" }, { \"type\": \"blob\", \"id\": \"confidence_image\" }, { \"type\": \"blob\", \"id\": \"diagnostic_data\" }, { \"type\": \"string\", \"value\": \"stop\", \"id\": \"end_string\" } ] }",
-                "RtspOverlayStyle": "{\"ROI\": {\"default\": {\"visible\": true, \"filled\": false, \"use_symbol\": false, \"label_alignment\": \"top\", \"label_content\": \"\", \"label_background\": \"black\", \"label_fontsize\": 8, \"label_failonly\": false}, \"model_defaults\": {}, \"specific\": {} } }",
-                "TemplateInfo": "",
-                "TriggerMode": "1",
-                "Type": "Camera"
-            }
-        ],
-        "Device": {
-            "ActiveApplication": "1",
-            "ArticleNumber": "O3D303",
-            "ArticleStatus": "AD",
-            "Description": "Goldeneye_1.5.371-patched.swu",
-            "DeviceType": "1:2",
-            "EIPConsumingSize": "8",
-            "EIPProducingSize": "450",
-            "EnableAcquisitionFinishedPCIC": "false",
-            "EthernetFieldBus": "1",
-            "EthernetFieldBusEndianness": "0",
-            "EvaluationFinishedMinHoldTime": "10",
-            "ExtrinsicCalibRotX": "0",
-            "ExtrinsicCalibRotY": "0",
-            "ExtrinsicCalibRotZ": "0",
-            "ExtrinsicCalibTransX": "0",
-            "ExtrinsicCalibTransY": "0",
-            "ExtrinsicCalibTransZ": "0",
-            "IODebouncing": "true",
-            "IOExternApplicationSwitch": "0",
-            "IOLogicType": "1",
-            "IPAddressConfig": "0",
-            "ImageTimestampReference": "1538395793",
-            "Name": "My Camera",
-            "OperatingMode": "0",
-            "PNIODeviceName": "",
-            "PasswordActivated": "false",
-            "PcicProtocolVersion": "3",
-            "PcicTcpPort": "50010",
-            "PcicTcpSchemaAutoUpdate": "false",
-            "SaveRestoreStatsOnApplSwitch": "true",
-            "ServiceReportFailedBuffer": "15",
-            "ServiceReportPassedBuffer": "15",
-            "SessionTimeout": "30",
-            "TemperatureFront1": "3276.7",
-            "TemperatureFront2": "3276.7",
-            "TemperatureIMX6": "62.2599983215332",
-            "TemperatureIllu": "66.9",
-            "UpTime": "2.76944444444444"
-        },
-        "Net": {
-            "MACAddress": "00:02:01:40:97:AB",
-            "NetworkSpeed": "0",
-            "StaticIPv4Address": "192.168.0.69",
-            "StaticIPv4Gateway": "192.168.0.201",
-            "StaticIPv4SubNetMask": "255.255.255.0",
-            "UseDHCP": "false"
-        },
-        "Time": {
-            "CurrentTime": "1538395791",
-            "NTPServers": "",
-            "StartingSynchronization": "false",
-            "Stats": "",
-            "SynchronizationActivated": "false",
-            "Syncing": "false",
-            "WaitSyncTries": "2"
-        },
-        "_": {
-            "Date": "Wed Jun 26 15:00:03 2019",
-            "HWInfo": {
-                "Connector": "#!02_A300_C40_03408592_008023176",
-                "Diagnose": "#!02_D322_C34_03370362_008026824",
-                "Frontend": "#!02_F342_C34_18_00017_008023607",
-                "Illumination": "#!02_I300_001_03423860_008001175",
-                "MACAddress": "00:02:01:40:97:AB",
-                "Mainboard": "#!02_M381_C41_03144276_008023690",
-                "MiraSerial": "0030-608d-0170-064c"
-            },
-            "SWVersion": {
-                "Algorithm_Version": "2.1.9",
-                "Calibration_Device": "00:02:01:40:97:ab",
-                "Calibration_Version": "0.9.0",
-                "Diagnostic_Controller": "v1.0.77-d1383f8f56-dirty",
-                "IFM_Recovery": "unversioned",
-                "IFM_Software": "1.23.2848",
-                "Linux": "Linux version 3.14.34-rt31-yocto-standard-00010-g82eeb38179d5-dirty (jenkins@dettlx190) (gcc version 4.9.2 (GCC) ) #1 SMP PREEMPT RT Wed Sep 12 09:50:11 CEST 2018",
-                "Main_Application": "1.0.77"
-            },
-            "ifm3d_version": 1300
-        }
+  "device": {
+    "clock": {
+      "currentTime": 1581193835185485800
+    },
+    "diagnostic": {
+      "temperatures": [],
+      "upTime": 103190000000000
+    },
+    "info": {
+      "device": "0301",
+      "deviceTreeBinaryBlob": "tegra186-quill-p3310-1000-c03-00-base.dtb",
+      "features": {},
+      "name": "",
+      "  partNumber": "M03975",
+      "productionState": "AA",
+      "serialNumber": "000201234160",
+      "vendor": "0001"
+    },
+    "network": {
+      "authorized_keys": "",
+      "ipAddressConfig": 0,
+      "macEth0": "00:04:4B:EA:9F:0E",
+      "macEth1": "00:02:01:23:41:60",
+      "networkSpeed": 1000,
+      "staticIPv4Address": "192.168.0.69",
+      "staticIPv4Gateway": "192.168.0.201",
+      "staticIPv4SubNetMask": "255.255.255.0",
+      "useDHCP": false
+    },
+    "state": {
+      "errorMessage": "",
+      "errorNumber": ""
+    },
+    "swVersion": {
+      "kernel": "4.9.140-l4t-r32.4+gc35f5eb9d1d9",
+      "l4t": "r32.4.3",
+      "os": "0.13.13-221",
+      "schema": "v0.1.0",
+      "swu": "0.15.12"
     }
+  },
+  "ports": {
+    "port0": {
+      "acquisition": {
+        "framerate": 10,
+        "version": {
+          "major": 0,
+          "minor": 0,
+          "patch": 0
+        }
+      },
+      "data": {
+        "algoDebugConfig": {},
+        "availablePCICOutput": [],
+        "pcicTCPPort": 50010
+      },
+      "info": {
+        "device": "2301",
+        "deviceTreeBinaryBlobOverlay": "001-ov9782.dtbo",
+        "features": {
+          "fov": {
+            "horizontal": 127,
+            "vertical": 80
+          },
+          "  resolution": {
+            "height": 800,
+            "width": 1280
+          },
+          "type": "2D"
+        },
+        "name": "",
+        "partNumber": "M03969",
+        "productionState": "AA",
+        "sensor": "OV9782",
+        "sensorID": "OV9782_127x80_noIllu_Csample",
+        "serialNumber": "000000000382",
+        "vendor": "0001"
+      },
+      "mode": "experimental_autoexposure2D",
+      "processing": {
+        "extrinsicHeadToUser": {
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "  transX": 0,
+          "transY": 0,
+          "transZ": 0
+        },
+        "version": {
+          "major": 0,
+          "minor": 0,
+          "  patch": 0
+        }
+      },
+      "state": "RUN"
+    },
+    "port2": {
+      "acquisition": {
+        "exposureLong": 5000,
+        "  exposureShort": 400,
+        "framerate": 10,
+        "offset": 0,
+        "version": {
+          "major": 0,
+          "  minor": 0,
+          "patch": 0
+        }
+      },
+      "data": {
+        "algoDebugConfig": {},
+        "availablePCICOutput": [],
+        "pcicTCPPort": 50012
+      },
+      "info": {
+        "device": "3101",
+        "deviceTreeBinaryBlobOverlay": "001-irs2381c.dtbo",
+        "features": {
+          "fov": {
+            "horizontal": 105,
+            "vertical": 78
+          },
+          "  resolution": {
+            "height": 172,
+            "width": 224
+          },
+          "type": "3D"
+        },
+        "name": "",
+        "partNumber": "M03969",
+        "productionState": "AA",
+        "sensor": "IRS2381C",
+        "sensorID": "IRS2381C_105x78_4x2W_110x90_C7",
+        "serialNumber": "000000000382",
+        "vendor": "0001"
+      },
+      "mode": "standard_range4m",
+      "processing": {
+        "diParam": {
+          "anfFilterSizeDiv2": 2,
+          "enableDynamicSymmetry": true,
+          "enableStraylight": true,
+          "enableTemporalFilter": true,
+          "excessiveCorrectionThreshAmp": 0.3,
+          "excessiveCorrectionThreshDist": 0.08,
+          "maxDistNoise": 0.02,
+          "maxSymmetry": 0.4,
+          "medianSizeDiv2": 0,
+          "minAmplitude": 20,
+          "minReflectivity": 0,
+          "mixedPixelFilterMode": 1,
+          "mixedPixelThresholdRad": 0.15
+        },
+        "extrinsicHeadToUser": {
+          "rotX": 1,
+          "rotY": 0,
+          "rotZ": 0,
+          "transX": 100,
+          "transY": 0,
+          "transZ": 0
+        },
+        "version": {
+          "  major": 0,
+          "minor": 0,
+          "patch": 0
+        }
+      },
+      "state": "RUN"
+    }
+  }
 }
 ```
 
-Chaining together Linux pipelines works just as it does in `ifm3d`. For
-example, using a combination of `dump` and `config` to change the frame rate
-from 5Hz to 10Hz of the single application on this particular camera would look
-like:
+Chaining together Linux pipelines works just as it does in `ifm3d`. For example, using a combination of `dump` and `config` to change the frame rate
+from 5Hz to 10Hz of the single application on this particular camera would look like:
 
 ```
-$ ros2 run ifm3d_ros2 dump | jq '.ifm3d.Apps[0].Imager.FrameRate="10"' | ros2 run ifm3d_ros2 config
-```
-
-You can check that it worked with:
-
-```
-$ ros2 run ifm3d_ros2 dump | jq .ifm3d.Apps[0].Imager.FrameRate
-"10"
+$ ros2 run ifm3d_ros2 dump | jq '.ports.port0.mode="standard_range2m"' | ros2 run ifm3d_ros2 config
+$ ros2 run ifm3d_ros2 dump | jq .ports.port0.mode
+"standard_range2m"
 ```
 
 **NOTE:** If you do not have `jq` on your system, it can be installed with: `$ sudo apt install jq`
 
-For the `config` command, one difference between our ROS implementation and the
-`ifm3d` implementation is that we only accept input on `stdin`. So, if you had
-a file with JSON you wish to configure your camera with, you would simply use the
-file I/O redirection facilities of your shell (or something like `cat`) to feed
-the data to `stdin`. For example, in `bash`:
+For the `config` command, one difference between our ROS implementation and the `ifm3d` implementation is that we only accept input on `stdin`. So, if you had a file with JSON you wish to configure your camera with, you would simply use the file I/O redirection facilities of your shell (or something like `cat`) to feed the data to `stdin`. For example, in `bash`:
 
 ```
 $ ros2 run ifm3d_ros2 config < camera.json
 ```
-
-Beyond the requirement of prefacing your command-line with `ros2 run ...` to invoke
-the ROS version of these tools, they operate the same. To learn more about the
-functionality and concepts, you can read the docs
-[here](https://github.com/lovepark/ifm3d/blob/master/doc/configuring.md).
