@@ -23,7 +23,6 @@
 #include <rmw/rmw.h>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <sensor_msgs/msg/temperature.hpp>
 
 #include <ifm3d_ros2/visibility_control.h>
 #include <ifm3d/camera/camera_base.h>
@@ -49,10 +48,6 @@ namespace
   using ExtrinsicsMsg = ifm3d_ros2::msg::Extrinsics;
   using ExtrinsicsPublisher =
     std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ExtrinsicsMsg>>;
-
-  using TemperatureMsg = sensor_msgs::msg::Temperature;
-  using TemperaturePublisher =
-    std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<TemperatureMsg>>;
 
   using DumpRequest = std::shared_ptr<ifm3d_ros2::srv::Dump::Request>;
   using DumpResponse = std::shared_ptr<ifm3d_ros2::srv::Dump::Response>;
@@ -113,7 +108,6 @@ namespace ifm3d_ros2
      *
      * - Parameters are parsed and held locally in instance variables.
      * - If requested, the camera clock is synchronized to the system clock
-     * - Unit vectors are retrieved from the camera and cached in the node
      * - The core ifm3d data structures (camera, framegrabber, image buffer)
      *   are initialized and ready to stream data based upon the requested
      *   schema mask.
@@ -146,7 +140,6 @@ namespace ifm3d_ros2
      *
      * The following operations are performed:
      *
-     * - The cached unit vectors are deallocated
      * - The ifm3d core data structures (camera, framegrabber, image buffer)
      *   have their dtors called
      */
@@ -167,7 +160,6 @@ namespace ifm3d_ros2
      * The following operations are performed:
      *
      * - The publish_loop thread is stopped (if running)
-     * - The cached unit vectors are deallocated
      * - The ifm3d core data structures (camera, framegrabber, image buffer)
      *   have their dtors called
      */
@@ -219,7 +211,6 @@ namespace ifm3d_ros2
   private:
     rclcpp::Logger logger_;
     // global mutex on ifm3d core data structures `cam_`, `fg_`, `im_`
-    // and the cached unit vectors `uvec_`
     std::mutex gil_;
 
     std::string ip_;
@@ -239,8 +230,6 @@ namespace ifm3d_ros2
     ifm3d::FrameGrabber::Ptr fg_; 
     ifm3d::ImageBuffer::Ptr im_;
 
-    cv::Mat uvec_;
-    ImagePublisher uvec_pub_;
     ImagePublisher xyz_pub_;
     ImagePublisher conf_pub_;
     ImagePublisher distance_pub_;
@@ -248,7 +237,6 @@ namespace ifm3d_ros2
     ImagePublisher raw_amplitude_pub_;
     PCLPublisher cloud_pub_;
     ExtrinsicsPublisher extrinsics_pub_;
-    TemperaturePublisher temperature_pub_;
     ImagePublisher rgb_pub_;
 
     std::thread pub_loop_;
