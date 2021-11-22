@@ -39,6 +39,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Extrinsics.msg"
   "srv/Dump.srv"
   "srv/Config.srv"
+  "srv/Softoff.srv"
+  "srv/Softon.srv"
   DEPENDENCIES builtin_interfaces std_msgs
   )
 

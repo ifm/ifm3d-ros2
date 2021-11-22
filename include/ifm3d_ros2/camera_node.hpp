@@ -31,6 +31,8 @@
 #include <ifm3d_ros2/msg/extrinsics.hpp>
 #include <ifm3d_ros2/srv/dump.hpp>
 #include <ifm3d_ros2/srv/config.hpp>
+#include <ifm3d_ros2/srv/softon.hpp>
+#include <ifm3d_ros2/srv/softoff.hpp>
 
 namespace
 {
@@ -54,6 +56,16 @@ using ConfigRequest = std::shared_ptr<ifm3d_ros2::srv::Config::Request>;
 using ConfigResponse = std::shared_ptr<ifm3d_ros2::srv::Config::Response>;
 using ConfigService = ifm3d_ros2::srv::Config;
 using ConfigServer = rclcpp::Service<ifm3d_ros2::srv::Config>::SharedPtr;
+
+using SoftoffRequest = std::shared_ptr<ifm3d_ros2::srv::Softoff::Request>;
+using SoftoffResponse = std::shared_ptr<ifm3d_ros2::srv::Softoff::Response>;
+using SoftoffService = ifm3d_ros2::srv::Softoff;
+using SoftoffServer = rclcpp::Service<ifm3d_ros2::srv::Softoff>::SharedPtr;
+
+using SoftonRequest = std::shared_ptr<ifm3d_ros2::srv::Softon::Request>;
+using SoftonResponse = std::shared_ptr<ifm3d_ros2::srv::Softon::Response>;
+using SoftonService = ifm3d_ros2::srv::Softon;
+using SoftonServer = rclcpp::Service<ifm3d_ros2::srv::Softon>::SharedPtr;
 }  // namespace
 
 namespace ifm3d_ros2
@@ -172,6 +184,18 @@ protected:
   void Config(const std::shared_ptr<rmw_request_id_t> request_header, const ConfigRequest req,
               const ConfigResponse resp);
 
+   /**
+   * Implementation of the SoftOff service.
+   */
+  void Softoff(const std::shared_ptr<rmw_request_id_t> request_header, const SoftoffRequest req,
+              const SoftoffResponse resp);
+
+   /**
+   * Implementation of the SoftOn service.
+   */
+  void Softon(const std::shared_ptr<rmw_request_id_t> request_header, const SoftonRequest req,
+              const SoftonResponse resp);
+
   /**
    * Callback that gets called when a parameter(s) is attempted to be set
    *
@@ -218,6 +242,8 @@ private:
 
   DumpServer dump_srv_;
   ConfigServer config_srv_;
+  SoftoffServer soft_off_srv_;
+  SoftonServer soft_on_srv_;
 
   ifm3d::CameraBase::Ptr cam_;
   ifm3d::FrameGrabber::Ptr fg_;
