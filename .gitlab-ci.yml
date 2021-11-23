@@ -1,0 +1,55 @@
+image: gcc:latest
+
+stages:
+  - build
+
+copy content to GH:
+  stage: build
+  tags:
+    - shared_docker
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  before_script:
+  script:
+    - git config --global user.email "support.robotics@ifm.com"
+    - git config --global user.name "ifm-csr"
+
+    # get GH branch 
+    - git clone -b v1.0.x https://${ROS1MIRROR}:x-oauth-basic@github.com/ifm/ifm3d-ros.git repo
+    - cd repo
+    - rm -r *
+
+    # copy changes
+    - cp -r ${CI_PROJECT_DIR}/config .
+    - cp -r ${CI_PROJECT_DIR}/doc .
+    - cp -r ${CI_PROJECT_DIR}/etc .
+    - cp -r ${CI_PROJECT_DIR}/examples .
+    - cp -r ${CI_PROJECT_DIR}/include .
+    - cp -r ${CI_PROJECT_DIR}/launch  .
+    - cp -r ${CI_PROJECT_DIR}/msg .
+    - cp -r ${CI_PROJECT_DIR}/scripts .
+    - cp -r ${CI_PROJECT_DIR}/srv .
+    - cp -r ${CI_PROJECT_DIR}/test .
+    - cp -r ${CI_PROJECT_DIR}/.clang-format .
+    - cp -r ${CI_PROJECT_DIR}/CHANGELOG.rst .
+    - cp -r ${CI_PROJECT_DIR}/CMakeLists.txt .
+    - cp -r ${CI_PROJECT_DIR}/LICENSE .
+    - cp -r ${CI_PROJECT_DIR}/package.xml .
+    - cp -r ${CI_PROJECT_DIR}/README.md .
+
+    # add changes
+    - git add -A
+    - git commit -m "add latest dev changes and fixes" --allow-empty
+    # push changes
+    - git push 
+
+    # # test mirror repo
+    # - git clone --bare https://github.com/exampleuser/old-repository.git
+    # - cd old-repository.git 
+    # - git push --mirror https://github.com/exampleuser/new-repository.git
+
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_REF_NAME != $CI_DEFAULT_BRANCH
