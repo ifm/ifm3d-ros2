@@ -664,6 +664,7 @@ void CameraNode::publish_loop()
   while (rclcpp::ok() && (!this->test_destroy_))
   {
     // create a new scope for holding the GIL
+    auto processing_begin = std::chrono::system_clock::now();
     {
       std::lock_guard<std::mutex> lock(this->gil_);
 
@@ -686,6 +687,7 @@ void CameraNode::publish_loop()
         continue;
       }
       auto now = ros_clock.now();
+      processing_begin = std::chrono::system_clock::now();
       auto frame_time = rclcpp::Time(
           std::chrono::duration_cast<std::chrono::nanoseconds>(this->im_->TimeStamp().time_since_epoch()).count(),
           RCL_SYSTEM_TIME);
@@ -784,6 +786,8 @@ void CameraNode::publish_loop()
     }
     this->extrinsics_pub_->publish(std::move(extrinsics_msg));
 
+    auto processing_latency = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - processing_begin);
+    RCLCPP_INFO(this->logger_, "Processing latency: %d µs", processing_latency.count());
   }  // end: while (rclcpp::ok() && (! this->test_destroy_))
 
   RCLCPP_INFO(this->logger_, "Publish loop/thread exiting.");
