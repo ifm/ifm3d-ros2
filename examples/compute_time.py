@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 def main():
     # read timestamps from text file
     lines = []
-    with open('timediff.out') as f:
+    with open('examples/timediff.out') as f:
         lines = f.readlines()
 
     timestmp = []
@@ -23,7 +23,7 @@ def main():
     timediff_array_second_order = timediff_array-np.median(timediff_array)
 
     begin = 0
-    end = 500
+    end = timestmp_array.shape[0]
     fig = plt.figure(figsize=(9, 4))
     # plt.plot(framecount[begin:end], timediff_array[begin:end])
     plt.plot(framecount[begin:end], timestmp_array[begin:end])
