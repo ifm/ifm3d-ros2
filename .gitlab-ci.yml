@@ -33,7 +33,6 @@ copy content to GH:
     # - cp -r ${CI_PROJECT_DIR}/.clang-format .
     # - cp -r ${CI_PROJECT_DIR}/CHANGELOG.rst .
     # - cp -r ${CI_PROJECT_DIR}/CMakeLists.txt .
-    
     - cp -r ${CI_PROJECT_DIR}/LICENSE .
     # - cp -r ${CI_PROJECT_DIR}/package.xml .
     # - cp -r ${CI_PROJECT_DIR}/README.md .
