@@ -15,7 +15,7 @@ copy content to GH:
     - git config --global user.name "ifm-csr"
 
     # get GH branch 
-    - git clone -b v1.0.x https://${ROS2MIRROR}:x-oauth-basic@github.com/ifm/ifm3d-ros.git repo
+    - git clone -b v1.0.x https://${ROS2MIRROR}:x-oauth-basic@github.com/ifm/ifm3d-ros2.git repo
     - cd repo
     - rm -r *
 
