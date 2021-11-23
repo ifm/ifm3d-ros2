@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 def main():
     # read timestamps from text file
     lines = []
-    with open('timediff.txt') as f:
+    with open('timediff.out') as f:
         lines = f.readlines()
 
     timestmp = []
@@ -23,14 +23,15 @@ def main():
     timediff_array_second_order = timediff_array-np.median(timediff_array)
 
     begin = 0
-    end = 100
-    fig = plt.figure(figsize=(9, 3))
+    end = 500
+    fig = plt.figure(figsize=(9, 4))
     # plt.plot(framecount[begin:end], timediff_array[begin:end])
-    plt.plot(framecount[begin:end], timediff_array_second_order[begin:end])
+    plt.plot(framecount[begin:end], timestmp_array[begin:end])
     plt.xlabel('frame count')
-    plt.ylabel('timestamp diff in  msec')
-    plt.show()
-    # fig.savefig('comparison.png', dpi=200) 
+    plt.ylabel('timestamp diff in mu sec')
+    plt.title('ifm3d data retrieval and ROS 2 publishing duration')
+    # plt.show()
+    fig.savefig('publishtime.png', dpi=200) 
     
 if __name__ == '__main__':
     # sys.argv[] #pass arguments if given and whatnot
