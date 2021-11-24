@@ -249,7 +249,6 @@ private:
   ifm3d::FrameGrabber::Ptr fg_;
   ifm3d::ImageBuffer::Ptr im_;
 
-  ImagePublisher xyz_pub_;
   ImagePublisher conf_pub_;
   ImagePublisher distance_pub_;
   ImagePublisher amplitude_pub_;

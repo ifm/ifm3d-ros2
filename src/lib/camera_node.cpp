@@ -71,7 +71,6 @@ CameraNode::CameraNode(const std::string& node_name, const rclcpp::NodeOptions& 
   //
   // Set up our publishers.
   //
-  this->xyz_pub_ = this->create_publisher<ImageMsg>("~/xyz_image", ifm3d_ros2::LowLatencyQoS());
   this->conf_pub_ = this->create_publisher<ImageMsg>("~/confidence", ifm3d_ros2::LowLatencyQoS());
   this->distance_pub_ = this->create_publisher<ImageMsg>("~/distance", ifm3d_ros2::LowLatencyQoS());
   this->amplitude_pub_ = this->create_publisher<ImageMsg>("~/amplitude", ifm3d_ros2::LowLatencyQoS());
@@ -188,7 +187,6 @@ TC_RETVAL CameraNode::on_activate(const rclcpp_lifecycle::State& prev_state)
 
   //  activate all publishers
   RCLCPP_INFO(this->logger_, "Activating publishers...");
-  this->xyz_pub_->on_activate();
   this->conf_pub_->on_activate();
   this->distance_pub_->on_activate();
   this->amplitude_pub_->on_activate();
@@ -233,7 +231,6 @@ TC_RETVAL CameraNode::on_deactivate(const rclcpp_lifecycle::State& prev_state)
   this->amplitude_pub_->on_deactivate();
   this->distance_pub_->on_deactivate();
   this->conf_pub_->on_deactivate();
-  this->xyz_pub_->on_deactivate();
   RCLCPP_INFO(this->logger_, "Publishers deactivated.");
 
   return TC_RETVAL::SUCCESS;
@@ -651,7 +648,6 @@ void CameraNode::publish_loop()
   optical_head.stamp = head.stamp;
 
   pcl::PointCloud<ifm3d::PointT>::Ptr cloud(new pcl::PointCloud<ifm3d::PointT>());
-  cv::Mat xyz_img;
   cv::Mat confidence_img;
   cv::Mat distance_img;
   cv::Mat amplitude_img;
@@ -706,7 +702,6 @@ void CameraNode::publish_loop()
       // pull out all the wrapped images
       //
       cloud = this->im_->Cloud();
-      xyz_img = this->im_->XYZImage();
       confidence_img = this->im_->ConfidenceImage();
       distance_img = this->im_->DistanceImage();
       amplitude_img = this->im_->AmplitudeImage();
@@ -729,10 +724,6 @@ void CameraNode::publish_loop()
       auto pc_msg = std::make_shared<PCLMsg>();
       pcl::toROSMsg(*cloud, *pc_msg);
       this->cloud_pub_->publish(std::move(*pc_msg));
-
-      this->xyz_pub_->publish(
-          std::move(*(cv_bridge::CvImage(head, xyz_img.type() == CV_32FC3 ? enc::TYPE_32FC3 : enc::TYPE_16SC3, xyz_img)
-                          .toImageMsg())));
     }
 
     if ((this->schema_mask_ & ifm3d::IMG_RDIS) == ifm3d::IMG_RDIS)
