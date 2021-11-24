@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd"
+            schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ifm3d_ros2</name>
+  <version>1.0.0</version>
+  <description>ifm ToF Camera ROS2 package</description>
+  <author email="Philipp.Senger@ifm.com">Philipp Senger</author>
+  <maintainer email="support.robotics@ifm.com">ifm Robotics Support</maintainer>
+  <license>Apache 2.0</license>
+
+  <exec_depend>ifm3d_ros2_driver</exec_depend>
+
+  <export>
+    <buildtool_depend>catkin</buildtool_depend>
+  </export>
+
+</package>
