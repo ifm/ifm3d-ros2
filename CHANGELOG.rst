@@ -11,7 +11,7 @@ Changelog for package ifm3d-ros2
 * Update the ROS node for the O3R camera platform
 * add a 2D RGB data publisher
 * add support for specifying the PCIC data communication TCP port
-* add example yaml file for multi PCIC TCP port settings
+* add example yaml files and launch file for multi PCIC TCP port settings
 * add service functions for setting each camera head to RUN / IDLE state
 * update the dump and config service to O3R JSON structure
 * removed unit vector publishing: please use the intrinsic camera calibration parameters instead

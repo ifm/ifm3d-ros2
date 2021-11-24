@@ -6,8 +6,8 @@
 
 
 import os
-import sys
 from math import pi
+import logging
 
 import lifecycle_msgs.msg
 import launch
@@ -20,99 +20,30 @@ from launch_ros.actions import LifecycleNode
 from launch_ros.events.lifecycle import ChangeState
 from launch_ros.event_handlers import OnStateTransition
 
-def generate_launch_description():
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
+from launch.actions import OpaqueFunction
+
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+
+def launch_setup(context, *args, **kwargs):
+
+
     package_name = 'ifm3d_ros2'
-    node_namespace = 'ifm3d'
-    node_name = 'camera'
     node_exe = 'camera_standalone'
-
-    # os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = \
-    #   "[{%s}] {%s} [{%s}]: {%s}\n({%s}() at {%s}:{%s})" % \
-    #    ("severity", "time", "name", "message",
-    #      "function_name", "file_name", "line_number")
-    os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = \
-      "[{%s}] {%s} [{%s}]: {%s}" % ("severity", "time", "name", "message")
-
-
-    # XXX: This is a hack, there does not seem to be a nice way (or at least
-    # finding the docs is not obvious) to do this with the ROS2 launch api
-    #
-    # Basically, we are trying to allow for passing through the command line
-    # args to the launch file through to the node executable itself (like ROS
-    # 1).
-    #
-    # My assumption is that either:
-    # 1. This stuff exists somewhere in ROS2 and I don't know about it yet
-    # 2. This stuff will exist in ROS2 soon, so, this will likely get factored
-    #    out (hopefully soon)
-    #
     parameters = []
     remaps = []
-    for arg in sys.argv:
-        if ':=' in arg:
-            split_arg = arg.split(sep=':=', maxsplit=1)
-            assert len(split_arg) == 2
 
-            if arg.startswith("ns"):
-                node_namespace = split_arg[1]
-            elif arg.startswith("node"):
-                node_name = split_arg[1]
-            elif arg.startswith("params"):
-                parameters.append(tuple(split_arg)[1])
-            else:
-                remaps.append(tuple(split_arg))
+    node_name = LaunchConfiguration('name').perform(context)
+    params = LaunchConfiguration('params').perform(context)
+    node_namespace = LaunchConfiguration('namespace').perform(context)
 
-    def add_prefix(tup):
-        assert len(tup) == 2
-        if node_namespace.startswith("/"):
-            prefix = "%s/%s" % (node_namespace, node_name)
-        else:
-            prefix = "/%s/%s" % (node_namespace, node_name)
+    parameters.append(params)
 
-        retval = [None, None]
-
-        if not tup[0].startswith(prefix):
-            retval[0] = prefix + '/' + tup[0]
-        else:
-            retval[0] = tup[0]
-
-        if not tup[1].startswith(prefix):
-            retval[1] = prefix + '/' + tup[1]
-        else:
-            retval[1] = tup[1]
-
-        return tuple(retval)
-
-    print("After add prefix")
-    remaps = list(map(add_prefix, remaps))
-    print("After remaps")
     #------------------------------------------------------------
     # Nodes
     #------------------------------------------------------------
 
-    #
-    # Coord frame transform from camera_optical_link to camera_link
-    #
-    tf_node = \
-      ExecuteProcess(
-          cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
-               '0', '0', '0', '0', '0', '0',
-               str(node_name + "_link"), str(node_name + "_optical_link")],
-               #output='screen',
-               log_cmd=True
-          )
-    print("After tf node exec")
-    #
-    # (Dummy) Coord frame transform from camera_link to map frame
-    #
-    tf_map_link_node = \
-        ExecuteProcess(
-            cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
-                '0', '0', '0', '0', '0', '0',
-                str(node_name + "_optical_link"), "map"],
-                #output='screen',
-                log_cmd=True
-        )
 
     #
     # The camera component
@@ -128,7 +59,8 @@ def generate_launch_description():
           remappings=remaps,
           log_cmd=True,
           )
-    print("After camera node lifecycle def")
+
+    logging.debug(vars(camera_node))
     #------------------------------------------------------------
     # Events we need to emit to induce state transitions
     #------------------------------------------------------------
@@ -141,7 +73,6 @@ def generate_launch_description():
               transition_id = lifecycle_msgs.msg.Transition.TRANSITION_CONFIGURE
               )
           )
-    print("After configure evt")
 
     camera_activate_evt = \
       EmitEvent(
@@ -151,7 +82,6 @@ def generate_launch_description():
               transition_id = lifecycle_msgs.msg.Transition.TRANSITION_ACTIVATE
               )
           )
-    print("After activate evt")
 
     camera_cleanup_evt = \
       EmitEvent(
@@ -161,10 +91,8 @@ def generate_launch_description():
               transition_id = lifecycle_msgs.msg.Transition.TRANSITION_CLEANUP
               )
           )
-    print("After cleanup evt")
 
     camera_shutdown_evt = EmitEvent(event=launch.events.Shutdown())
-    print("After shutdown evt")
 
     #------------------------------------------------------------
     # These are the edges of the state machine graph we want to autonomously
@@ -186,7 +114,6 @@ def generate_launch_description():
                   ],
               )
           )
-    print("After unconf to inactive")
     #
     # active -> deactivating -> inactive
     #
@@ -202,7 +129,6 @@ def generate_launch_description():
                   ],
               )
           )
-    print("After active to inactive")
     #
     # inactive -> cleaningup -> unconfigured
     #
@@ -218,7 +144,6 @@ def generate_launch_description():
                   ],
               )
           )
-    print("After inactive to unconfigured")
     #
     # * -> errorprocessing -> unconfigured
     #
@@ -234,7 +159,6 @@ def generate_launch_description():
                   ],
               )
           )
-    print("After error to unconfigured")
     #
     # * -> shuttingdown -> finalized
     #
@@ -250,20 +174,53 @@ def generate_launch_description():
                   ],
               )
           )
-    print("After shutdown to finalized")
-    #------------------------------------------------------------
-    # Now, add all the actions to a launch description and return it
-    #------------------------------------------------------------
 
-    ld = LaunchDescription()
-    ld.add_action(camera_node_unconfigured_to_inactive_handler)
-    ld.add_action(camera_node_active_to_inactive_handler)
-    ld.add_action(camera_node_inactive_to_unconfigured_handler)
-    ld.add_action(camera_node_errorprocessing_to_unconfigured_handler)
-    ld.add_action(camera_node_shuttingdown_to_finalized_handler)
-    ld.add_action(tf_node)
-    ld.add_action(tf_map_link_node)
-    ld.add_action(camera_node)
-    ld.add_action(camera_configure_evt)
+    #
+    # Coord frame transform from camera_optical_link to camera_link
+    #
+    tf_node = \
+      ExecuteProcess(
+          cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
+                '0', '0', '0', '0', '0', '0',
+                str(node_name + "_link"), str(node_name + "_optical_link")],
+                # output='screen',
+                log_cmd=True
+          )
+    logging.info("Publishing tf2 transform from {} to {}" .format(str(node_name + "_link"), str(node_name + "_optical_link")))
 
-    return ld
+    #
+    # (Dummy) Coord frame transform from camera_link to map frame
+    #
+    tf_map_link_node = \
+        ExecuteProcess(
+            cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
+                '0', '0', '0', '0', '0', '0',
+                str(node_name + "_optical_link"), "map"],
+                # output='screen',
+                log_cmd=True
+        )
+    logging.info("Publishing tf2 transform from {} to {}" .format(str(node_name + "_optical_link"), "map"))
+
+    return camera_node_unconfigured_to_inactive_handler, \
+        camera_node_active_to_inactive_handler, \
+        camera_node_inactive_to_unconfigured_handler, \
+        camera_node_errorprocessing_to_unconfigured_handler, \
+        camera_node_shuttingdown_to_finalized_handler, \
+        camera_node, \
+        camera_configure_evt, \
+        tf_node, \
+        tf_map_link_node \
+
+
+def generate_launch_description():
+
+    os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = \
+      "[{%s}] {%s} [{%s}]: {%s}" % ("severity", "time", "name", "message")
+    
+
+    return LaunchDescription([
+        DeclareLaunchArgument('name', default_value = 'camera'),
+        DeclareLaunchArgument('params', default_value = []),
+        DeclareLaunchArgument('namespace', default_value = 'ifm3d'),
+        OpaqueFunction(function = launch_setup)
+        ])

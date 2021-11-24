@@ -122,6 +122,11 @@ install(
               WORLD_EXECUTE WORLD_READ
   )
 
+install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}/
+)
+
 #############
 ##  Test   ##
 #############

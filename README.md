@@ -58,6 +58,8 @@ $ . install/setup.bash
 $ ros2 launch ifm3d_ros2 camera_managed.launch.py
 ```
 
+> Note: we also provide a helper launch file to start multiple camera nodes. See the documentation [here](doc/multi_head.md).
+
 Open another shell and start the RVIZ node to visualize the data coming from the camera:
 ```
 $ ros2 launch ifm3d_ros2 rviz.launch.py
