@@ -110,6 +110,9 @@ None.
 | ------ |  ------ |  ------ | 
 | Dump | <a href="srv/Dump.srv">ifm3d/Dump</a> | Dumps the state of the camera parameters to JSON |
 | Config | <a href="srv/Config.srv">ifm3d/Config</a> | Provides a means to configure the camera and imager settings, declaratively from a JSON encoding of the desired settings. |
+| Softon | <a href="srv/Softon.srv">ifm3d/Softon</a> | Provides a means to quickly change the camera state from IDLE to RUN.|
+| Softoff | <a href="srv/Softoff.srv">ifm3d/Softoff</a> | Provides a means to quickly change the camera state from RUN to IDLE.|
+
 
 
 ## Additional Documentation
