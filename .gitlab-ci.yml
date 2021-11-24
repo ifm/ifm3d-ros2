@@ -20,22 +20,23 @@ copy content to GH:
     - rm -r *
 
     # copy changes
-    # - cp -r ${CI_PROJECT_DIR}/config .
-    # - cp -r ${CI_PROJECT_DIR}/doc .
-    # - cp -r ${CI_PROJECT_DIR}/etc .
-    # - cp -r ${CI_PROJECT_DIR}/examples .
-    # - cp -r ${CI_PROJECT_DIR}/include .
-    # - cp -r ${CI_PROJECT_DIR}/launch  .
-    # - cp -r ${CI_PROJECT_DIR}/msg .
-    # - cp -r ${CI_PROJECT_DIR}/scripts .
-    # - cp -r ${CI_PROJECT_DIR}/srv .
-    # - cp -r ${CI_PROJECT_DIR}/test .
-    # - cp -r ${CI_PROJECT_DIR}/.clang-format .
-    # - cp -r ${CI_PROJECT_DIR}/CHANGELOG.rst .
-    # - cp -r ${CI_PROJECT_DIR}/CMakeLists.txt .
+    - cp -r ${CI_PROJECT_DIR}/config .
+    - cp -r ${CI_PROJECT_DIR}/doc .
+    - cp -r ${CI_PROJECT_DIR}/etc .
+    - cp -r ${CI_PROJECT_DIR}/examples .
+    - cp -r ${CI_PROJECT_DIR}/include .
+    - cp -r ${CI_PROJECT_DIR}/launch  .
+    - cp -r ${CI_PROJECT_DIR}/msg .
+    - cp -r ${CI_PROJECT_DIR}/scripts .
+    - cp -r ${CI_PROJECT_DIR}/src .
+    - cp -r ${CI_PROJECT_DIR}/srv .
+    - cp -r ${CI_PROJECT_DIR}/test .
+    - cp -r ${CI_PROJECT_DIR}/.clang-format .
+    - cp -r ${CI_PROJECT_DIR}/CHANGELOG.rst .
+    - cp -r ${CI_PROJECT_DIR}/CMakeLists.txt .
     - cp -r ${CI_PROJECT_DIR}/LICENSE .
-    # - cp -r ${CI_PROJECT_DIR}/package.xml .
-    # - cp -r ${CI_PROJECT_DIR}/README.md .
+    - cp -r ${CI_PROJECT_DIR}/package.xml .
+    - cp -r ${CI_PROJECT_DIR}/README.md .
 
     # add changes
     - git add -A
