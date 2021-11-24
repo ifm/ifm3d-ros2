@@ -1,7 +1,0 @@
-/ifm3d_ros2/camera0:
-  ros__parameters:
-    pcic_port: 50010
-
-/ifm3d_ros2/camera1:
-  ros__parameters:
-    pcic_port: 50012
