@@ -98,8 +98,7 @@ Congratulations! You can now have complete control over the O3R perception platf
 | cloud | sensor_msgs/msg/PointCloud2 | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The point cloud data |
 | confidence | sensor_msgs/msg/Image | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The confidence image |
 | distance | sensor_msgs/msg/Image | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The radial distance image |
-| raw_amplitude | sensor_msgs/msg/Image | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The raw amplitude image |
-| xyz_image | sensor_msgs/msg/Image | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | A 3-channel image encoding of the point cloud. Each of the three image channels respesent a spatial data plane encoding the x, y, z Cartesian values respectively. |
+| *raw_amplitude* | *sensor_msgs/msg/Image* | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The raw amplitude image (currently not available for the O3R) |
 | rgb | sensor_msgs/msg/Image | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The RGB 2D image of the 2D imager |
 
 ### Subscribed Topics
