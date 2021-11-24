@@ -17,6 +17,7 @@ Changelog for package ifm3d-ros2
 * removed unit vector publishing: please use the intrinsic camera calibration parameters instead
 * removed the temperature publisher until diagnose chunk is available
 * removed axis permutation for ROS node specific axis order
+* removed xyz image publisher
 
 known limitations
 ------------------
