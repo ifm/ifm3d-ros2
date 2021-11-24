@@ -11,11 +11,16 @@ Changelog for package ifm3d-ros2
 * Update the ROS node for the O3R camera platform
 * add a 2D RGB data publisher
 * add support for specifying the PCIC data communication TCP port
-* add example yaml file for multi PCIC TCP port settings
+* add example yaml files and launch file for multi PCIC TCP port settings
+* add service functions for setting each camera head to RUN / IDLE state
+* update the dump and config service to O3R JSON structure
+* removed unit vector publishing: please use the intrinsic camera calibration parameters instead
+* removed the temperature publisher until diagnose chunk is available
+* removed axis permutation for ROS node specific axis order
 
-### known limitations
-* DDS settings need to be set to cyclonedds
-* custom services can result in seg fault errors for ROS2 foxy default dds settings
+known limitations
+------------------
+* DDS settings need to be set to cyclonedds - ROS 2 Galactic is the preferred ROS 2 distro atm.
 
 0.3.0 (2020-01-31)
 --------

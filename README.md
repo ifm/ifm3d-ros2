@@ -1,5 +1,10 @@
 # ifm3d-ros2
 
+**This release is intended to be used with the O3R camera platform ONLY. For other ifm cameras please see the main branch.**  
+
+**NOTE: The ifm3d-ros2 package has had major changes recently. Please be aware that this might cause problems on your system for building pipelines based on our old build instructions.**  
+We tried to ensure backward compatibility where ever possible. If you find any major breaks, please let us know.
+
 `ifm3d-ros2` is a wrapper around [ifm3d](https://github.com/ifm/ifm3d) enabling the usage of ifm O3R ToF camera platform from within [ROS 2](https://index.ros.org/doc/ros2/) software systems.
 
 ![rviz](doc/figures/O3R_merged_point_cloud.png)
@@ -21,7 +26,7 @@
 
 ### Pre-requisites
 
-1. [ROS2](https://index.ros.org/doc/ros2/Installation/)
+1. [ROS2](https://docs.ros.org/en/galactic/Installation.html)
 2. [ifm3d](https://ifm.github.io/ifm3d-docs/content/source_build.html) - be sure to build the IMAGE module (using PCL and OPENCV).
 
 In addition to the base packages found in `ros-*-desktop-full` you will need the following ROS packages:
@@ -34,7 +39,7 @@ These two packages are only required for testing but not at runtime:
 - launch_testing_ament_cmake
 
 
-On debian based systems they may be installed as follows (replacing `eloquent`with your target ROS2 distribution).
+On debian based systems they may be installed as follows (replacing `galactic`with your target ROS2 distribution).
 ```
 $ sudo apt install ros-galactic-cv-bridge ros-galactic-vision-opencv ros-galactic-pcl-conversions
 ```
@@ -53,12 +58,14 @@ $ . install/setup.bash
 $ ros2 launch ifm3d_ros2 camera_managed.launch.py
 ```
 
+> Note: we also provide a helper launch file to start multiple camera nodes. See the documentation [here](doc/multi_head.md).
+
 Open another shell and start the RVIZ node to visualize the data coming from the camera:
 ```
-$ ros2 launch if3d_ros2 rviz.launch.py
+$ ros2 launch ifm3d_ros2 rviz.launch.py
 ```
 > Note: `rviz.launch.py` does not include the camera node itself, but subscribes to published topics (distance, amplitude, etc). A camera node need to be running in parallel to rviz (you can use `camera_managed.launch`).
-> Note also that the `rviz.launch` launchfile assumes one data stream publishes at `/ifm3d/camera/<topic_name>`.
+> Note also that the `rviz.launch.py` launchfile assumes one data stream publishes at `/ifm3d/camera/<topic_name>`.
 
 At this point, you should see an rviz window that looks something like the image below (note that this is the view from 3 camera heads):
 ![rviz1](doc/figures/O3R_merged_point_cloud.png)
@@ -121,7 +128,7 @@ level to that of our ROS1 interface and to tune the ROS2/DDS performance to opti
 Thanks for your patience as we continue to ensure our ROS2 interface is feature-rich, robust, and performant. Your feedback is greatly appreciated.
 
 ## Known limitations
-This ROS 2 node build on top of the `ifm3d` API which handles the data communication between the camera platform and the outside world. This is based on ASIO which conflicts with the DDS middleware fastRTPS implementation in ROS (until ROS foxy). We are currently working on a solution. Until then we suggest to use cyclone DDS with older ROS 2 distributions.
+This ROS 2 node build on top of the `ifm3d` API which handles the data communication between the camera platform and the outside world. This is based on ASIO which conflicts with the DDS middleware fastRTPS implementation in ROS (until ROS foxy). We are currently working on a solution. Until then we suggest to use cyclone DDS for older ROS 2 distributions.
 
 ## LICENSE
 Please see the file called [LICENSE](LICENSE).

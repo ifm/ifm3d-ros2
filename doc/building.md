@@ -1,8 +1,8 @@
 # Building and Installing the ifm3d-ros2 package
 
-## TOC
+## Table of contents
 - [Building and Installing the ifm3d-ros2 package](#building-and-installing-the-ifm3d-ros2-package)
-  - [TOC](#toc)
+  - [Table of contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
     - [ifm3d C++ API](#ifm3d-c-api)
   - [Step-by-Step build instructions for the ROS node `ifm3d-ros2`](#step-by-step-build-instructions-for-the-ros-node-ifm3d-ros2)
@@ -25,7 +25,9 @@ The ROS node `ifm3d_ros2` requires the C++ API ifm3d to be installed locally for
 
 Please follow these instructions on how to build `ìfm3d` from source: [build ifm3d from source instructions](https://ifm.github.io/ifm3d-docs/content/source_build.html)
  
-> Note: The `image module` is required so please make sure you build it during your compiling process: the required cmake flag is `DBUILD_MODULE_IMAGE=ON`
+> Note: The `image module` is required, so please make sure you build it during your compiling process: the required cmake flag is `-DBUILD_MODULE_IMAGE=ON`
+
+> Note: Both the ifm3d C++ API and the ROS 2 node ifm3d_ros2 depend on OpenCV. We have tested the compatibility between both default `ros-galaciic-libopencv` package available via apt and the `libopencv-dev` dependency as mentioned in the (building instructions for ifm3d)[https://ifm.github.io/ifm3d-docs/content/source_build.html]. For older versions of ROS you might be required to install an older compatible version of `libopencv-dev` as for the C++ API ifm3d as well. 
 
 
 ## Step-by-Step build instructions for the ROS node `ifm3d-ros2`
@@ -48,7 +50,7 @@ $ mkdir -p ~/colcon_ws/src
 Next, we need to get the code from GitHub. Please adapt the commands when not following the suggested directory structure: `~/colcon_ws/src/`
 
 ```
-$ cd ~/colcon/src
+$ cd ~/colcon_ws/src
 $ git clone --branch o3r/dev https://github.com/ifm/ifm3d-ros2.git
 ```
 > TODO: change brach to final release branch on GL
@@ -66,7 +68,7 @@ Finished <<< ifm3d_ros2 [17.6s]
 Summary: 1 package finished [17.8s]
 ```
 
-Run the test suite (optional, you will need supported hardware connected):
+Tests: They are not functional at the moment. Please check the launch files to see if the ROS node works after building it for now.
 ```
 $ colcon test
 $ colcon test-result --all
