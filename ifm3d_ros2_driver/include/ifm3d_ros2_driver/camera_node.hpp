@@ -28,11 +28,11 @@
 #include <ifm3d/camera/camera_base.h>
 #include <ifm3d/fg.h>
 #include <ifm3d/image.h>
-#include <ifm3d_ros2_driver/msg/extrinsics.hpp>
-#include <ifm3d_ros2_driver/srv/dump.hpp>
-#include <ifm3d_ros2_driver/srv/config.hpp>
-#include <ifm3d_ros2_driver/srv/softon.hpp>
-#include <ifm3d_ros2_driver/srv/softoff.hpp>
+#include <ifm3d_ros2_msgs/msg/extrinsics.hpp>
+#include <ifm3d_ros2_msgs/srv/dump.hpp>
+#include <ifm3d_ros2_msgs/srv/config.hpp>
+#include <ifm3d_ros2_msgs/srv/softon.hpp>
+#include <ifm3d_ros2_msgs/srv/softoff.hpp>
 
 namespace
 {
@@ -44,28 +44,28 @@ using ImagePublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<Imag
 using PCLMsg = sensor_msgs::msg::PointCloud2;
 using PCLPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<PCLMsg>>;
 
-using ExtrinsicsMsg = ifm3d_ros2::msg::Extrinsics;
+using ExtrinsicsMsg = ifm3d_ros2_msgs::msg::Extrinsics;
 using ExtrinsicsPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ExtrinsicsMsg>>;
 
-using DumpRequest = std::shared_ptr<ifm3d_ros2::srv::Dump::Request>;
-using DumpResponse = std::shared_ptr<ifm3d_ros2::srv::Dump::Response>;
-using DumpService = ifm3d_ros2::srv::Dump;
-using DumpServer = rclcpp::Service<ifm3d_ros2::srv::Dump>::SharedPtr;
+using DumpRequest = std::shared_ptr<ifm3d_ros2_msgs::srv::Dump::Request>;
+using DumpResponse = std::shared_ptr<ifm3d_ros2_msgs::srv::Dump::Response>;
+using DumpService = ifm3d_ros2_msgs::srv::Dump;
+using DumpServer = rclcpp::Service<ifm3d_ros2_msgs::srv::Dump>::SharedPtr;
 
-using ConfigRequest = std::shared_ptr<ifm3d_ros2::srv::Config::Request>;
-using ConfigResponse = std::shared_ptr<ifm3d_ros2::srv::Config::Response>;
-using ConfigService = ifm3d_ros2::srv::Config;
-using ConfigServer = rclcpp::Service<ifm3d_ros2::srv::Config>::SharedPtr;
+using ConfigRequest = std::shared_ptr<ifm3d_ros2_msgs::srv::Config::Request>;
+using ConfigResponse = std::shared_ptr<ifm3d_ros2_msgs::srv::Config::Response>;
+using ConfigService = ifm3d_ros2_msgs::srv::Config;
+using ConfigServer = rclcpp::Service<ifm3d_ros2_msgs::srv::Config>::SharedPtr;
 
-using SoftoffRequest = std::shared_ptr<ifm3d_ros2::srv::Softoff::Request>;
-using SoftoffResponse = std::shared_ptr<ifm3d_ros2::srv::Softoff::Response>;
-using SoftoffService = ifm3d_ros2::srv::Softoff;
-using SoftoffServer = rclcpp::Service<ifm3d_ros2::srv::Softoff>::SharedPtr;
+using SoftoffRequest = std::shared_ptr<ifm3d_ros2_msgs::srv::Softoff::Request>;
+using SoftoffResponse = std::shared_ptr<ifm3d_ros2_msgs::srv::Softoff::Response>;
+using SoftoffService = ifm3d_ros2_msgs::srv::Softoff;
+using SoftoffServer = rclcpp::Service<ifm3d_ros2_msgs::srv::Softoff>::SharedPtr;
 
-using SoftonRequest = std::shared_ptr<ifm3d_ros2::srv::Softon::Request>;
-using SoftonResponse = std::shared_ptr<ifm3d_ros2::srv::Softon::Response>;
-using SoftonService = ifm3d_ros2::srv::Softon;
-using SoftonServer = rclcpp::Service<ifm3d_ros2::srv::Softon>::SharedPtr;
+using SoftonRequest = std::shared_ptr<ifm3d_ros2_msgs::srv::Softon::Request>;
+using SoftonResponse = std::shared_ptr<ifm3d_ros2_msgs::srv::Softon::Response>;
+using SoftonService = ifm3d_ros2_msgs::srv::Softon;
+using SoftonServer = rclcpp::Service<ifm3d_ros2_msgs::srv::Softon>::SharedPtr;
 }  // namespace
 
 namespace ifm3d_ros2

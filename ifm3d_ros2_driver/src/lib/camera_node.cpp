@@ -758,7 +758,7 @@ void CameraNode::publish_loop()
     //
     // publish extrinsics
     //
-    ifm3d_ros2::msg::Extrinsics extrinsics_msg;
+    ifm3d_ros2_msgs::msg::Extrinsics extrinsics_msg;
     extrinsics_msg.header = optical_head;
     try
     {

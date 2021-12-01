@@ -23,6 +23,7 @@ set(IFM3D_ROS2_DRIVER_DEPS
   sensor_msgs
   std_msgs
   vision_opencv
+  ifm3d_ros2_msgs
   )
 
 find_package(ifm3d 0.90.0 CONFIG REQUIRED COMPONENTS
@@ -35,14 +36,14 @@ find_package(ament_cmake_ros REQUIRED)
 
 ament_auto_find_build_dependencies(REQUIRED ${IFM3D_ROS2_DRIVER_DEPS})
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/Extrinsics.msg"
-  "srv/Dump.srv"
-  "srv/Config.srv"
-  "srv/Softoff.srv"
-  "srv/Softon.srv"
-  DEPENDENCIES builtin_interfaces std_msgs
-  )
+# rosidl_generate_interfaces(${PROJECT_NAME}
+#   "msg/Extrinsics.msg"
+#   "srv/Dump.srv"
+#   "srv/Config.srv"
+#   "srv/Softoff.srv"
+#   "srv/Softon.srv"
+#   DEPENDENCIES builtin_interfaces std_msgs
+#   )
 
 #############
 ##  Build  ##
@@ -63,9 +64,9 @@ ament_target_dependencies(ifm3d_ros2_camera_node ${IFM3D_ROS2_DRIVER_DEPS})
 rclcpp_components_register_nodes(
   ifm3d_ros2_camera_node "ifm3d_ros2::CameraNode"
   )
-rosidl_target_interfaces(ifm3d_ros2_camera_node
-  ${PROJECT_NAME} "rosidl_typesupport_cpp"
-  )
+# rosidl_target_interfaces(ifm3d_ros2_camera_node
+#   ${PROJECT_NAME} "rosidl_typesupport_cpp"
+#   )
 
 #
 # Exe to bring up the camera component in a standalone way allow us to manually
@@ -75,9 +76,9 @@ rosidl_target_interfaces(ifm3d_ros2_camera_node
 ament_auto_add_executable(camera_standalone src/bin/camera_standalone.cpp)
 target_link_libraries(camera_standalone ifm3d_ros2_camera_node)
 ament_target_dependencies(camera_standalone ${IFM3D_ROS2_DRIVER_DEPS})
-rosidl_target_interfaces(camera_standalone
-  ${PROJECT_NAME} "rosidl_typesupport_cpp"
-  )
+# rosidl_target_interfaces(camera_standalone
+#   ${PROJECT_NAME} "rosidl_typesupport_cpp"
+#   )
 
 find_package(Boost 1.65.0 REQUIRED COMPONENTS system)
 target_link_libraries(ifm3d_ros2_camera_node ${Boost_LIBRARIES})
