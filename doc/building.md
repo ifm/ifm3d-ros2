@@ -51,7 +51,7 @@ Next, we need to get the code from GitHub. Please adapt the commands when not fo
 
 ```
 $ cd ~/colcon_ws/src
-$ git clone --branch o3r/dev https://github.com/ifm/ifm3d-ros2.git
+$ git clone --branch v1.0.x https://github.com/ifm/ifm3d-ros2.git
 ```
 > TODO: change brach to final release branch on GL
 
