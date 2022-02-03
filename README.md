@@ -1,6 +1,6 @@
 # ifm3d-ros2
 
-**This release is intended to be used with the O3R camera platform ONLY. For other ifm cameras please see the main branch.**  
+**This release is intended to be used with the O3R camera platform ONLY. For other ifm cameras please see release tag v0.3.0.**  
 
 **NOTE: The ifm3d-ros2 package has had major changes recently. Please be aware that this might cause problems on your system for building pipelines based on our old build instructions.**  
 We tried to ensure backward compatibility where ever possible. If you find any major breaks, please let us know.
