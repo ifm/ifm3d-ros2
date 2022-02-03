@@ -5,7 +5,7 @@ Changelog for package ifm3d-ros2
 1.0
 ===
 
-1.0.0 (unreleased)
+1.0.0
 --------
 
 * Update the ROS node for the O3R camera platform
