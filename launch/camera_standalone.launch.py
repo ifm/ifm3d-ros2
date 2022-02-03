@@ -1,18 +1,7 @@
-#
-# Copyright (C)  2019 ifm electronic, gmbh
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distribted on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+# 
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2019 ifm electronic, gmbh
+# 
 
 import os
 import sys
@@ -89,7 +78,7 @@ def generate_launch_description():
     return LaunchDescription([
         ExecuteProcess(
             cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
-                 '0', '0', '0', str(-pi/2.), '0', str(-pi/2.),
+                 '0', '0', '0', '0', '0', '0',
                  str(node_name + "_link"), str(node_name + "_optical_link")],
             #output='screen',
             log_cmd=True
@@ -97,9 +86,9 @@ def generate_launch_description():
 
         LifecycleNode(
             package=package_name,
-            node_executable=node_exe,
-            node_namespace=node_namespace,
-            node_name=node_name,
+            executable=node_exe,
+            namespace=node_namespace,
+            name=node_name,
             output='screen',
             parameters=parameters,
             remappings=remaps,

@@ -7,13 +7,16 @@ Panels:
         - /Global Options1
         - /Status1
         - /TF1/Frames1
+        - /Amplitude1
+        - /Confidence1/Topic1
+        - /Radial Distance1/Topic1
+        - /Cloud1/Topic1
       Splitter Ratio: 0.5
-    Tree Height: 1127
+    Tree Height: 758
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
     Expanded:
-      - /2D Nav Goal1
       - /Publish Point1
     Name: Tool Properties
     Splitter Ratio: 0.5886790156364441
@@ -64,9 +67,12 @@ Visualization Manager:
       Min Value: 0
       Name: Amplitude
       Normalize Range: true
-      Queue Size: 10
-      Topic: /ifm3d/camera/amplitude
-      Unreliable: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /ifm3d/camera/amplitude
       Value: true
     - Class: rviz_default_plugins/Image
       Enabled: true
@@ -75,20 +81,12 @@ Visualization Manager:
       Min Value: 0
       Name: Confidence
       Normalize Range: true
-      Queue Size: 10
-      Topic: /ifm3d/camera/confidence
-      Unreliable: true
-      Value: true
-    - Class: rviz_default_plugins/Image
-      Enabled: true
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: Raw Amplitude
-      Normalize Range: true
-      Queue Size: 10
-      Topic: /ifm3d/camera/raw_amplitude
-      Unreliable: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /ifm3d/camera/confidence
       Value: true
     - Class: rviz_default_plugins/Image
       Enabled: true
@@ -97,9 +95,12 @@ Visualization Manager:
       Min Value: 0
       Name: Radial Distance
       Normalize Range: true
-      Queue Size: 10
-      Topic: /ifm3d/camera/distance
-      Unreliable: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /ifm3d/camera/distance
       Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
@@ -116,18 +117,21 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 1624
+      Max Intensity: 0.09450473636388779
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: Cloud
       Position Transformer: XYZ
-      Queue Size: 10
       Selectable: true
-      Size (Pixels): 2
+      Size (Pixels): 3
       Size (m): 0.009999999776482582
-      Style: Points
-      Topic: /ifm3d/camera/cloud
-      Unreliable: true
+      Style: Flat Squares
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /ifm3d/camera/cloud
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
@@ -144,12 +148,27 @@ Visualization Manager:
     - Class: rviz_default_plugins/Measure
       Line color: 128; 128; 0
     - Class: rviz_default_plugins/SetInitialPose
-      Topic: /initialpose
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /initialpose
     - Class: rviz_default_plugins/SetGoal
-      Topic: /move_base_simple/goal
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /move_base_simple/goal
     - Class: rviz_default_plugins/PublishPoint
       Single click: true
-      Topic: /clicked_point
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /clicked_point
   Transformation:
     Current:
       Class: rviz_default_plugins/TF
@@ -157,7 +176,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 1.6602891683578491
+      Distance: 8.668777465820312
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -172,10 +191,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.1597975641489029
+      Pitch: 0.5097975730895996
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.2503974437713623
+      Yaw: 3.1903977394104004
     Saved: ~
 Window Geometry:
   Amplitude:
@@ -184,13 +203,11 @@ Window Geometry:
     collapsed: false
   Displays:
     collapsed: false
-  Height: 1385
+  Height: 1016
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001950000050ffc020000000bfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000120041006d0070006c00690074007500640065010000003d000001440000002800fffffffb0000001a00520061007700200041006d0070006c006900740075006400650100000187000001370000002800fffffffb000000140043006f006e0066006900640065006e0063006501000002c40000013d0000002800fffffffb0000001e00520061006400690061006c002000440069007300740061006e006300650100000407000001450000002800ffffff00000001000001bd0000050ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fc0000003d0000050f000000e60100001cfa000000000100000002fb000000100044006900730070006c0061007900730100000000ffffffff0000015600fffffffb0000000a0056006900650077007301000008aa000001560000010000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000006a20000050f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001950000039efc020000000bfb0000001200530065006c0065006300740069006f006e000000003d000000840000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000120041006d0070006c00690074007500640065010000003d000001320000002800fffffffb0000001a00520061007700200041006d0070006c006900740075006400650000000129000000de0000000000000000fb000000140043006f006e0066006900640065006e0063006501000001750000012c0000002800fffffffb0000001e00520061006400690061006c002000440069007300740061006e0063006501000002a7000001340000002800ffffff00000001000001bd0000039efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fc0000003d0000039e000000e60100001cfa000000000100000002fb000000100044006900730070006c0061007900730100000000ffffffff0000015600fffffffb0000000a0056006900650077007301000008aa000001560000010000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000004220000039e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Radial Distance:
-    collapsed: false
-  Raw Amplitude:
     collapsed: false
   Selection:
     collapsed: false
@@ -198,6 +215,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 2560
+  Width: 1920
   X: 0
   Y: 27
