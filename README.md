@@ -27,7 +27,7 @@ We tried to ensure backward compatibility where ever possible. If you find any m
 ### Pre-requisites
 
 1. [ROS2](https://docs.ros.org/en/galactic/Installation.html)
-2. [ifm3d](https://ifm.github.io/ifm3d-docs/content/source_build.html) - be sure to build the IMAGE module (using PCL and OPENCV).
+2. [ifm3d](https://ifm.github.io/ifm3d-docs/content/installation_instructions/source_build.html) - be sure to build the IMAGE module (using PCL and OPENCV).
 
 In addition to the base packages found in `ros-*-desktop-full` you will need the following ROS packages:
 - cv_bridge
