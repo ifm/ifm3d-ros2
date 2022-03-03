@@ -27,8 +27,6 @@ Please follow these instructions on how to build `ìfm3d` from source: [build if
  
 > Note: The `image module` is required, so please make sure you build it during your compiling process: the required cmake flag is `-DBUILD_MODULE_IMAGE=ON`
 
-> Note: Both the ifm3d C++ API and the ROS 2 node ifm3d_ros2 depend on OpenCV. We have tested the compatibility between both default `ros-galaciic-libopencv` package available via apt and the `libopencv-dev` dependency as mentioned in the (building instructions for ifm3d)[https://ifm.github.io/ifm3d-docs/content/source_build.html]. For older versions of ROS you might be required to install an older compatible version of `libopencv-dev` as for the C++ API ifm3d as well. 
-
 
 ## Step-by-Step build instructions for the ROS node `ifm3d-ros2`
 

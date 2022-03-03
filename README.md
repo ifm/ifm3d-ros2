@@ -27,12 +27,7 @@ We tried to ensure backward compatibility where ever possible. If you find any m
 ### Pre-requisites
 
 1. [ROS2](https://docs.ros.org/en/galactic/Installation.html)
-2. [ifm3d](https://ifm.github.io/ifm3d-docs/content/source_build.html) - be sure to build the IMAGE module (using PCL and OPENCV).
-
-In addition to the base packages found in `ros-*-desktop-full` you will need the following ROS packages:
-- cv_bridge
-- vision_opencv
-- pcl-conversions
+2. [ifm3d](https://ifm.github.io/ifm3d-docs/content/source_build.html) - be sure to build the IMAGE module.
 
 These two packages are only required for testing but not at runtime:  
 - launch_testing
@@ -40,9 +35,6 @@ These two packages are only required for testing but not at runtime:
 
 
 On debian based systems they may be installed as follows (replacing `galactic`with your target ROS2 distribution).
-```
-$ sudo apt install ros-galactic-cv-bridge ros-galactic-vision-opencv ros-galactic-pcl-conversions
-```
 ```
 $ sudo apt install ros-galactic-launch-testing ros-galactic-launch-testing-ament-cmake
 ```
