@@ -12,7 +12,6 @@ endif()
 set(IFM3D_ROS2_DEPS
   builtin_interfaces
   lifecycle_msgs
-  pcl_conversions
   rclcpp
   rclcpp_components
   rclcpp_lifecycle
