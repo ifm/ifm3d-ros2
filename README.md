@@ -1,6 +1,6 @@
 # ifm3d-ros2
 
-**This release is intended to be used with the O3R camera platform ONLY. For other ifm cameras please see the main branch.**  
+**This release is intended to be used with the O3R camera platform ONLY. For other ifm cameras please see the tagged release 0.3.0.**  
 
 **NOTE: The ifm3d-ros2 package has had major changes recently. Please be aware that this might cause problems on your system for building pipelines based on our old build instructions.**  
 We tried to ensure backward compatibility where ever possible. If you find any major breaks, please let us know.
@@ -27,7 +27,7 @@ We tried to ensure backward compatibility where ever possible. If you find any m
 ### Pre-requisites
 
 1. [ROS2](https://docs.ros.org/en/galactic/Installation.html)
-2. [ifm3d](https://ifm.github.io/ifm3d-docs/content/source_build.html) - be sure to build the IMAGE module.
+2. [ifm3d](https://ifm.github.io/ifm3d-docs/content/source_build.html)
 
 These two packages are only required for testing but not at runtime:  
 - launch_testing
@@ -38,6 +38,12 @@ On debian based systems they may be installed as follows (replacing `galactic`wi
 ```
 $ sudo apt install ros-galactic-launch-testing ros-galactic-launch-testing-ament-cmake
 ```
+
+You will also need to install boost, which is typically pre-installed in ubuntu distributions, but can be missing when using other platforms:
+```
+$ sudo apt install libboost-all-dev
+```
+
 
 ### Building from source
 

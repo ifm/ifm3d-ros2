@@ -111,7 +111,7 @@ public:
    *
    * - Parameters are parsed and held locally in instance variables.
    * - If requested, the camera clock is synchronized to the system clock
-   * - The core ifm3d data structures (camera, framegrabber, image buffer)
+   * - The core ifm3d data structures (camera, framegrabber, stlimage buffer)
    *   are initialized and ready to stream data based upon the requested
    *   schema mask.
    */
@@ -143,7 +143,7 @@ public:
    *
    * The following operations are performed:
    *
-   * - The ifm3d core data structures (camera, framegrabber, image buffer)
+   * - The ifm3d core data structures (camera, framegrabber, stlimage buffer)
    *   have their dtors called
    */
   TC_RETVAL on_cleanup(const rclcpp_lifecycle::State& prev_state) override;
@@ -163,7 +163,7 @@ public:
    * The following operations are performed:
    *
    * - The publish_loop thread is stopped (if running)
-   * - The ifm3d core data structures (camera, framegrabber, image buffer)
+   * - The ifm3d core data structures (camera, framegrabber, stlimage buffer)
    *   have their dtors called
    */
   TC_RETVAL on_error(const rclcpp_lifecycle::State& prev_state) override;
