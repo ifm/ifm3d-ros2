@@ -17,9 +17,9 @@
 
 #include <ifm3d/contrib/nlohmann/json.hpp>
 
-sensor_msgs::msg::Image ifm3d_to_ros(ifm3d::Image& image,  // Need non-const image because image.begin(), image.end()
-                                                           // don't have const overloads.
-                                     const std_msgs::msg::Header& header, const rclcpp::Logger& logger)
+sensor_msgs::msg::Image ifm3d_to_ros_image(ifm3d::Image& image,  // Need non-const image because image.begin(),
+                                                                 // image.end() don't have const overloads.
+                                           const std_msgs::msg::Header& header, const rclcpp::Logger& logger)
 {
   static constexpr auto max_pixel_format = static_cast<std::size_t>(ifm3d::pixel_format::FORMAT_32F3);
   static constexpr auto image_format_info = [] {
@@ -78,10 +78,69 @@ sensor_msgs::msg::Image ifm3d_to_ros(ifm3d::Image& image,  // Need non-const ima
   return result;
 }
 
-sensor_msgs::msg::Image ifm3d_to_ros(ifm3d::Image&& image, const std_msgs::msg::Header& header,
-                                     const rclcpp::Logger& logger)
+sensor_msgs::msg::Image ifm3d_to_ros_image(ifm3d::Image&& image, const std_msgs::msg::Header& header,
+                                           const rclcpp::Logger& logger)
 {
-  return ifm3d_to_ros(image, header, logger);
+  return ifm3d_to_ros_image(image, header, logger);
+}
+
+sensor_msgs::msg::PointCloud2 ifm3d_to_ros_cloud(ifm3d::Image& image,  // Need non-const image because image.begin(),
+                                                                       // image.end() don't have const overloads.
+                                                 const std_msgs::msg::Header& header, const rclcpp::Logger& logger)
+{
+  sensor_msgs::msg::PointCloud2 result{};
+  result.header = header;
+  result.height = image.height();
+  result.width = image.width();
+  result.is_bigendian = false;
+
+  if (image.begin<std::uint8_t>() == image.end<std::uint8_t>())
+  {
+    return result;
+  }
+
+  if (image.dataFormat() != ifm3d::pixel_format::FORMAT_32F3 && image.dataFormat() != ifm3d::pixel_format::FORMAT_32F)
+  {
+    RCLCPP_ERROR(logger, "Unsupported pixel format %ld for point cloud", static_cast<std::size_t>(image.dataFormat()));
+    return result;
+  }
+
+  sensor_msgs::msg::PointField x_field{};
+  x_field.name = "x";
+  x_field.offset = 0;
+  x_field.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  x_field.count = 1;
+
+  sensor_msgs::msg::PointField y_field{};
+  y_field.name = "y";
+  y_field.offset = 4;
+  y_field.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  y_field.count = 1;
+
+  sensor_msgs::msg::PointField z_field{};
+  z_field.name = "z";
+  z_field.offset = 8;
+  z_field.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  z_field.count = 1;
+
+  result.fields = {
+    x_field,
+    y_field,
+    z_field,
+  };
+
+  result.point_step = result.fields.size() * sizeof(float);
+  result.row_step = result.point_step * result.width;
+  result.is_dense = true;
+  result.data.insert(result.data.end(), image.ptr<>(0), std::next(image.ptr<>(0), result.row_step * result.height));
+
+  return result;
+}
+
+sensor_msgs::msg::PointCloud2 ifm3d_to_ros_cloud(ifm3d::Image&& image, const std_msgs::msg::Header& header,
+                                                 const rclcpp::Logger& logger)
+{
+  return ifm3d_to_ros_cloud(image, header, logger);
 }
 
 using json = nlohmann::json;
@@ -707,93 +766,79 @@ void CameraNode::publish_loop()
   optical_head.frame_id = this->optical_frame_;
   optical_head.stamp = head.stamp;
 
-  // pcl::PointCloud<ifm3d::PointT>::Ptr cloud(new pcl::PointCloud<ifm3d::PointT>()); // TODO(desewepa)
   rclcpp::Time last_frame_time = head.stamp;
 
   RCLCPP_INFO(this->logger_, "Starting publishing loop...");
   while (rclcpp::ok() && (!this->test_destroy_))
   {
-    // create a new scope for holding the GIL
+    std::lock_guard<std::mutex> lock(this->gil_);
+
+    if (!this->fg_->WaitForFrame(this->im_.get(), this->timeout_millis_))
     {
-      std::lock_guard<std::mutex> lock(this->gil_);
+      // XXX: May not want to emit this if the camera is software
+      //      triggered.
+      RCLCPP_WARN(this->logger_, "Timeout waiting for camera!");
 
-      if (!this->fg_->WaitForFrame(this->im_.get(), this->timeout_millis_))
+      if (std::fabs((rclcpp::Time(last_frame_time, RCL_SYSTEM_TIME) - ros_clock.now()).nanoseconds() /
+                    static_cast<float>(std::nano::den)) > this->timeout_tolerance_secs_)
       {
-        // XXX: May not want to emit this if the camera is software
-        //      triggered.
-        RCLCPP_WARN(this->logger_, "Timeout waiting for camera!");
+        RCLCPP_WARN(this->logger_, "Timeouts exceeded tolerance threshold!");
 
-        if (std::fabs((rclcpp::Time(last_frame_time, RCL_SYSTEM_TIME) - ros_clock.now()).nanoseconds() /
-                      static_cast<float>(std::nano::den)) > this->timeout_tolerance_secs_)
-        {
-          RCLCPP_WARN(this->logger_, "Timeouts exceeded tolerance threshold!");
-
-          std::thread deactivate_t([this]() { this->deactivate(); });
-          deactivate_t.detach();
-          break;
-        }
-
-        continue;
+        std::thread deactivate_t([this]() { this->deactivate(); });
+        deactivate_t.detach();
+        break;
       }
-      auto now = ros_clock.now();
-      auto frame_time = rclcpp::Time(
-          std::chrono::duration_cast<std::chrono::nanoseconds>(this->im_->TimeStamp().time_since_epoch()).count(),
-          RCL_SYSTEM_TIME);
 
-      if (std::fabs((frame_time - now).nanoseconds() / static_cast<float>(std::nano::den)) >
-          this->frame_latency_thresh_)
-      {
-        RCLCPP_WARN_ONCE(this->logger_, "Frame latency thresh exceeded, using reception timestamps!");
-        head.stamp = now;
-      }
-      else
-      {
-        head.stamp = frame_time;
-      }
-      optical_head.stamp = head.stamp;
-      last_frame_time = head.stamp;
+      continue;
+    }
+    auto now = ros_clock.now();
+    auto frame_time = rclcpp::Time(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(this->im_->TimeStamp().time_since_epoch()).count(),
+        RCL_SYSTEM_TIME);
 
-      //
-      // pull out all the wrapped images
-      //
-      // cloud = this->im_->Cloud(); // TODO(desewepa)
-
-    }  // closes our GIL scope
+    if (std::fabs((frame_time - now).nanoseconds() / static_cast<float>(std::nano::den)) > this->frame_latency_thresh_)
+    {
+      RCLCPP_WARN_ONCE(this->logger_, "Frame latency thresh exceeded, using reception timestamps!");
+      head.stamp = now;
+    }
+    else
+    {
+      head.stamp = frame_time;
+    }
+    optical_head.stamp = head.stamp;
+    last_frame_time = head.stamp;
 
     //
     // Publish the data
     //
 
     // Confidence image is invariant - no need to check the mask
-    this->conf_pub_->publish(ifm3d_to_ros(this->im_->ConfidenceImage(), optical_head, logger_));
+    this->conf_pub_->publish(ifm3d_to_ros_image(this->im_->ConfidenceImage(), optical_head, logger_));
 
     if ((this->schema_mask_ & ifm3d::IMG_CART) == ifm3d::IMG_CART)
     {
-      // cloud->header = pcl_conversions::toPCL(head); // TODO(desewepa)
-      auto pc_msg = std::make_shared<PCLMsg>();
-      // pcl::toROSMsg(*cloud, *pc_msg); // TODO(desewepa)
-      this->cloud_pub_->publish(*pc_msg);
+      this->cloud_pub_->publish(ifm3d_to_ros_cloud(this->im_->XYZImage(), optical_head, logger_));
     }
 
     if ((this->schema_mask_ & ifm3d::IMG_RDIS) == ifm3d::IMG_RDIS)
     {
-      this->distance_pub_->publish(ifm3d_to_ros(this->im_->DistanceImage(), optical_head, logger_));
+      this->distance_pub_->publish(ifm3d_to_ros_image(this->im_->DistanceImage(), optical_head, logger_));
     }
 
     if ((this->schema_mask_ & ifm3d::IMG_AMP) == ifm3d::IMG_AMP)
     {
-      this->amplitude_pub_->publish(ifm3d_to_ros(this->im_->AmplitudeImage(), optical_head, logger_));
+      this->amplitude_pub_->publish(ifm3d_to_ros_image(this->im_->AmplitudeImage(), optical_head, logger_));
     }
 
     if ((this->schema_mask_ & ifm3d::IMG_RAMP) == ifm3d::IMG_RAMP)
     {
-      this->raw_amplitude_pub_->publish(ifm3d_to_ros(this->im_->RawAmplitudeImage(), optical_head, logger_));
+      this->raw_amplitude_pub_->publish(ifm3d_to_ros_image(this->im_->RawAmplitudeImage(), optical_head, logger_));
     }
 
     auto rgb_img = this->im_->JPEGImage();
     if (rgb_img.width() * rgb_img.height() != 0)
     {
-      this->rgb_pub_->publish(ifm3d_to_ros(rgb_img, optical_head, logger_));
+      this->rgb_pub_->publish(ifm3d_to_ros_image(rgb_img, optical_head, logger_));
     }
 
     //
@@ -816,7 +861,6 @@ void CameraNode::publish_loop()
       RCLCPP_WARN(this->logger_, "Out-of-range error fetching extrinsics");
     }
     this->extrinsics_pub_->publish(extrinsics_msg);
-
   }  // end: while (rclcpp::ok() && (! this->test_destroy_))
 
   RCLCPP_INFO(this->logger_, "Publish loop/thread exiting.");
