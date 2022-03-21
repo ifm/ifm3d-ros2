@@ -44,6 +44,7 @@
   <exec_depend>std_msgs</exec_depend>
 
   <test_depend>launch_testing_ament_cmake</test_depend>
+  <test_depend>python3-opencv</test_depend>
   <test_depend>python3-numpy</test_depend>
 
   <member_of_group>rosidl_interface_packages</member_of_group>
