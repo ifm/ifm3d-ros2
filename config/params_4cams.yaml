@@ -1,0 +1,20 @@
+/ifm3d_ros2/camera0:
+  ros__parameters:
+    pcic_port: 50010
+    ip: 192.254.1.69
+
+/ifm3d_ros2/camera1:
+  ros__parameters:
+    pcic_port: 50011
+    ip: 192.254.1.69
+
+/ifm3d_ros2/camera2:
+  ros__parameters:
+    pcic_port: 50012
+    ip: 192.254.1.69
+
+/ifm3d_ros2/camera3:
+  ros__parameters:
+    pcic_port: 50013
+    ip: 192.254.1.69
+    
