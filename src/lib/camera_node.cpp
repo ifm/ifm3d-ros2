@@ -84,6 +84,35 @@ sensor_msgs::msg::Image ifm3d_to_ros_image(ifm3d::Image&& image, const std_msgs:
   return ifm3d_to_ros_image(image, header, logger);
 }
 
+sensor_msgs::msg::CompressedImage ifm3d_to_ros_compressed_image(ifm3d::Image& image,  // Need non-const image because
+                                                                                      // image.begin(), image.end()
+                                                                                      // don't have const overloads.
+                                                                const std_msgs::msg::Header& header,
+                                                                const std::string& format,  // "jpeg" or "png"
+                                                                const rclcpp::Logger& logger)
+{
+  sensor_msgs::msg::CompressedImage result{};
+  result.header = header;
+  result.format = format;
+
+  if (const auto dataFormat = image.dataFormat();
+      dataFormat != ifm3d::pixel_format::FORMAT_8S && dataFormat != ifm3d::pixel_format::FORMAT_8U)
+  {
+    RCLCPP_ERROR(logger, "Invalid data format for %s data (%ld)", format.c_str(), static_cast<std::size_t>(dataFormat));
+    return result;
+  }
+
+  result.data.insert(result.data.end(), image.ptr<>(0), std::next(image.ptr<>(0), image.width() * image.height()));
+  return result;
+}
+
+sensor_msgs::msg::CompressedImage ifm3d_to_ros_compressed_image(ifm3d::Image&& image,
+                                                                const std_msgs::msg::Header& header,
+                                                                const std::string& format, const rclcpp::Logger& logger)
+{
+  return ifm3d_to_ros_compressed_image(image, header, format, logger);
+}
+
 sensor_msgs::msg::PointCloud2 ifm3d_to_ros_cloud(ifm3d::Image& image,  // Need non-const image because image.begin(),
                                                                        // image.end() don't have const overloads.
                                                  const std_msgs::msg::Header& header, const rclcpp::Logger& logger)
@@ -191,7 +220,7 @@ CameraNode::CameraNode(const std::string& node_name, const rclcpp::NodeOptions& 
   this->cloud_pub_ = this->create_publisher<PCLMsg>("~/cloud", ifm3d_ros2::LowLatencyQoS());
   this->extrinsics_pub_ = this->create_publisher<ExtrinsicsMsg>("~/extrinsics", ifm3d_ros2::LowLatencyQoS());
 
-  this->rgb_pub_ = this->create_publisher<ImageMsg>("~/rgb", ifm3d_ros2::LowLatencyQoS());
+  this->rgb_pub_ = this->create_publisher<CompressedImageMsg>("~/rgb", ifm3d_ros2::LowLatencyQoS());
 
   RCLCPP_INFO(this->logger_, "After publishers declaration");
 
@@ -838,7 +867,7 @@ void CameraNode::publish_loop()
     auto rgb_img = this->im_->JPEGImage();
     if (rgb_img.width() * rgb_img.height() != 0)
     {
-      this->rgb_pub_->publish(ifm3d_to_ros_image(rgb_img, optical_head, logger_));
+      this->rgb_pub_->publish(ifm3d_to_ros_compressed_image(rgb_img, optical_head, "jpeg", logger_));
     }
 
     //

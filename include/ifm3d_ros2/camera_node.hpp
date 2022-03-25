@@ -18,6 +18,7 @@
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
+#include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
@@ -37,6 +38,9 @@ using TC_RETVAL = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::Cal
 
 using ImageMsg = sensor_msgs::msg::Image;
 using ImagePublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ImageMsg>>;
+
+using CompressedImageMsg = sensor_msgs::msg::CompressedImage;
+using CompressedImagePublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<CompressedImageMsg>>;
 
 using PCLMsg = sensor_msgs::msg::PointCloud2;
 using PCLPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<PCLMsg>>;
@@ -182,8 +186,7 @@ protected:
   /**
    * Implementation of the SoftOff service.
    */
-  void Softoff(std::shared_ptr<rmw_request_id_t> request_header, SoftoffRequest req,
-               SoftoffResponse resp);
+  void Softoff(std::shared_ptr<rmw_request_id_t> request_header, SoftoffRequest req, SoftoffResponse resp);
 
   /**
    * Implementation of the SoftOn service.
@@ -249,7 +252,7 @@ private:
   ImagePublisher raw_amplitude_pub_{};
   PCLPublisher cloud_pub_{};
   ExtrinsicsPublisher extrinsics_pub_{};
-  ImagePublisher rgb_pub_{};
+  CompressedImagePublisher rgb_pub_{};
 
   std::thread pub_loop_{};
   std::atomic_bool test_destroy_{};
