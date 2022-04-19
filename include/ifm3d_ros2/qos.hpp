@@ -52,7 +52,7 @@ public:
   explicit LowLatencyQoS() : rclcpp::SensorDataQoS()
   {
     // XXX: may ultimately want to make this configurable via parameter
-    this->keep_last(2);
+    this->reliable().keep_last(2);
   }
 };
 

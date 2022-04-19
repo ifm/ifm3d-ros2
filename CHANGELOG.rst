@@ -5,6 +5,13 @@ Changelog for package ifm3d-ros2
 1.0
 ===
 
+1.0.1
+-----
+* Removed dependencies to OpenCV and PCL and the Image module of the ifm3d library. Now using the StlImage module of ifm3d.
+* The RGB image is published as a compressed JPEG image. To view it with RViz, you can use the image_transport republish node (see documentation).
+* Update the launchfiles for compatibility with pyyaml 6.0 (backward compatibility maintained down to pyyaml 5.1).
+
+
 1.0.0
 --------
 
@@ -17,6 +24,7 @@ Changelog for package ifm3d-ros2
 * removed unit vector publishing: please use the intrinsic camera calibration parameters instead
 * removed the temperature publisher until diagnose chunk is available
 * removed axis permutation for ROS node specific axis order
+* removed xyz image publisher
 
 known limitations
 ------------------

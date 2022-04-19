@@ -29,7 +29,7 @@ def add_camera_loop(context, *args, **kwargs):
     logging.debug(vars(context))
 
     with open(params_path) as p:
-        params_data = yaml.load(p)
+        params_data = yaml.load(p, Loader=yaml.FullLoader)
 
     try:
         print(params_data.keys())
