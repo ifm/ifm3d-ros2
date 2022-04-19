@@ -13,6 +13,7 @@ We tried to ensure backward compatibility where ever possible. If you find any m
 
 | ifm3d_ros2 version | ifm3d version | ROS 2 distribution |
 | ----------- | ----------- | ----------- |
+| 1.0.1 | 0.93.0 | Galactic |
 | 1.0.0 | 0.92.0 | Galactic |
 | 0.3.0 DEPRECATED | 0.17.0 | Dashing, Eloquent |
 | 0.2.0 DEPRECATED | 0.12.0 | Dashing |
