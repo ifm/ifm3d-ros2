@@ -28,7 +28,7 @@ We tried to ensure backward compatibility where ever possible. If you find any m
 ### Pre-requisites
 
 1. [ROS2](https://docs.ros.org/en/galactic/Installation.html)
-2. [ifm3d](https://ifm.github.io/ifm3d-docs/content/source_build.html)
+2. [ifm3d](ifm3d/doc/sphinx/content/README:ifm3d%20Overview)
 
 These two packages are only required for testing but not at runtime:  
 - launch_testing
