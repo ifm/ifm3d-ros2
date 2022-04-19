@@ -1,6 +1,6 @@
 # ifm3d-ros2
 
-**This release is intended to be used with the O3R camera platform ONLY. For other ifm cameras please see the main branch.**  
+**This release is intended to be used with the O3R camera platform ONLY. For other ifm cameras please see the tagged release 0.3.0.**  
 
 **NOTE: The ifm3d-ros2 package has had major changes recently. Please be aware that this might cause problems on your system for building pipelines based on our old build instructions.**  
 We tried to ensure backward compatibility where ever possible. If you find any major breaks, please let us know.
@@ -13,6 +13,7 @@ We tried to ensure backward compatibility where ever possible. If you find any m
 
 | ifm3d_ros2 version | ifm3d version | ROS 2 distribution |
 | ----------- | ----------- | ----------- |
+| 1.0.1 | 0.93.0 | Galactic |
 | 1.0.0 | 0.92.0 | Galactic |
 | 0.3.0 DEPRECATED | 0.17.0 | Dashing, Eloquent |
 | 0.2.0 DEPRECATED | 0.12.0 | Dashing |
@@ -27,12 +28,7 @@ We tried to ensure backward compatibility where ever possible. If you find any m
 ### Pre-requisites
 
 1. [ROS2](https://docs.ros.org/en/galactic/Installation.html)
-2. [ifm3d](https://ifm.github.io/ifm3d-docs/content/installation_instructions/source_build.html) - be sure to build the IMAGE module (using PCL and OPENCV).
-
-In addition to the base packages found in `ros-*-desktop-full` you will need the following ROS packages:
-- cv_bridge
-- vision_opencv
-- pcl-conversions
+2. [ifm3d](ifm3d/doc/sphinx/content/README:ifm3d%20Overview)
 
 These two packages are only required for testing but not at runtime:  
 - launch_testing
@@ -41,11 +37,14 @@ These two packages are only required for testing but not at runtime:
 
 On debian based systems they may be installed as follows (replacing `galactic`with your target ROS2 distribution).
 ```
-$ sudo apt install ros-galactic-cv-bridge ros-galactic-vision-opencv ros-galactic-pcl-conversions
-```
-```
 $ sudo apt install ros-galactic-launch-testing ros-galactic-launch-testing-ament-cmake
 ```
+
+You will also need to install boost, which is typically pre-installed in ubuntu distributions, but can be missing when using other platforms:
+```
+$ sudo apt install libboost-all-dev
+```
+
 
 ### Building from source
 
@@ -66,6 +65,8 @@ $ ros2 launch ifm3d_ros2 rviz.launch.py
 ```
 > Note: `rviz.launch.py` does not include the camera node itself, but subscribes to published topics (distance, amplitude, etc). A camera node need to be running in parallel to rviz (you can use `camera_managed.launch`).
 > Note also that the `rviz.launch.py` launchfile assumes one data stream publishes at `/ifm3d/camera/<topic_name>`.
+
+:warning: to view the RGB image, follow the instructions [here](doc/view_2d.md).
 
 At this point, you should see an rviz window that looks something like the image below (note that this is the view from 3 camera heads):
 ![rviz1](doc/figures/O3R_merged_point_cloud.png)

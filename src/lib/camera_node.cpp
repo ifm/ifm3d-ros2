@@ -5,43 +5,184 @@
 
 #include <ifm3d_ros2/camera_node.hpp>
 
-#include <atomic>
 #include <chrono>
-#include <cmath>
-#include <cstdint>
-#include <cstdio>
 #include <functional>
-#include <mutex>
-#include <stdexcept>
-#include <string>
-#include <thread>
-#include <vector>
+#include <exception>
 #include <iostream>
 
-#include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
 #include <lifecycle_msgs/msg/state.hpp>
-#include <pcl_conversions/pcl_conversions.h>
-#include <rcl_interfaces/msg/set_parameters_result.hpp>
-#include <rclcpp/logging.hpp>
-#include <rclcpp_lifecycle/lifecycle_node.hpp>
-#include <rclcpp/parameter.hpp>
-#include <rmw/rmw.h>
 #include <sensor_msgs/image_encodings.hpp>
 
-#include <ifm3d/camera/camera_base.h>
-#include <ifm3d/fg.h>
-#include <ifm3d/image.h>
 #include <ifm3d_ros2/qos.hpp>
 
 #include <ifm3d/contrib/nlohmann/json.hpp>
 
+sensor_msgs::msg::Image ifm3d_to_ros_image(ifm3d::Image& image,  // Need non-const image because image.begin(),
+                                                                 // image.end() don't have const overloads.
+                                           const std_msgs::msg::Header& header, const rclcpp::Logger& logger)
+{
+  static constexpr auto max_pixel_format = static_cast<std::size_t>(ifm3d::pixel_format::FORMAT_32F3);
+  static constexpr auto image_format_info = [] {
+    auto image_format_info = std::array<const char*, max_pixel_format + 1>{};
+
+    {
+      using namespace ifm3d;
+      using namespace sensor_msgs::image_encodings;
+      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_8U)] = TYPE_8UC1;
+      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_8S)] = TYPE_8SC1;
+      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_16U)] = TYPE_16UC1;
+      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_16S)] = TYPE_16SC1;
+      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_32U)] = "32UC1";
+      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_32S)] = TYPE_32SC1;
+      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_32F)] = TYPE_32FC1;
+      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_64U)] = "64UC1";
+      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_64F)] = TYPE_64FC1;
+      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_16U2)] = TYPE_16UC2;
+      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_32F3)] = TYPE_32FC3;
+    }
+
+    return image_format_info;
+  }();
+
+  const auto format = static_cast<std::size_t>(image.dataFormat());
+
+  sensor_msgs::msg::Image result{};
+  result.header = header;
+  result.height = image.height();
+  result.width = image.width();
+  result.is_bigendian = 0;
+
+  if (image.begin<std::uint8_t>() == image.end<std::uint8_t>())
+  {
+    return result;
+  }
+
+  if (format >= max_pixel_format)
+  {
+    RCLCPP_ERROR(logger, "Pixel format out of range (%ld >= %ld)", format, max_pixel_format);
+    return result;
+  }
+
+  result.encoding = image_format_info.at(format);
+  result.step = result.width * sensor_msgs::image_encodings::bitDepth(image_format_info.at(format)) / 8;
+  result.data.insert(result.data.end(), image.ptr<>(0), std::next(image.ptr<>(0), result.step * result.height));
+
+  if (result.encoding.empty())
+  {
+    RCLCPP_WARN(logger, "Can't handle encoding %ld (32U == %ld, 64U == %ld)", format,
+                static_cast<std::size_t>(ifm3d::pixel_format::FORMAT_32U),
+                static_cast<std::size_t>(ifm3d::pixel_format::FORMAT_64U));
+    result.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+  }
+
+  return result;
+}
+
+sensor_msgs::msg::Image ifm3d_to_ros_image(ifm3d::Image&& image, const std_msgs::msg::Header& header,
+                                           const rclcpp::Logger& logger)
+{
+  return ifm3d_to_ros_image(image, header, logger);
+}
+
+sensor_msgs::msg::CompressedImage ifm3d_to_ros_compressed_image(ifm3d::Image& image,  // Need non-const image because
+                                                                                      // image.begin(), image.end()
+                                                                                      // don't have const overloads.
+                                                                const std_msgs::msg::Header& header,
+                                                                const std::string& format,  // "jpeg" or "png"
+                                                                const rclcpp::Logger& logger)
+{
+  sensor_msgs::msg::CompressedImage result{};
+  result.header = header;
+  result.format = format;
+
+  if (const auto dataFormat = image.dataFormat();
+      dataFormat != ifm3d::pixel_format::FORMAT_8S && dataFormat != ifm3d::pixel_format::FORMAT_8U)
+  {
+    RCLCPP_ERROR(logger, "Invalid data format for %s data (%ld)", format.c_str(), static_cast<std::size_t>(dataFormat));
+    return result;
+  }
+
+  result.data.insert(result.data.end(), image.ptr<>(0), std::next(image.ptr<>(0), image.width() * image.height()));
+  return result;
+}
+
+sensor_msgs::msg::CompressedImage ifm3d_to_ros_compressed_image(ifm3d::Image&& image,
+                                                                const std_msgs::msg::Header& header,
+                                                                const std::string& format, const rclcpp::Logger& logger)
+{
+  return ifm3d_to_ros_compressed_image(image, header, format, logger);
+}
+
+sensor_msgs::msg::PointCloud2 ifm3d_to_ros_cloud(ifm3d::Image& image,  // Need non-const image because image.begin(),
+                                                                       // image.end() don't have const overloads.
+                                                 const std_msgs::msg::Header& header, const rclcpp::Logger& logger)
+{
+  sensor_msgs::msg::PointCloud2 result{};
+  result.header = header;
+  result.height = image.height();
+  result.width = image.width();
+  result.is_bigendian = false;
+
+  if (image.begin<std::uint8_t>() == image.end<std::uint8_t>())
+  {
+    return result;
+  }
+
+  if (image.dataFormat() != ifm3d::pixel_format::FORMAT_32F3 && image.dataFormat() != ifm3d::pixel_format::FORMAT_32F)
+  {
+    RCLCPP_ERROR(logger, "Unsupported pixel format %ld for point cloud", static_cast<std::size_t>(image.dataFormat()));
+    return result;
+  }
+
+  sensor_msgs::msg::PointField x_field{};
+  x_field.name = "x";
+  x_field.offset = 0;
+  x_field.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  x_field.count = 1;
+
+  sensor_msgs::msg::PointField y_field{};
+  y_field.name = "y";
+  y_field.offset = 4;
+  y_field.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  y_field.count = 1;
+
+  sensor_msgs::msg::PointField z_field{};
+  z_field.name = "z";
+  z_field.offset = 8;
+  z_field.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  z_field.count = 1;
+
+  result.fields = {
+    x_field,
+    y_field,
+    z_field,
+  };
+
+  result.point_step = result.fields.size() * sizeof(float);
+  result.row_step = result.point_step * result.width;
+  result.is_dense = true;
+  result.data.insert(result.data.end(), image.ptr<>(0), std::next(image.ptr<>(0), result.row_step * result.height));
+
+  return result;
+}
+
+sensor_msgs::msg::PointCloud2 ifm3d_to_ros_cloud(ifm3d::Image&& image, const std_msgs::msg::Header& header,
+                                                 const rclcpp::Logger& logger)
+{
+  return ifm3d_to_ros_cloud(image, header, logger);
+}
+
 using json = nlohmann::json;
 using namespace std::chrono_literals;
-namespace enc = sensor_msgs::image_encodings;
 
 namespace ifm3d_ros2
 {
+namespace
+{
+constexpr auto xmlrpc_base_port = 50010;
+
+}  // namespace
+
 CameraNode::CameraNode(const rclcpp::NodeOptions& opts) : CameraNode::CameraNode("camera", opts)
 {
 }
@@ -54,7 +195,7 @@ CameraNode::CameraNode(const std::string& node_name, const rclcpp::NodeOptions& 
   , optical_frame_(this->get_name() + std::string("_optical_link"))
 {
   // unbuffered I/O to stdout (so we can see our log messages)
-  std::setvbuf(stdout, NULL, _IONBF, BUFSIZ);
+  std::setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
   RCLCPP_INFO(this->logger_, "namespace: %s", this->get_namespace());
   RCLCPP_INFO(this->logger_, "node name: %s", this->get_name());
   RCLCPP_INFO(this->logger_, "middleware: %s", rmw_get_implementation_identifier());
@@ -65,7 +206,8 @@ CameraNode::CameraNode(const std::string& node_name, const rclcpp::NodeOptions& 
   // the passed in `opts` (via __params:=/path/to/params.yaml on cmd line)
   // will override our default values specified.
   this->init_params();
-  this->add_on_set_parameters_callback(std::bind(&ifm3d_ros2::CameraNode::set_params_cb, this, std::placeholders::_1));
+  set_params_cb_handle_ = this->add_on_set_parameters_callback(
+      std::bind(&ifm3d_ros2::CameraNode::set_params_cb, this, std::placeholders::_1));
 
   RCLCPP_INFO(this->logger_, "After the parameters declaration");
   //
@@ -78,7 +220,7 @@ CameraNode::CameraNode(const std::string& node_name, const rclcpp::NodeOptions& 
   this->cloud_pub_ = this->create_publisher<PCLMsg>("~/cloud", ifm3d_ros2::LowLatencyQoS());
   this->extrinsics_pub_ = this->create_publisher<ExtrinsicsMsg>("~/extrinsics", ifm3d_ros2::LowLatencyQoS());
 
-  this->rgb_pub_ = this->create_publisher<ImageMsg>("~/rgb", ifm3d_ros2::LowLatencyQoS());
+  this->rgb_pub_ = this->create_publisher<CompressedImageMsg>("~/rgb", ifm3d_ros2::LowLatencyQoS());
 
   RCLCPP_INFO(this->logger_, "After publishers declaration");
 
@@ -174,7 +316,7 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   RCLCPP_INFO(this->logger_, "Initializing FrameGrabber with mask: %u", this->schema_mask_);
   this->fg_ = std::make_shared<ifm3d::FrameGrabber>(this->cam_, this->schema_mask_, this->pcic_port_);
   RCLCPP_INFO(this->logger_, "Initializing ImageBuffer...");
-  this->im_ = std::make_shared<ifm3d::ImageBuffer>();
+  this->im_ = std::make_shared<ifm3d::StlImageBuffer>();
 
   RCLCPP_INFO(this->logger_, "Configuration complete.");
   return TC_RETVAL::SUCCESS;
@@ -288,6 +430,11 @@ TC_RETVAL CameraNode::on_error(const rclcpp_lifecycle::State& prev_state)
 
 void CameraNode::init_params()
 {
+  static const auto default_schema_mask{ ifm3d::IMG_RDIS | ifm3d::IMG_AMP | ifm3d::IMG_RAMP | ifm3d::IMG_CART };
+  static constexpr auto default_timeout_millis{ 500 };
+  static constexpr auto default_timeout_tolerance_secs{ 5.0 };
+  static constexpr auto default_frame_latency_threshold{ 1.0 };
+  static constexpr auto default_sync_clocks{ false };
   RCLCPP_INFO(this->logger_, "declaring parameters...");
 
   rcl_interfaces::msg::ParameterDescriptor pcic_port_descriptor;
@@ -338,8 +485,7 @@ void CameraNode::init_params()
   //
   // XXX: add an IntegerRange constraint here
   //
-  this->declare_parameter("schema_mask", ifm3d::IMG_RDIS | ifm3d::IMG_AMP | ifm3d::IMG_RAMP | ifm3d::IMG_CART,
-                          schema_mask_descriptor);
+  this->declare_parameter("schema_mask", default_schema_mask, schema_mask_descriptor);
 
   rcl_interfaces::msg::ParameterDescriptor timeout_millis_descriptor;
   timeout_millis_descriptor.name = "timeout_millis";
@@ -347,25 +493,25 @@ void CameraNode::init_params()
       rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
   timeout_millis_descriptor.description = "How long to block for a single frame from the camera (millis)";
   timeout_millis_descriptor.additional_constraints = "A timeout <= 0 will block indefinitely";
-  this->declare_parameter("timeout_millis", 500, timeout_millis_descriptor);
+  this->declare_parameter("timeout_millis", default_timeout_millis, timeout_millis_descriptor);
 
   rcl_interfaces::msg::ParameterDescriptor timeout_tolerance_secs_descriptor;
   timeout_tolerance_secs_descriptor.name = "timeout_tolerance_secs";
   timeout_tolerance_secs_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE;
   timeout_tolerance_secs_descriptor.description = "Time (seconds) without a frame to consider the camera disconnected";
-  this->declare_parameter("timeout_tolerance_secs", 5.0, timeout_tolerance_secs_descriptor);
+  this->declare_parameter("timeout_tolerance_secs", default_timeout_tolerance_secs, timeout_tolerance_secs_descriptor);
 
   rcl_interfaces::msg::ParameterDescriptor frame_latency_thresh_descriptor;
   frame_latency_thresh_descriptor.name = "frame_latency_thresh";
   frame_latency_thresh_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE;
   frame_latency_thresh_descriptor.description = "Threshold (seconds) for determining use of acq time vs rcv time";
-  this->declare_parameter("frame_latency_thresh", 1.0, frame_latency_thresh_descriptor);
+  this->declare_parameter("frame_latency_thresh", default_frame_latency_threshold, frame_latency_thresh_descriptor);
 
   rcl_interfaces::msg::ParameterDescriptor sync_clocks_descriptor;
   sync_clocks_descriptor.name = "sync_clocks";
   sync_clocks_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
   sync_clocks_descriptor.description = "Attempt to sync host and camera clock";
-  this->declare_parameter("sync_clocks", false, sync_clocks_descriptor);
+  this->declare_parameter("sync_clocks", default_sync_clocks, sync_clocks_descriptor);
 }
 
 rcl_interfaces::msg::SetParametersResult CameraNode::set_params_cb(const std::vector<rclcpp::Parameter>& params)
@@ -379,7 +525,7 @@ rcl_interfaces::msg::SetParametersResult CameraNode::set_params_cb(const std::ve
   bool reconfigure = false;
   for (const auto& param : params)
   {
-    std::string name = param.get_name();
+    const std::string& name = param.get_name();
     RCLCPP_INFO(this->logger_, "Handling param change for: %s", name.c_str());
 
     if (name == "timeout_millis")
@@ -449,7 +595,7 @@ void CameraNode::stop_publish_loop()
   }
 }
 
-void CameraNode::Config(const std::shared_ptr<rmw_request_id_t>, const ConfigRequest req, const ConfigResponse resp)
+void CameraNode::Config(const std::shared_ptr<rmw_request_id_t> /*unused*/, ConfigRequest req, ConfigResponse resp)
 {
   RCLCPP_INFO(this->logger_, "Handling config request...");
 
@@ -496,7 +642,7 @@ void CameraNode::Config(const std::shared_ptr<rmw_request_id_t>, const ConfigReq
   RCLCPP_INFO(this->logger_, "Config request done.");
 }
 
-void CameraNode::Dump(const std::shared_ptr<rmw_request_id_t>, const DumpRequest, const DumpResponse resp)
+void CameraNode::Dump(const std::shared_ptr<rmw_request_id_t> /*unused*/, DumpRequest /*unused*/, DumpResponse resp)
 {
   RCLCPP_INFO(this->logger_, "Handling dump request...");
 
@@ -521,12 +667,12 @@ void CameraNode::Dump(const std::shared_ptr<rmw_request_id_t>, const DumpRequest
     catch (const ifm3d::error_t& ex)
     {
       resp->status = ex.code();
-      RCLCPP_WARN(this->logger_, ex.what());
+      RCLCPP_WARN(this->logger_, "%s", ex.what());
     }
     catch (const std::exception& std_ex)
     {
       resp->status = -1;
-      RCLCPP_WARN(this->logger_, std_ex.what());
+      RCLCPP_WARN(this->logger_, "%s", std_ex.what());
     }
     catch (...)
     {
@@ -542,7 +688,8 @@ void CameraNode::Dump(const std::shared_ptr<rmw_request_id_t>, const DumpRequest
   RCLCPP_INFO(this->logger_, "Dump request done.");
 }
 
-void CameraNode::Softoff(const std::shared_ptr<rmw_request_id_t>, const SoftoffRequest, const SoftoffResponse resp)
+void CameraNode::Softoff(const std::shared_ptr<rmw_request_id_t> /*unused*/, SoftoffRequest /*unused*/,
+                         SoftoffResponse resp)
 {
   RCLCPP_INFO(this->logger_, "Handling SoftOff request...");
 
@@ -560,18 +707,18 @@ void CameraNode::Softoff(const std::shared_ptr<rmw_request_id_t>, const SoftoffR
 
     try
     {
-      port_arg = static_cast<int>(this->pcic_port_) % 50010;
-      this->cam_->FromJSONStr("{\"ports\":{\"port" + std::to_string(port_arg) + "\": {\"state\": \"IDLE\"}}}");
+      port_arg = static_cast<int>(this->pcic_port_) % xmlrpc_base_port;
+      this->cam_->FromJSONStr(R"({"ports":{"port)" + std::to_string(port_arg) + R"(": {"state": "IDLE"}}})");
     }
     catch (const ifm3d::error_t& ex)
     {
       resp->status = ex.code();
-      RCLCPP_WARN(this->logger_, ex.what());
+      RCLCPP_WARN(this->logger_, "%s", ex.what());
     }
     catch (const std::exception& std_ex)
     {
       resp->status = -1;
-      RCLCPP_WARN(this->logger_, std_ex.what());
+      RCLCPP_WARN(this->logger_, "%s", std_ex.what());
     }
     catch (...)
     {
@@ -587,7 +734,8 @@ void CameraNode::Softoff(const std::shared_ptr<rmw_request_id_t>, const SoftoffR
   RCLCPP_INFO(this->logger_, "SoftOff request done.");
 }
 
-void CameraNode::Softon(const std::shared_ptr<rmw_request_id_t>, const SoftonRequest, const SoftonResponse resp)
+void CameraNode::Softon(const std::shared_ptr<rmw_request_id_t> /*unused*/, SoftonRequest /*unused*/,
+                        SoftonResponse resp)
 {
   RCLCPP_INFO(this->logger_, "Handling SoftOn request...");
 
@@ -605,18 +753,18 @@ void CameraNode::Softon(const std::shared_ptr<rmw_request_id_t>, const SoftonReq
 
     try
     {
-      port_arg = static_cast<int>(this->pcic_port_) % 50010;
-      this->cam_->FromJSONStr("{\"ports\":{\"port" + std::to_string(port_arg) + "\":{\"state\":\"RUN\"}}}");
+      port_arg = static_cast<int>(this->pcic_port_) % xmlrpc_base_port;
+      this->cam_->FromJSONStr(R"({"ports":{"port)" + std::to_string(port_arg) + R"(":{"state":"RUN"}}})");
     }
     catch (const ifm3d::error_t& ex)
     {
       resp->status = ex.code();
-      RCLCPP_WARN(this->logger_, ex.what());
+      RCLCPP_WARN(this->logger_, "%s", ex.what());
     }
     catch (const std::exception& std_ex)
     {
       resp->status = -1;
-      RCLCPP_WARN(this->logger_, std_ex.what());
+      RCLCPP_WARN(this->logger_, "%s", std_ex.what());
     }
     catch (...)
     {
@@ -647,114 +795,81 @@ void CameraNode::publish_loop()
   optical_head.frame_id = this->optical_frame_;
   optical_head.stamp = head.stamp;
 
-  pcl::PointCloud<ifm3d::PointT>::Ptr cloud(new pcl::PointCloud<ifm3d::PointT>());
-  cv::Mat confidence_img;
-  cv::Mat distance_img;
-  cv::Mat amplitude_img;
-  cv::Mat raw_amplitude_img;
-  std::vector<float> extrinsics(6);
-  cv::Mat rgb_img;
   rclcpp::Time last_frame_time = head.stamp;
 
   RCLCPP_INFO(this->logger_, "Starting publishing loop...");
   while (rclcpp::ok() && (!this->test_destroy_))
   {
-    // create a new scope for holding the GIL
+    std::lock_guard<std::mutex> lock(this->gil_);
+
+    if (!this->fg_->WaitForFrame(this->im_.get(), this->timeout_millis_))
     {
-      std::lock_guard<std::mutex> lock(this->gil_);
+      // XXX: May not want to emit this if the camera is software
+      //      triggered.
+      RCLCPP_WARN(this->logger_, "Timeout waiting for camera!");
 
-      if (!this->fg_->WaitForFrame(this->im_.get(), this->timeout_millis_))
+      if (std::fabs((rclcpp::Time(last_frame_time, RCL_SYSTEM_TIME) - ros_clock.now()).nanoseconds() /
+                    static_cast<float>(std::nano::den)) > this->timeout_tolerance_secs_)
       {
-        // XXX: May not want to emit this if the camera is software
-        //      triggered.
-        RCLCPP_WARN(this->logger_, "Timeout waiting for camera!");
+        RCLCPP_WARN(this->logger_, "Timeouts exceeded tolerance threshold!");
 
-        if (std::fabs((rclcpp::Time(last_frame_time, RCL_SYSTEM_TIME) - ros_clock.now()).nanoseconds() / 1e9) >
-            this->timeout_tolerance_secs_)
-        {
-          RCLCPP_WARN(this->logger_, "Timeouts exceeded tolerance threshold!");
-
-          std::thread deactivate_t([this]() { this->deactivate(); });
-          deactivate_t.detach();
-          break;
-        }
-
-        continue;
+        std::thread deactivate_t([this]() { this->deactivate(); });
+        deactivate_t.detach();
+        break;
       }
-      auto now = ros_clock.now();
-      auto frame_time = rclcpp::Time(
-          std::chrono::duration_cast<std::chrono::nanoseconds>(this->im_->TimeStamp().time_since_epoch()).count(),
-          RCL_SYSTEM_TIME);
 
-      if (std::fabs((frame_time - now).nanoseconds() / 1e9) > this->frame_latency_thresh_)
-      {
-        RCLCPP_WARN_ONCE(this->logger_, "Frame latency thresh exceeded, using reception timestamps!");
-        head.stamp = now;
-      }
-      else
-      {
-        head.stamp = frame_time;
-      }
-      optical_head.stamp = head.stamp;
-      last_frame_time = head.stamp;
+      continue;
+    }
+    auto now = ros_clock.now();
+    auto frame_time = rclcpp::Time(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(this->im_->TimeStamp().time_since_epoch()).count(),
+        RCL_SYSTEM_TIME);
 
-      //
-      // pull out all the wrapped images
-      //
-      cloud = this->im_->Cloud();
-      confidence_img = this->im_->ConfidenceImage();
-      distance_img = this->im_->DistanceImage();
-      amplitude_img = this->im_->AmplitudeImage();
-      raw_amplitude_img = this->im_->RawAmplitudeImage();
-      extrinsics = this->im_->Extrinsics();
-      rgb_img = this->im_->JPEGImage();
-
-    }  // closes our GIL scope
+    if (std::fabs((frame_time - now).nanoseconds() / static_cast<float>(std::nano::den)) > this->frame_latency_thresh_)
+    {
+      RCLCPP_WARN_ONCE(this->logger_, "Frame latency thresh exceeded, using reception timestamps!");
+      head.stamp = now;
+    }
+    else
+    {
+      head.stamp = frame_time;
+    }
+    optical_head.stamp = head.stamp;
+    last_frame_time = head.stamp;
 
     //
     // Publish the data
     //
 
     // Confidence image is invariant - no need to check the mask
-    this->conf_pub_->publish(std::move(*(cv_bridge::CvImage(optical_head, "mono16", confidence_img).toImageMsg())));
+    this->conf_pub_->publish(ifm3d_to_ros_image(this->im_->ConfidenceImage(), optical_head, logger_));
 
     if ((this->schema_mask_ & ifm3d::IMG_CART) == ifm3d::IMG_CART)
     {
-      cloud->header = pcl_conversions::toPCL(head);
-      auto pc_msg = std::make_shared<PCLMsg>();
-      pcl::toROSMsg(*cloud, *pc_msg);
-      this->cloud_pub_->publish(std::move(*pc_msg));
+      this->cloud_pub_->publish(ifm3d_to_ros_cloud(this->im_->XYZImage(), optical_head, logger_));
     }
 
     if ((this->schema_mask_ & ifm3d::IMG_RDIS) == ifm3d::IMG_RDIS)
     {
-      this->distance_pub_->publish(std::move(
-          *(cv_bridge::CvImage(optical_head, distance_img.type() == CV_32FC1 ? enc::TYPE_32FC1 : enc::TYPE_16UC1,
-                               distance_img)
-                .toImageMsg())));
+      this->distance_pub_->publish(ifm3d_to_ros_image(this->im_->DistanceImage(), optical_head, logger_));
     }
 
     if ((this->schema_mask_ & ifm3d::IMG_AMP) == ifm3d::IMG_AMP)
     {
-      this->amplitude_pub_->publish(std::move(
-          *(cv_bridge::CvImage(optical_head, amplitude_img.type() == CV_32FC1 ? enc::TYPE_32FC1 : enc::TYPE_16UC1,
-                               amplitude_img)
-                .toImageMsg())));
+      this->amplitude_pub_->publish(ifm3d_to_ros_image(this->im_->AmplitudeImage(), optical_head, logger_));
     }
 
     if ((this->schema_mask_ & ifm3d::IMG_RAMP) == ifm3d::IMG_RAMP)
     {
-      this->raw_amplitude_pub_->publish(std::move(
-          *(cv_bridge::CvImage(optical_head, raw_amplitude_img.type() == CV_32FC1 ? enc::TYPE_32FC1 : enc::TYPE_16UC1,
-                               raw_amplitude_img)
-                .toImageMsg())));
+      this->raw_amplitude_pub_->publish(ifm3d_to_ros_image(this->im_->RawAmplitudeImage(), optical_head, logger_));
     }
 
-    if (!rgb_img.empty())
+    auto rgb_img = this->im_->JPEGImage();
+    if (rgb_img.width() * rgb_img.height() != 0)
     {
-      cv::Mat im_decode = cv::imdecode(rgb_img, cv::IMREAD_UNCHANGED);
-      this->rgb_pub_->publish(std::move(*(cv_bridge::CvImage(optical_head, "bgr8", im_decode).toImageMsg())));
+      this->rgb_pub_->publish(ifm3d_to_ros_compressed_image(rgb_img, optical_head, "jpeg", logger_));
     }
+
     //
     // publish extrinsics
     //
@@ -762,6 +877,7 @@ void CameraNode::publish_loop()
     extrinsics_msg.header = optical_head;
     try
     {
+      const auto extrinsics = this->im_->Extrinsics();
       extrinsics_msg.tx = extrinsics.at(0);
       extrinsics_msg.ty = extrinsics.at(1);
       extrinsics_msg.tz = extrinsics.at(2);
@@ -773,8 +889,7 @@ void CameraNode::publish_loop()
     {
       RCLCPP_WARN(this->logger_, "Out-of-range error fetching extrinsics");
     }
-    this->extrinsics_pub_->publish(std::move(extrinsics_msg));
-
+    this->extrinsics_pub_->publish(extrinsics_msg);
   }  // end: while (rclcpp::ok() && (! this->test_destroy_))
 
   RCLCPP_INFO(this->logger_, "Publish loop/thread exiting.");

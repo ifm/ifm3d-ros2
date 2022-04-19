@@ -23,13 +23,8 @@ We suggest building the `ifm3d-ros2` node on top of Ubuntu 20.04 Focal Fossa and
 ### ifm3d C++ API
 The ROS node `ifm3d_ros2` requires the C++ API ifm3d to be installed locally for your system before compiling and running the ROS node.  
 
-Please follow these instructions on how to build `ìfm3d` from source: [build ifm3d from source instructions](https://ifm.github.io/ifm3d-docs/content/installation_instructions/source_build.html)
+Please follow these instructions on how to build `ifm3d` from source: [build ifm3d from source instructions](ifm3d/doc/sphinx/content/installation_instructions/source_build:Installing%20ifm3d%20from%20source)
  
-> Note: The `image module` is required, so please make sure you build it during your compiling process: the required cmake flag is `-DBUILD_MODULE_IMAGE=ON`
-
-> Note: Both the ifm3d C++ API and the ROS 2 node ifm3d_ros2 depend on OpenCV. We have tested the compatibility between both default `ros-galaciic-libopencv` package available via apt and the `libopencv-dev` dependency as mentioned in the (building instructions for ifm3d)[https://ifm.github.io/ifm3d-docs/content/installation_instructions/source_build.html]. For older versions of ROS you might be required to install an older compatible version of `libopencv-dev` as for the C++ API ifm3d as well. 
-
-
 ## Step-by-Step build instructions for the ROS node `ifm3d-ros2`
 
 Building and installing ifm3d-ros2 is accomplished by utilizing the ROS2 [colcon](https://colcon.readthedocs.io/en/released/) tool. There are many tutorials and other pieces of advice available online advising how to most effectively utilize it.  
@@ -51,9 +46,10 @@ Next, we need to get the code from GitHub. Please adapt the commands when not fo
 
 ```
 $ cd ~/colcon_ws/src
-$ git clone --branch o3r/dev https://github.com/ifm/ifm3d-ros2.git
+$ git clone https://github.com/ifm/ifm3d-ros2.git
 ```
-> TODO: change brach to final release branch on GL
+> Note: the master branch is generally a work in progress.
+> We recommend picking a {{ '[tagged released version]({})'.format(ifm3d_ros2_latest_tag_url) }} for your builds, to ensure stability between builds.
 
 ### 4. build the ROS node code  
 Build your workspace:
