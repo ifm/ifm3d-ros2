@@ -11,9 +11,7 @@ endif()
 
 set(IFM3D_ROS2_DEPS
   builtin_interfaces
-  cv_bridge
   lifecycle_msgs
-  pcl_conversions
   rclcpp
   rclcpp_components
   rclcpp_lifecycle
@@ -22,13 +20,12 @@ set(IFM3D_ROS2_DEPS
   rosidl_default_generators
   sensor_msgs
   std_msgs
-  vision_opencv
   )
 
-find_package(ifm3d 0.91.0 CONFIG REQUIRED COMPONENTS
+find_package(ifm3d 0.93.0 CONFIG REQUIRED COMPONENTS
   camera
   framegrabber
-  image
+  stlimage
   )
 find_package(ament_cmake_auto REQUIRED)
 find_package(ament_cmake_ros REQUIRED)
@@ -57,7 +54,7 @@ add_library(ifm3d_ros2_camera_node SHARED src/lib/camera_node.cpp)
 target_link_libraries(ifm3d_ros2_camera_node
   ifm3d::camera
   ifm3d::framegrabber
-  ifm3d::image
+  ifm3d::stlimage
   )
 ament_target_dependencies(ifm3d_ros2_camera_node ${IFM3D_ROS2_DEPS})
 rclcpp_components_register_nodes(
