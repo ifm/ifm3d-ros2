@@ -22,7 +22,7 @@ set(IFM3D_ROS2_DEPS
   std_msgs
   )
 
-find_package(ifm3d 0.91.0 CONFIG REQUIRED COMPONENTS
+find_package(ifm3d 0.93.0 CONFIG REQUIRED COMPONENTS
   camera
   framegrabber
   stlimage

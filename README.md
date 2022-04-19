@@ -65,6 +65,8 @@ $ ros2 launch ifm3d_ros2 rviz.launch.py
 > Note: `rviz.launch.py` does not include the camera node itself, but subscribes to published topics (distance, amplitude, etc). A camera node need to be running in parallel to rviz (you can use `camera_managed.launch`).
 > Note also that the `rviz.launch.py` launchfile assumes one data stream publishes at `/ifm3d/camera/<topic_name>`.
 
+:warning: to view the RGB image, follow the instructions [here](doc/view_2d.md).
+
 At this point, you should see an rviz window that looks something like the image below (note that this is the view from 3 camera heads):
 ![rviz1](doc/figures/O3R_merged_point_cloud.png)
 
