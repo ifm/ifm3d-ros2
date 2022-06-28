@@ -182,11 +182,11 @@ def launch_setup(context, *args, **kwargs):
       ExecuteProcess(
           cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
                 '0', '0', '0', '0', '0', '0',
-                str(node_name + "_link"), str(node_name + "_optical_link")],
+                str(node_name + "_optical_link"), str(node_name + "_link")],
                 # output='screen',
                 log_cmd=True
           )
-    logging.info("Publishing tf2 transform from {} to {}" .format(str(node_name + "_link"), str(node_name + "_optical_link")))
+    logging.info("Publishing tf2 transform from {} to {}" .format(str(node_name + "_optical_link"), str(node_name + "_link")))
 
     #
     # (Dummy) Coord frame transform from camera_link to map frame
@@ -195,11 +195,11 @@ def launch_setup(context, *args, **kwargs):
         ExecuteProcess(
             cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
                 '0', '0', '0', '0', '0', '0',
-                str(node_name + "_optical_link"), "map"],
+                "map", str(node_name + "_optical_link")],
                 # output='screen',
                 log_cmd=True
         )
-    logging.info("Publishing tf2 transform from {} to {}" .format(str(node_name + "_optical_link"), "map"))
+    logging.info("Publishing tf2 transform from {} to {}" .format("map", str(node_name + "_optical_link")))
 
     return camera_node_unconfigured_to_inactive_handler, \
         camera_node_active_to_inactive_handler, \
