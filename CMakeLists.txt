@@ -22,10 +22,9 @@ set(IFM3D_ROS2_DEPS
   std_msgs
   )
 
-find_package(ifm3d 0.93.0 CONFIG REQUIRED COMPONENTS
-  camera
+find_package(ifm3d 1.0.0 CONFIG REQUIRED COMPONENTS
+  device
   framegrabber
-  stlimage
   )
 find_package(ament_cmake_auto REQUIRED)
 find_package(ament_cmake_ros REQUIRED)
@@ -52,9 +51,8 @@ include_directories(include)
 #
 add_library(ifm3d_ros2_camera_node SHARED src/lib/camera_node.cpp)
 target_link_libraries(ifm3d_ros2_camera_node
-  ifm3d::camera
+  ifm3d::device
   ifm3d::framegrabber
-  ifm3d::stlimage
   )
 ament_target_dependencies(ifm3d_ros2_camera_node ${IFM3D_ROS2_DEPS})
 rclcpp_components_register_nodes(

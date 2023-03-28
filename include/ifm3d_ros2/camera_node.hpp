@@ -30,9 +30,8 @@
 #include <ifm3d_ros2/srv/softon.hpp>
 #include <ifm3d_ros2/srv/softoff.hpp>
 
-#include <ifm3d/camera/camera_base.h>
+#include <ifm3d/device.h>
 #include <ifm3d/fg.h>
-#include <ifm3d/stlimage.h>
 
 using TC_RETVAL = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
@@ -212,15 +211,28 @@ protected:
   void init_params();
 
   /**
-   * Thread function that publishes data to clients
+   * Callback which receives new Frames from ifm3d
    */
-  void publish_loop();
+  void frame_callback(ifm3d::Frame::Ptr frame);
 
   /**
-   * Utility function that makes a best effort to stop the thread publishing
-   * loop.
+   * @brief Create publishers according to buffer_id_list_.
+   *
+   * First, this clears internal publisher lists.
+   * Populates the internal publisher lists with new Publishers.
+   * Uses buffer_id_utils to determine message types.
    */
-  void stop_publish_loop();
+  void initialize_publishers();
+
+  /**
+   * Activates all publishers on the internal publisher lists.
+   */
+  void activate_publishers();
+
+  /**
+   * Deactivates all publishers on the internal publisher lists.
+   */
+  void deactivate_publishers();
 
 private:
   rclcpp::Logger logger_;
@@ -230,7 +242,7 @@ private:
   std::string ip_{};
   std::uint16_t xmlrpc_port_{};
   std::string password_{};
-  std::uint16_t schema_mask_{};
+  std::vector<ifm3d::buffer_id> buffer_id_list_{};
   int timeout_millis_{};
   float timeout_tolerance_secs_{};
   float frame_latency_thresh_{};  // seconds
@@ -242,20 +254,16 @@ private:
   SoftoffServer soft_off_srv_{};
   SoftonServer soft_on_srv_{};
 
-  ifm3d::CameraBase::Ptr cam_{};
+  ifm3d::Device::Ptr cam_{};
   ifm3d::FrameGrabber::Ptr fg_{};
-  ifm3d::StlImageBuffer::Ptr im_{};
+  // ifm3d::StlImageBuffer::Ptr im_{};
 
-  ImagePublisher conf_pub_{};
-  ImagePublisher distance_pub_{};
-  ImagePublisher amplitude_pub_{};
-  ImagePublisher raw_amplitude_pub_{};
-  PCLPublisher cloud_pub_{};
-  ExtrinsicsPublisher extrinsics_pub_{};
-  CompressedImagePublisher rgb_pub_{};
+  std::map<ifm3d::buffer_id, ImagePublisher> image_publishers_;
+  std::map<ifm3d::buffer_id, CompressedImagePublisher> compressed_image_publishers_;
+  std::map<ifm3d::buffer_id, PCLPublisher> pcl_publishers_;
+  std::map<ifm3d::buffer_id, ExtrinsicsPublisher> extrinsics_publishers_;
 
-  std::thread pub_loop_{};
-  std::atomic_bool test_destroy_{};
+  std::atomic_bool is_active_{};
 
   std::string camera_frame_{};
   std::string optical_frame_{};
