@@ -22,7 +22,7 @@ set(IFM3D_ROS2_DEPS
   std_msgs
   )
 
-find_package(ifm3d 1.0.0 CONFIG REQUIRED COMPONENTS
+find_package(ifm3d 1.1.1 CONFIG REQUIRED COMPONENTS
   device
   framegrabber
   )

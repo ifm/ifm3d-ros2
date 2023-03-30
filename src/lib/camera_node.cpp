@@ -339,10 +339,13 @@ TC_RETVAL CameraNode::on_activate(const rclcpp_lifecycle::State& prev_state)
   RCLCPP_INFO(this->logger_, "Starting the Framegrabber...");
   std::vector<std::variant<long unsigned int, int, ifm3d::buffer_id>> buffer_list{};
   buffer_list.insert(buffer_list.end(), buffer_id_list_.begin(), buffer_id_list_.end());
-  this->fg_->Start(buffer_list);
+  const bool start_success = this->fg_->Start(buffer_list);
   this->fg_->OnNewFrame(std::bind(&CameraNode::frame_callback, this, std::placeholders::_1));
+  this->fg_->OnAsyncError(
+      std::bind(&CameraNode::async_error_callback, this, std::placeholders::_1, std::placeholders::_2));
+  this->fg_->OnError(std::bind(&CameraNode::error_callback, this, std::placeholders::_1));
   this->is_active_ = true;
-  RCLCPP_INFO(this->logger_, "Framegrabber started.");
+  RCLCPP_INFO(this->logger_, "Framegrabber started. Success=%s", (start_success ? "true" : "false"));
 
   return TC_RETVAL::SUCCESS;
 }
@@ -922,6 +925,21 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
   }
 
   RCLCPP_INFO(this->logger_, "Publish loop exiting.");
+}
+
+void CameraNode::error_callback(const ifm3d::Error& error)
+{
+  RCLCPP_ERROR(logger_, "Error received from ifm3d: %s", error.what());
+}
+
+void CameraNode::async_error_callback(int i, const std::string& s)
+{
+  RCLCPP_ERROR(logger_, "AsyncError received from ifm3d: %d %s", i, s.c_str());
+}
+
+void CameraNode::async_notification_callback(const std::string& s1, const std::string& s2)
+{
+  RCLCPP_INFO(logger_, "AsyncNotification received from ifm3d: %s  |  %s", s1.c_str(), s2.c_str());
 }
 
 }  // namespace ifm3d_ros2

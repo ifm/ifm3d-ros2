@@ -216,6 +216,21 @@ protected:
   void frame_callback(ifm3d::Frame::Ptr frame);
 
   /**
+   * Callback which receives Errors from ifm3d
+   */
+  void error_callback(const ifm3d::Error& error);
+
+  /**
+   * Callback which receives AsyncErrors from ifm3d
+   */
+  void async_error_callback(int i, const std::string& s);
+
+  /**
+   * Callback which receives AsyncNotifications from ifm3d
+   */
+  void async_notification_callback(const std::string& s1, const std::string& s2);
+
+  /**
    * @brief Create publishers according to buffer_id_list_.
    *
    * First, this clears internal publisher lists.
