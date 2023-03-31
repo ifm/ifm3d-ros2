@@ -178,7 +178,7 @@ sensor_msgs::msg::PointCloud2 ifm3d_to_ros_cloud(ifm3d::Buffer&& image, const st
   return ifm3d_to_ros_cloud(image, header, logger);
 }
 
-using json = nlohmann::json;
+using json = ifm3d::json;
 using namespace std::chrono_literals;
 
 namespace ifm3d_ros2
@@ -339,13 +339,13 @@ TC_RETVAL CameraNode::on_activate(const rclcpp_lifecycle::State& prev_state)
   RCLCPP_INFO(this->logger_, "Starting the Framegrabber...");
   std::vector<std::variant<long unsigned int, int, ifm3d::buffer_id>> buffer_list{};
   buffer_list.insert(buffer_list.end(), buffer_id_list_.begin(), buffer_id_list_.end());
-  const bool start_success = this->fg_->Start(buffer_list);
+  // Start framegrabber and wait for the returned future
+  this->fg_->Start(buffer_list).wait();
+  // Register Callbacks to handle new frames and print errors
   this->fg_->OnNewFrame(std::bind(&CameraNode::frame_callback, this, std::placeholders::_1));
-  this->fg_->OnAsyncError(
-      std::bind(&CameraNode::async_error_callback, this, std::placeholders::_1, std::placeholders::_2));
   this->fg_->OnError(std::bind(&CameraNode::error_callback, this, std::placeholders::_1));
   this->is_active_ = true;
-  RCLCPP_INFO(this->logger_, "Framegrabber started. Success=%s", (start_success ? "true" : "false"));
+  RCLCPP_INFO(this->logger_, "Framegrabber started.");
 
   return TC_RETVAL::SUCCESS;
 }
@@ -853,14 +853,15 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
 {
   using namespace buffer_id_utils;
 
+  RCLCPP_INFO_ONCE(logger_, "Receiving Frames...");
+  RCLCPP_DEBUG(logger_, "Received new Frame.");
+
   // Ignore new frames if node not in ACTIVE state
   if (!this->is_active_)
   {
     RCLCPP_INFO(logger_, "Node inactive, ignoring new Frame.");
     return;
   }
-
-  RCLCPP_INFO(logger_, "Received new Frame.");
 
   rclcpp::Clock ros_clock(RCL_SYSTEM_TIME);
 
@@ -924,7 +925,7 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
     }
   }
 
-  RCLCPP_INFO(this->logger_, "Publish loop exiting.");
+  RCLCPP_DEBUG(this->logger_, "Publish loop exiting.");
 }
 
 void CameraNode::error_callback(const ifm3d::Error& error)
