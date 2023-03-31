@@ -54,9 +54,9 @@ std::map<std::string, ifm3d::buffer_id> buffer_id_map = {
  * It is not declared const because the operator[] of std::map would not be available.
  */
 std::map<ifm3d::buffer_id, std::string> topic_name_map = {
-  { ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE, "RADIAL_DISTANCE_IMAGE" },
-  { ifm3d::buffer_id::NORM_AMPLITUDE_IMAGE, "NORM_AMPLITUDE_IMAGE" },
-  { ifm3d::buffer_id::AMPLITUDE_IMAGE, "AMPLITUDE_IMAGE" },
+  { ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE, "distance" },
+  { ifm3d::buffer_id::NORM_AMPLITUDE_IMAGE, "amplitude" },
+  { ifm3d::buffer_id::AMPLITUDE_IMAGE, "raw_amplitude" },
   { ifm3d::buffer_id::GRAYSCALE_IMAGE, "GRAYSCALE_IMAGE" },
   { ifm3d::buffer_id::RADIAL_DISTANCE_NOISE, "RADIAL_DISTANCE_NOISE" },
   { ifm3d::buffer_id::REFLECTIVITY, "REFLECTIVITY" },
@@ -67,11 +67,11 @@ std::map<ifm3d::buffer_id, std::string> topic_name_map = {
   { ifm3d::buffer_id::UNIT_VECTOR_ALL, "UNIT_VECTOR_ALL" },
   { ifm3d::buffer_id::MONOCHROM_2D_12BIT, "MONOCHROM_2D_12BIT" },
   { ifm3d::buffer_id::MONOCHROM_2D, "MONOCHROM_2D" },
-  { ifm3d::buffer_id::JPEG_IMAGE, "JPEG_IMAGE" },
-  { ifm3d::buffer_id::CONFIDENCE_IMAGE, "CONFIDENCE_IMAGE" },
+  { ifm3d::buffer_id::JPEG_IMAGE, "rgb" },
+  { ifm3d::buffer_id::CONFIDENCE_IMAGE, "confidence" },
   { ifm3d::buffer_id::DIAGNOSTIC, "DIAGNOSTIC" },
   { ifm3d::buffer_id::JSON_DIAGNOSTIC, "JSON_DIAGNOSTIC" },
-  { ifm3d::buffer_id::EXTRINSIC_CALIB, "EXTRINSIC_CALIB" },
+  { ifm3d::buffer_id::EXTRINSIC_CALIB, "extrinsics" },
   { ifm3d::buffer_id::INTRINSIC_CALIB, "INTRINSIC_CALIB" },
   { ifm3d::buffer_id::INVERSE_INTRINSIC_CALIBRATION, "INVERSE_INTRINSIC_CALIBRATION" },
   { ifm3d::buffer_id::TOF_INFO, "TOF_INFO" },
@@ -80,18 +80,20 @@ std::map<ifm3d::buffer_id, std::string> topic_name_map = {
   { ifm3d::buffer_id::ALGO_DEBUG, "ALGO_DEBUG" },
   { ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID, "O3R_ODS_OCCUPANCY_GRID" },
   { ifm3d::buffer_id::O3R_ODS_INFO, "O3R_ODS_INFO" },
-  { ifm3d::buffer_id::XYZ, "XYZ" },
+  { ifm3d::buffer_id::XYZ, "cloud" },
   { ifm3d::buffer_id::EXPOSURE_TIME, "EXPOSURE_TIME" },
   { ifm3d::buffer_id::ILLUMINATION_TEMP, "ILLUMINATION_TEMP" }
 };
 
-const std::vector<ifm3d::buffer_id> image_ids = { ifm3d::buffer_id::CONFIDENCE_IMAGE,       //
-                                                  ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE,  //
-                                                  ifm3d::buffer_id::RADIAL_DISTANCE_NOISE,  //
-                                                  ifm3d::buffer_id::NORM_AMPLITUDE_IMAGE,   //
-                                                  ifm3d::buffer_id::AMPLITUDE_IMAGE };
+const std::vector<ifm3d::buffer_id> image_ids = {  //
+  ifm3d::buffer_id::CONFIDENCE_IMAGE,              //
+  ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE,         //
+  ifm3d::buffer_id::RADIAL_DISTANCE_NOISE,         //
+  ifm3d::buffer_id::NORM_AMPLITUDE_IMAGE,          //
+  ifm3d::buffer_id::AMPLITUDE_IMAGE
+};
 const std::vector<ifm3d::buffer_id> compressed_image_ids = { ifm3d::buffer_id::JPEG_IMAGE };
-const std::vector<ifm3d::buffer_id> plc_ids = {};
+const std::vector<ifm3d::buffer_id> plc_ids = { ifm3d::buffer_id::XYZ };
 const std::vector<ifm3d::buffer_id> extrinsics_ids = { ifm3d::buffer_id::EXTRINSIC_CALIB };
 
 /**
@@ -143,12 +145,19 @@ bool convert(const ifm3d::buffer_id& buffer_id, std::string& string)
  */
 std::string vector_to_string(const std::vector<std::string>& vector)
 {
+  if (vector.empty())
+  {
+    return std::string("");
+  }
+
   std::ostringstream stream;
-  const char* const delimiter = ", ";
+  const std::string delimiter = ", ";
 
-  std::copy(vector.begin(), vector.end(), std::ostream_iterator<std::string>(stream, delimiter));
+  std::copy(vector.begin(), vector.end(), std::ostream_iterator<std::string>(stream, delimiter.c_str()));
 
-  return stream.str();
+  const std::string& output = stream.str();
+
+  return output.substr(0, output.length() - delimiter.length());
 }
 
 /**
@@ -173,7 +182,7 @@ std::string vector_to_string(const std::vector<ifm3d::buffer_id>& vector)
 
   const std::string& output = stream.str();
 
-  return output.substr(0, output.length() - 1 - delimiter.length());
+  return output.substr(0, output.length() - delimiter.length());
 }
 
 }  // namespace buffer_id_utils
