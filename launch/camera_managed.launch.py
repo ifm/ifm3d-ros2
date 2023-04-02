@@ -24,6 +24,17 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch.actions import OpaqueFunction
 
+deprecation_warning = LogInfo(
+    msg="""
+
+    ######################################################################################
+    #                                                                                    #
+    #  This launch script is deprecated. Use the parametrized camera.launch.py instead!  #
+    #                                                                                    #
+    ######################################################################################
+    """
+)
+
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 def launch_setup(context, *args, **kwargs):
@@ -218,9 +229,13 @@ def generate_launch_description():
       "[{%s}] {%s} [{%s}]: {%s}" % ("severity", "time", "name", "message")
     
 
-    return LaunchDescription([
-        DeclareLaunchArgument('name', default_value = 'camera'),
-        DeclareLaunchArgument('params', default_value = []),
-        DeclareLaunchArgument('namespace', default_value = 'ifm3d'),
-        OpaqueFunction(function = launch_setup)
-        ])
+    return LaunchDescription(
+        [
+            deprecation_warning,
+            DeclareLaunchArgument('name', default_value='camera'),
+            DeclareLaunchArgument('params', default_value=[]),
+            DeclareLaunchArgument('namespace', default_value='ifm3d'),
+            OpaqueFunction(function=launch_setup),
+        ],
+        deprecated_reason="Deprecated in favor of camera.launch.py"
+    )

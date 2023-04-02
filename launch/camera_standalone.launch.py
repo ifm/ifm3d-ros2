@@ -8,8 +8,20 @@ import sys
 from math import pi
 
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess
+from launch.actions import ExecuteProcess, LogInfo
 from launch_ros.actions import LifecycleNode
+
+deprecation_warning = LogInfo(
+    msg="""
+
+    ######################################################################################
+    #                                                                                    #
+    #  This launch script is deprecated. Use the parametrized camera.launch.py instead!  #
+    #                                                                                    #
+    ######################################################################################
+    """
+)
+
 
 def generate_launch_description():
     package_name = 'ifm3d_ros2'
@@ -75,23 +87,37 @@ def generate_launch_description():
 
     remaps = list(map(add_prefix, remaps))
 
-    return LaunchDescription([
-        ExecuteProcess(
-            cmd=['ros2', 'run', 'tf2_ros', 'static_transform_publisher',
-                 '0', '0', '0', '0', '0', '0',
-                 str(node_name + "_optical_link"), str(node_name + "_link")],
-            #output='screen',
-            log_cmd=True
+    return LaunchDescription(
+        [
+            deprecation_warning,
+            ExecuteProcess(
+                cmd=[
+                    'ros2',
+                    'run',
+                    'tf2_ros',
+                    'static_transform_publisher',
+                    '0',
+                    '0',
+                    '0',
+                    '0',
+                    '0',
+                    '0',
+                    str(node_name + "_optical_link"),
+                    str(node_name + "_link"),
+                ],
+                # output='screen',
+                log_cmd=True,
             ),
-
-        LifecycleNode(
-            package=package_name,
-            executable=node_exe,
-            namespace=node_namespace,
-            name=node_name,
-            output='screen',
-            parameters=parameters,
-            remappings=remaps,
-            log_cmd=True,
+            LifecycleNode(
+                package=package_name,
+                executable=node_exe,
+                namespace=node_namespace,
+                name=node_name,
+                output='screen',
+                parameters=parameters,
+                remappings=remaps,
+                log_cmd=True,
             ),
-        ])
+        ],
+        deprecated_reason="Deprecated in favor of camera.launch.py"
+    )
