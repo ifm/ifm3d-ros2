@@ -3,18 +3,16 @@
 # Copyright (C) 2019 ifm electronic, gmbh
 #
 
-from lifecycle_msgs.msg import Transition
-import launch
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.actions import EmitEvent, LogInfo, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, EmitEvent, RegisterEventHandler
+from launch.conditions import IfCondition
 from launch.events import matches_action
-from launch.substitutions import LaunchConfiguration
-from launch.substitutions import PathJoinSubstitution, TextSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import LifecycleNode, Node
 from launch_ros.events.lifecycle import ChangeState
 from launch_ros.event_handlers import OnStateTransition
 from launch_ros.substitutions import FindPackageShare
+from lifecycle_msgs.msg import Transition
 
 
 def generate_launch_description():
@@ -23,6 +21,13 @@ def generate_launch_description():
     # Launch script arguments
     # ------------------------------------------------------------
     declared_arguments = []
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "visualization",
+            default_value="false",
+            description="If true, RViz2 with a predefined config is opened.",
+        )
+    )
     declared_arguments.append(
         DeclareLaunchArgument(
             "camera_name",
@@ -83,10 +88,7 @@ def generate_launch_description():
     tf_node = Node(
         executable="static_transform_publisher",
         package="tf2_ros",
-        name=[
-            LaunchConfiguration("camera_name"),
-            "_internal_transform_publiser",
-        ],
+        name=[LaunchConfiguration("camera_name"), "_internal_transform_publiser"],
         namespace=LaunchConfiguration("camera_namespace"),
         arguments=[
             '0',
@@ -98,6 +100,19 @@ def generate_launch_description():
             [LaunchConfiguration("camera_name"), "_optical_link"],
             [LaunchConfiguration("camera_name"), "_link"],
         ],
+        log_cmd=True,
+    )
+
+    # Launching RViz2 conditionally, depending on the "visualition" argument
+    rviz_node = Node(
+        executable="rviz2",
+        package="rviz2",
+        name=[LaunchConfiguration("camera_name"), "_rviz2"],
+        arguments=[
+            '-d',
+            PathJoinSubstitution([FindPackageShare("ifm3d_ros2"), "etc", "ifm3d.rviz"]),
+        ],
+        condition=IfCondition(LaunchConfiguration("visualization")),
         log_cmd=True,
     )
 
@@ -137,6 +152,7 @@ def generate_launch_description():
         ld.add_entity(declared_argument)
     ld.add_action(camera_node)
     ld.add_action(tf_node)
+    ld.add_action(rviz_node)
     ld.add_action(configure_camera)
     ld.add_action(activate_camera)
 
