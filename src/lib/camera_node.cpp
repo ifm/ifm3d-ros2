@@ -344,7 +344,7 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   //
 
   RCLCPP_INFO(this->logger_, "Initializing camera...");
-  this->cam_ = ifm3d::Device::MakeShared(this->ip_, this->xmlrpc_port_, this->password_);
+  this->cam_ = ifm3d::O3R::MakeShared(this->ip_, this->xmlrpc_port_, this->password_);
   RCLCPP_INFO(this->logger_, "Initializing FrameGrabber");
   this->fg_ = std::make_shared<ifm3d::FrameGrabber>(this->cam_, this->pcic_port_);
 
