@@ -609,7 +609,8 @@ void CameraNode::initialize_publishers()
 
   for (const ifm3d::buffer_id& id : this->buffer_id_list_)
   {
-    const std::string topic_name = buffer_id_utils::topic_name_map[id];
+    // Create Publishers in node namespace to make multi-camera setups easier
+    const std::string topic_name = "~/" + buffer_id_utils::topic_name_map[id];
     const auto qos = ifm3d_ros2::LowLatencyQoS();
 
     if (std::find(image_ids.begin(), image_ids.end(), id) != image_ids.end())
