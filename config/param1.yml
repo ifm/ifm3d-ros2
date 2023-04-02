@@ -1,3 +1,9 @@
+###################################################################################
+#                                                                                 #
+#  This parameter file is deprecated and will be removed in future distributions. #
+#                                                                                 #
+###################################################################################
+
 /ifm3d_ros2/camera1:
-  ros__parameters:  
+  ros__parameters:
     pcic_port: 50011
