@@ -1,0 +1,22 @@
+# Example configuration for one camera
+# Expected to be used with camera.launch.py using default name and namespace
+
+/ifm3d/camera:
+  ros__parameters:
+    buffer_id_list:
+      - AMPLITUDE_IMAGE
+      - NORM_AMPLITUDE_IMAGE
+      - CONFIDENCE_IMAGE
+      - JPEG_IMAGE
+      - RADIAL_DISTANCE_IMAGE
+      - XYZ
+      - EXTRINSIC_CALIB
+    frame_latency_thresh: 1.0
+    ip: 192.168.0.69
+    password: ""
+    pcic_port: 50011
+    sync_clocks: false
+    timeout_millis: 500
+    timeout_tolerance_secs: 5.0
+    use_sim_time: false
+    xmlrpc_port: 80
