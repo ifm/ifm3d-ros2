@@ -395,6 +395,9 @@ TC_RETVAL CameraNode::on_deactivate(const rclcpp_lifecycle::State& prev_state)
   RCLCPP_INFO(this->logger_, "Stopping publishing...");
   this->is_active_ = false;
 
+  RCLCPP_INFO(logger_, "Stopping Framebuffer...");
+  this->fg_->Stop().wait();
+
   // explicitly deactive the publishers
   RCLCPP_INFO(this->logger_, "Deactivating publishers...");
   this->deactivate_publishers();
@@ -568,6 +571,10 @@ rcl_interfaces::msg::SetParametersResult CameraNode::set_params_cb(const std::ve
     else if (name == "frame_latency_thresh")
     {
       this->frame_latency_thresh_ = static_cast<float>(param.as_double());
+    }
+    else if (name == "buffer_id_list")
+    {
+      RCLCPP_WARN(logger_, "New buffer_id_list will be used after CONFIGURE transition was called.");
     }
     else
     {
