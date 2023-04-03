@@ -624,44 +624,38 @@ void CameraNode::initialize_publishers()
 
   std::vector<ifm3d::buffer_id> ids_to_remove{};
 
+  // Create correctly typed publishers for all given buffer_ids
   for (const ifm3d::buffer_id& id : this->buffer_id_list_)
   {
     // Create Publishers in node namespace to make multi-camera setups easier
     const std::string topic_name = "~/" + buffer_id_utils::topic_name_map[id];
     const auto qos = ifm3d_ros2::LowLatencyQoS();
+    const buffer_id_utils::message_type message_type = buffer_id_utils::message_type_map[id];
 
-    if (std::find(image_ids.begin(), image_ids.end(), id) != image_ids.end())
+    switch (message_type)
     {
-      // buffer of Type ImageMsg
-      image_publishers_[id] = this->create_publisher<ImageMsg>(topic_name, qos);
-    }
-
-    else if (std::find(compressed_image_ids.begin(), compressed_image_ids.end(), id) != compressed_image_ids.end())
-    {
-      // buffer of Type CompressedImageMsg
-      compressed_image_publishers_[id] = this->create_publisher<CompressedImageMsg>(topic_name, qos);
-    }
-
-    else if (std::find(plc_ids.begin(), plc_ids.end(), id) != plc_ids.end())
-    {
-      // buffer of Type PCLMsg
-      pcl_publishers_[id] = this->create_publisher<PCLMsg>(topic_name, qos);
-    }
-    else if (std::find(extrinsics_ids.begin(), extrinsics_ids.end(), id) != extrinsics_ids.end())
-    {
-      // buffer of Type ExtrinsicsMsg
-      extrinsics_publishers_[id] = this->create_publisher<ExtrinsicsMsg>(topic_name, qos);
-    }
-
-    else
-    {
-      std::string id_string;
-      convert(id, id_string);
-      RCLCPP_ERROR(logger_, "Unknown message type for buffer_id %s. Will be removed from list...", id_string.c_str());
-      ids_to_remove.push_back(id);
+      case buffer_id_utils::message_type::raw_image:
+        image_publishers_[id] = this->create_publisher<ImageMsg>(topic_name, qos);
+        break;
+      case buffer_id_utils::message_type::compressed_image:
+        compressed_image_publishers_[id] = this->create_publisher<CompressedImageMsg>(topic_name, qos);
+        break;
+      case buffer_id_utils::message_type::pointcloud:
+        pcl_publishers_[id] = this->create_publisher<PCLMsg>(topic_name, qos);
+        break;
+      case buffer_id_utils::message_type::extrinsics:
+        extrinsics_publishers_[id] = this->create_publisher<ExtrinsicsMsg>(topic_name, qos);
+        break;
+      default:
+        std::string id_string;
+        convert(id, id_string);
+        RCLCPP_ERROR(logger_, "Unknown message type for buffer_id %s. Will be removed from list...", id_string.c_str());
+        ids_to_remove.push_back(id);
+        break;
     }
   }
 
+  // Remove all buffer_ids where type is unclear
   while (ids_to_remove.size() > 0)
   {
     ifm3d::buffer_id id_to_remove = ids_to_remove.back();
@@ -939,77 +933,50 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
     std::string id_string;
     convert(id, id_string);
 
-    if (std::find(image_ids.begin(), image_ids.end(), id) != image_ids.end())
+    const buffer_id_utils::message_type message_type = buffer_id_utils::message_type_map[id];
+
+    if (!frame->HasBuffer(id))
     {
-      if (frame->HasBuffer(id))
-      {
-        auto buffer = frame->GetBuffer(id);
-        ImageMsg msg = ifm3d_to_ros_image(frame->GetBuffer(id), optical_head, logger_);
-        image_publishers_[id]->publish(msg);
-      }
-      else
-      {
-        RCLCPP_WARN_THROTTLE(logger_, clk, 5000,
-                             "Frame does not contain buffer %s. Is the correct camera head connected?",
-                             id_string.c_str());
-      }
+      RCLCPP_WARN_THROTTLE(logger_, clk, 5000,
+                           "Frame does not contain buffer %s. Is the correct camera head connected?",
+                           id_string.c_str());
     }
 
-    else if (std::find(compressed_image_ids.begin(), compressed_image_ids.end(), id) != compressed_image_ids.end())
+    switch (message_type)
     {
-      if (frame->HasBuffer(id))
-      {
+      case buffer_id_utils::message_type::raw_image: {
         auto buffer = frame->GetBuffer(id);
-        CompressedImageMsg msg = ifm3d_to_ros_compressed_image(frame->GetBuffer(id), optical_head, "jpeg", logger_);
-        compressed_image_publishers_[id]->publish(msg);
+        ImageMsg raw_image_msg = ifm3d_to_ros_image(frame->GetBuffer(id), optical_head, logger_);
+        image_publishers_[id]->publish(raw_image_msg);
       }
-      else
-      {
-        RCLCPP_WARN_THROTTLE(logger_, clk, 5000,
-                             "Frame does not contain buffer %s. Is the correct camera head connected?",
-                             id_string.c_str());
-      }
-    }
-
-    else if (std::find(plc_ids.begin(), plc_ids.end(), id) != plc_ids.end())
-    {
-      if (frame->HasBuffer(id))
-      {
+      break;
+      case buffer_id_utils::message_type::compressed_image: {
         auto buffer = frame->GetBuffer(id);
-        PCLMsg msg = ifm3d_to_ros_cloud(frame->GetBuffer(id), optical_head, logger_);
-        pcl_publishers_[id]->publish(msg);
+        CompressedImageMsg compressed_image_msg =
+            ifm3d_to_ros_compressed_image(frame->GetBuffer(id), optical_head, "jpeg", logger_);
+        compressed_image_publishers_[id]->publish(compressed_image_msg);
       }
-      else
-      {
-        RCLCPP_WARN_THROTTLE(logger_, clk, 5000,
-                             "Frame does not contain buffer %s. Is the correct camera head connected?",
-                             id_string.c_str());
-      }
-    }
-    else if (std::find(extrinsics_ids.begin(), extrinsics_ids.end(), id) != extrinsics_ids.end())
-    {
-      if (frame->HasBuffer(id))
-      {
+      break;
+      case buffer_id_utils::message_type::pointcloud: {
         auto buffer = frame->GetBuffer(id);
-        ExtrinsicsMsg msg = ifm3d_to_extrinsics(buffer, optical_head, logger_);
-        extrinsics_publishers_[id]->publish(msg);
+        PCLMsg pointcloud_msg = ifm3d_to_ros_cloud(frame->GetBuffer(id), optical_head, logger_);
+        pcl_publishers_[id]->publish(pointcloud_msg);
       }
-      else
-      {
-        RCLCPP_WARN_THROTTLE(logger_, clk, 5000,
-                             "Frame does not contain buffer %s. Is the correct camera head connected?",
-                             id_string.c_str());
+      break;
+      case buffer_id_utils::message_type::extrinsics: {
+        auto buffer = frame->GetBuffer(id);
+        ExtrinsicsMsg extrinsics_msg = ifm3d_to_extrinsics(buffer, optical_head, logger_);
+        extrinsics_publishers_[id]->publish(extrinsics_msg);
       }
-    }
-
-    else
-    {
-      RCLCPP_ERROR_THROTTLE(logger_, clk, 5000, "Unknown message type for buffer_id %s. Can not publish.",
-                            id_string.c_str());
+      break;
+      default:
+        RCLCPP_ERROR_THROTTLE(logger_, clk, 5000, "Unknown message type for buffer_id %s. Can not publish.",
+                              id_string.c_str());
+        break;
     }
   }
 
-  RCLCPP_DEBUG(this->logger_, "Publish loop exiting.");
+  RCLCPP_DEBUG(this->logger_, "Frame callback done.");
 }
 
 buffer_id_utils::data_stream_type CameraNode::stream_type_from_port_info(const std::vector<ifm3d::PortInfo>& ports,

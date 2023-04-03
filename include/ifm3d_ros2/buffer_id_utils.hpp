@@ -21,6 +21,18 @@ enum data_stream_type
 };
 
 /**
+ * To differentiate between different ROS message types
+ */
+enum message_type
+{
+  raw_image,
+  compressed_image,
+  pointcloud,
+  extrinsics,
+  not_implemented,
+};
+
+/**
  * @brief map to lookup buffer_id from human-readable strings
  *
  * It is not declared const because the operator[] of std::map would not be available.
@@ -60,6 +72,10 @@ std::map<std::string, ifm3d::buffer_id> buffer_id_map = {
 
 /**
  * @brief mapping buffer_ids to data_stream_type where they are available
+ *
+ * Using a multimap to allow for multiple entries per buffer_id,
+ * as some buffer might be available for different data_stream_type
+ * It is not declared const because equal_range() of std::multimap would not be available.
  */
 std::multimap<ifm3d::buffer_id, data_stream_type> data_stream_type_map = {
   { ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE, data_stream_type::tof_3d },
@@ -94,6 +110,52 @@ std::multimap<ifm3d::buffer_id, data_stream_type> data_stream_type_map = {
   { ifm3d::buffer_id::ILLUMINATION_TEMP, data_stream_type::tof_3d }
 };
 
+/**
+ * @brief mapping buffer_ids to message type enum
+ *
+ * To differentiate between different data formats of buffer,
+ * e.g. to decide on which ROS message type shall be used.
+ * It is not declared const because the operator[] of std::map would not be available.
+ */
+std::map<ifm3d::buffer_id, message_type> message_type_map = {
+  { ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE, message_type::raw_image },
+  { ifm3d::buffer_id::NORM_AMPLITUDE_IMAGE, message_type::raw_image },
+  { ifm3d::buffer_id::AMPLITUDE_IMAGE, message_type::raw_image },
+  { ifm3d::buffer_id::GRAYSCALE_IMAGE, message_type::not_implemented },
+  { ifm3d::buffer_id::RADIAL_DISTANCE_NOISE, message_type::not_implemented },
+  { ifm3d::buffer_id::REFLECTIVITY, message_type::not_implemented },
+  { ifm3d::buffer_id::CARTESIAN_X_COMPONENT, message_type::not_implemented },
+  { ifm3d::buffer_id::CARTESIAN_Y_COMPONENT, message_type::not_implemented },
+  { ifm3d::buffer_id::CARTESIAN_Z_COMPONENT, message_type::not_implemented },
+  { ifm3d::buffer_id::CARTESIAN_ALL, message_type::not_implemented },
+  { ifm3d::buffer_id::UNIT_VECTOR_ALL, message_type::not_implemented },
+  { ifm3d::buffer_id::MONOCHROM_2D_12BIT, message_type::not_implemented },
+  { ifm3d::buffer_id::MONOCHROM_2D, message_type::not_implemented },
+  { ifm3d::buffer_id::JPEG_IMAGE, message_type::compressed_image },
+  { ifm3d::buffer_id::CONFIDENCE_IMAGE, message_type::raw_image },
+  { ifm3d::buffer_id::DIAGNOSTIC, message_type::not_implemented },
+  { ifm3d::buffer_id::JSON_DIAGNOSTIC, message_type::not_implemented },
+  { ifm3d::buffer_id::EXTRINSIC_CALIB, message_type::extrinsics },
+  { ifm3d::buffer_id::INTRINSIC_CALIB, message_type::not_implemented },
+  { ifm3d::buffer_id::INVERSE_INTRINSIC_CALIBRATION, message_type::not_implemented },
+  { ifm3d::buffer_id::TOF_INFO, message_type::not_implemented },
+  { ifm3d::buffer_id::RGB_INFO, message_type::not_implemented },
+  { ifm3d::buffer_id::JSON_MODEL, message_type::not_implemented },
+  { ifm3d::buffer_id::ALGO_DEBUG, message_type::not_implemented },
+  { ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID, message_type::not_implemented },
+  { ifm3d::buffer_id::O3R_ODS_INFO, message_type::not_implemented },
+  { ifm3d::buffer_id::XYZ, message_type::pointcloud },
+  { ifm3d::buffer_id::EXPOSURE_TIME, message_type::not_implemented },
+  { ifm3d::buffer_id::ILLUMINATION_TEMP, message_type::not_implemented }
+};
+
+/**
+ * @brief mapping buffer_ids to topic names
+ *
+ * To allow for easily readable topic names, usage of common ROS terms (like camera_info)
+ * and backwards compatibility.
+ * It is not declared const because the operator[] of std::map would not be available.
+ */
 std::map<ifm3d::buffer_id, std::string> topic_name_map = {
   { ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE, "distance" },
   { ifm3d::buffer_id::NORM_AMPLITUDE_IMAGE, "amplitude" },
@@ -125,17 +187,6 @@ std::map<ifm3d::buffer_id, std::string> topic_name_map = {
   { ifm3d::buffer_id::EXPOSURE_TIME, "EXPOSURE_TIME" },
   { ifm3d::buffer_id::ILLUMINATION_TEMP, "ILLUMINATION_TEMP" }
 };
-
-const std::vector<ifm3d::buffer_id> image_ids = {  //
-  ifm3d::buffer_id::CONFIDENCE_IMAGE,              //
-  ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE,         //
-  ifm3d::buffer_id::RADIAL_DISTANCE_NOISE,         //
-  ifm3d::buffer_id::NORM_AMPLITUDE_IMAGE,          //
-  ifm3d::buffer_id::AMPLITUDE_IMAGE
-};
-const std::vector<ifm3d::buffer_id> compressed_image_ids = { ifm3d::buffer_id::JPEG_IMAGE };
-const std::vector<ifm3d::buffer_id> plc_ids = { ifm3d::buffer_id::XYZ };
-const std::vector<ifm3d::buffer_id> extrinsics_ids = { ifm3d::buffer_id::EXTRINSIC_CALIB };
 
 /**
  * @brief Lookup buffer_id associated with a string, using the buffer_id_map
@@ -181,6 +232,13 @@ bool convert(const ifm3d::buffer_id& buffer_id, std::string& string)
   return false;
 }
 
+/**
+ * @brief Returns the subset of the provided buffer_ids, which are compatible with a given data_stream_type
+ *
+ * @param input_ids set of buffer_id to be filtered
+ * @param type data_stream_type as filter criterion
+ * @return std::vector<ifm3d::buffer_id> subset of input_ids which is available for given type
+ */
 std::vector<ifm3d::buffer_id> buffer_ids_for_data_stream_type(const std::vector<ifm3d::buffer_id>& input_ids,
                                                               const data_stream_type& type)
 {
