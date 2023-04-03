@@ -23,6 +23,13 @@ def generate_launch_description():
     declared_arguments = []
     declared_arguments.append(
         DeclareLaunchArgument(
+            "log_level",
+            default_value="info",
+            description="To change RCLCPP log level for the camera node. ['debug', 'info', 'warn', 'error']",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
             "visualization",
             default_value="false",
             description="If true, RViz2 with a predefined config is opened.",
@@ -82,6 +89,7 @@ def generate_launch_description():
                 ]
             )
         ],
+        arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
         log_cmd=True,
     )
 
