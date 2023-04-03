@@ -64,7 +64,7 @@ std::map<std::string, ifm3d::buffer_id> buffer_id_map = {
 std::multimap<ifm3d::buffer_id, data_stream_type> data_stream_type_map = {
   { ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE, data_stream_type::tof_3d },
   { ifm3d::buffer_id::NORM_AMPLITUDE_IMAGE, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::AMPLITUDE_IMAGE, data_stream_type::tof_3d },
+  { ifm3d::buffer_id::AMPLITUDE_IMAGE, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::GRAYSCALE_IMAGE, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::RADIAL_DISTANCE_NOISE, data_stream_type::tof_3d },
   { ifm3d::buffer_id::REFLECTIVITY, data_stream_type::tof_3d },
@@ -179,6 +179,32 @@ bool convert(const ifm3d::buffer_id& buffer_id, std::string& string)
 
   // buffer_id not found
   return false;
+}
+
+std::vector<ifm3d::buffer_id> buffer_ids_for_data_stream_type(const std::vector<ifm3d::buffer_id>& input_ids,
+                                                              const data_stream_type& type)
+{
+  typedef std::multimap<ifm3d::buffer_id, data_stream_type>::iterator mm_iterator;
+
+  std::vector<ifm3d::buffer_id> ret_vector;
+
+  for (ifm3d::buffer_id input_id : input_ids)
+  {
+    // Get iterators for multimap subsection of given buffer_id
+    // Remember, multimaps are always sorted by their key
+    std::pair<mm_iterator, mm_iterator> result = data_stream_type_map.equal_range(input_id);
+
+    // Look for matching data_streamtype, iterating over the subsection
+    for (mm_iterator it = result.first; it != result.second; it++)
+    {
+      if (it->second == type)
+      {
+        ret_vector.push_back(input_id);
+      }
+    }
+  }
+
+  return ret_vector;
 }
 
 /**

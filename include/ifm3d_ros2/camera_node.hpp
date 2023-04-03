@@ -24,6 +24,7 @@
 
 #include <ifm3d_ros2/visibility_control.h>
 
+#include <ifm3d_ros2/buffer_id_utils.hpp>
 #include <ifm3d_ros2/msg/extrinsics.hpp>
 #include <ifm3d_ros2/srv/dump.hpp>
 #include <ifm3d_ros2/srv/config.hpp>
@@ -249,6 +250,9 @@ protected:
    */
   void deactivate_publishers();
 
+  ifm3d_ros2::buffer_id_utils::data_stream_type stream_type_from_port_info(const std::vector<ifm3d::PortInfo>& ports,
+                                                                           const uint16_t pcic_port);
+
 private:
   rclcpp::Logger logger_;
   // global mutex on ifm3d core data structures `cam_`, `fg_`, `im_`
@@ -263,13 +267,14 @@ private:
   float frame_latency_thresh_{};  // seconds
   bool sync_clocks_{};
   std::uint16_t pcic_port_{};
+  ifm3d_ros2::buffer_id_utils::data_stream_type data_stream_type_;
 
   DumpServer dump_srv_{};
   ConfigServer config_srv_{};
   SoftoffServer soft_off_srv_{};
   SoftonServer soft_on_srv_{};
 
-  ifm3d::Device::Ptr cam_{};
+  ifm3d::O3R::Ptr cam_{};
   ifm3d::FrameGrabber::Ptr fg_{};
   // ifm3d::StlImageBuffer::Ptr im_{};
 

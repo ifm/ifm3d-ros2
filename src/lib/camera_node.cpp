@@ -344,9 +344,19 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   //
 
   RCLCPP_INFO(this->logger_, "Initializing camera...");
-  this->cam_ = ifm3d::O3R::MakeShared(this->ip_, this->xmlrpc_port_, this->password_);
+  this->cam_ = std::make_shared<ifm3d::O3R>(this->ip_, this->xmlrpc_port_);  // TODO(CE) what about  this->password_?
   RCLCPP_INFO(this->logger_, "Initializing FrameGrabber");
   this->fg_ = std::make_shared<ifm3d::FrameGrabber>(this->cam_, this->pcic_port_);
+
+  // Get PortInfo from Camera to determine data stream type
+  auto ports = this->cam_->Ports();
+  this->data_stream_type_ = stream_type_from_port_info(ports, this->pcic_port_);
+
+  // Remove buffer_ids unfit for the given Port
+  this->buffer_id_list_ =
+      buffer_id_utils::buffer_ids_for_data_stream_type(this->buffer_id_list_, this->data_stream_type_);
+  RCLCPP_INFO(logger_, "After removing buffer_ids unfit for the given data stream type, the final list is: [%s].",
+              buffer_id_utils::vector_to_string(this->buffer_id_list_).c_str());
 
   RCLCPP_INFO(this->logger_, "Configuration complete.");
   return TC_RETVAL::SUCCESS;
@@ -993,6 +1003,44 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
   }
 
   RCLCPP_DEBUG(this->logger_, "Publish loop exiting.");
+}
+
+buffer_id_utils::data_stream_type CameraNode::stream_type_from_port_info(const std::vector<ifm3d::PortInfo>& ports,
+                                                                         const uint16_t pcic_port)
+{
+  std::string port_type{ "" };
+  buffer_id_utils::data_stream_type data_stream_type;
+
+  // Get port_type from PortInfo with matching pcic_port
+  for (auto port : ports)
+  {
+    RCLCPP_INFO(logger_, "Found port %s (pcic_port=%d) with type %s", port.port.c_str(), port.pcic_port,
+                port.type.c_str());
+    if (port.pcic_port == pcic_port)
+    {
+      port_type = port.type;
+      break;
+    }
+  }
+
+  // Derive data_stream_type from PortInfo
+  if (port_type == "3D")
+  {
+    data_stream_type = buffer_id_utils::data_stream_type::tof_3d;
+    RCLCPP_INFO(logger_, "Data stream type is tof_3d.");
+  }
+  else if (port_type == "2D")
+  {
+    data_stream_type = buffer_id_utils::data_stream_type::rgb_2d;
+    RCLCPP_INFO(logger_, "Data stream type is rgb_2d.");
+  }
+  else
+  {
+    data_stream_type = buffer_id_utils::data_stream_type::tof_3d;
+    RCLCPP_ERROR(logger_, "Unknown data stream type '%s'. Defaulting to tof_3d.", port_type.c_str());
+  }
+
+  return data_stream_type;
 }
 
 void CameraNode::error_callback(const ifm3d::Error& error)
