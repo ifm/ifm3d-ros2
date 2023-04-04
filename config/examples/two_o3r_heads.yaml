@@ -1,0 +1,71 @@
+# Example configuration for a two O3R camera setup.
+# Cameras are differentiated by ther hypothetical position: left or right.
+# Expected to be used with example/two_o3r_heads.launch.py
+
+/ifm3d/left_camera_2d:
+  ros__parameters:
+    buffer_id_list:
+      - JPEG_IMAGE
+      - EXTRINSIC_CALIB
+    frame_latency_thresh: 1.0
+    ip: 192.168.0.69
+    password: ""
+    pcic_port: 50010 # 2D stream of left camera connected to port 0
+    sync_clocks: false
+    timeout_millis: 500
+    timeout_tolerance_secs: 5.0
+    use_sim_time: false
+    xmlrpc_port: 80
+
+/ifm3d/left_camera_3d:
+  ros__parameters:
+    buffer_id_list:
+      - AMPLITUDE_IMAGE
+      - NORM_AMPLITUDE_IMAGE
+      - CONFIDENCE_IMAGE
+      - RADIAL_DISTANCE_IMAGE
+      - XYZ
+      - EXTRINSIC_CALIB
+    frame_latency_thresh: 1.0
+    ip: 192.168.0.69
+    password: ""
+    pcic_port: 50012 # 3D stream of left camera connected to Port 2
+    sync_clocks: false
+    timeout_millis: 500
+    timeout_tolerance_secs: 5.0
+    use_sim_time: false
+    xmlrpc_port: 80
+
+/ifm3d/right_camera_2d:
+  ros__parameters:
+    buffer_id_list:
+      - JPEG_IMAGE
+      - EXTRINSIC_CALIB
+    frame_latency_thresh: 1.0
+    ip: 192.168.0.69
+    password: ""
+    pcic_port: 50011 # 2D stream of left camera connected to port 1
+    sync_clocks: false
+    timeout_millis: 500
+    timeout_tolerance_secs: 5.0
+    use_sim_time: false
+    xmlrpc_port: 80
+
+/ifm3d/right_camera_3d:
+  ros__parameters:
+    buffer_id_list:
+      - AMPLITUDE_IMAGE
+      - NORM_AMPLITUDE_IMAGE
+      - CONFIDENCE_IMAGE
+      - RADIAL_DISTANCE_IMAGE
+      - XYZ
+      - EXTRINSIC_CALIB
+    frame_latency_thresh: 1.0
+    ip: 192.168.0.69
+    password: ""
+    pcic_port: 50013 # 3D stream of left camera connected to Port 3
+    sync_clocks: false
+    timeout_millis: 500
+    timeout_tolerance_secs: 5.0
+    use_sim_time: false
+    xmlrpc_port: 80
