@@ -18,6 +18,7 @@ enum data_stream_type
 {
   rgb_2d,
   tof_3d,
+  ods,
 };
 
 /**
@@ -80,8 +81,8 @@ std::map<std::string, ifm3d::buffer_id> buffer_id_map = {
 std::multimap<ifm3d::buffer_id, data_stream_type> data_stream_type_map = {
   { ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE, data_stream_type::tof_3d },
   { ifm3d::buffer_id::NORM_AMPLITUDE_IMAGE, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::AMPLITUDE_IMAGE, data_stream_type::rgb_2d },
-  { ifm3d::buffer_id::GRAYSCALE_IMAGE, data_stream_type::rgb_2d },
+  { ifm3d::buffer_id::AMPLITUDE_IMAGE, data_stream_type::tof_3d },
+  { ifm3d::buffer_id::GRAYSCALE_IMAGE, data_stream_type::tof_3d },
   { ifm3d::buffer_id::RADIAL_DISTANCE_NOISE, data_stream_type::tof_3d },
   { ifm3d::buffer_id::REFLECTIVITY, data_stream_type::tof_3d },
   { ifm3d::buffer_id::CARTESIAN_X_COMPONENT, data_stream_type::tof_3d },
@@ -94,17 +95,22 @@ std::multimap<ifm3d::buffer_id, data_stream_type> data_stream_type_map = {
   { ifm3d::buffer_id::JPEG_IMAGE, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::CONFIDENCE_IMAGE, data_stream_type::tof_3d },
   { ifm3d::buffer_id::DIAGNOSTIC, data_stream_type::tof_3d },
+  { ifm3d::buffer_id::DIAGNOSTIC, data_stream_type::rgb_2d },
+  { ifm3d::buffer_id::JSON_DIAGNOSTIC, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::JSON_DIAGNOSTIC, data_stream_type::tof_3d },
   { ifm3d::buffer_id::EXTRINSIC_CALIB, data_stream_type::tof_3d },
   { ifm3d::buffer_id::EXTRINSIC_CALIB, data_stream_type::rgb_2d },  // TODO assuming ExCal for both
+  { ifm3d::buffer_id::INTRINSIC_CALIB, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::INTRINSIC_CALIB, data_stream_type::tof_3d },
+  { ifm3d::buffer_id::INVERSE_INTRINSIC_CALIBRATION, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::INVERSE_INTRINSIC_CALIBRATION, data_stream_type::tof_3d },
   { ifm3d::buffer_id::TOF_INFO, data_stream_type::tof_3d },
   { ifm3d::buffer_id::RGB_INFO, data_stream_type::rgb_2d },
+  { ifm3d::buffer_id::JSON_MODEL, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::JSON_MODEL, data_stream_type::tof_3d },
   { ifm3d::buffer_id::ALGO_DEBUG, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::O3R_ODS_INFO, data_stream_type::tof_3d },
+  { ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID, data_stream_type::ods },
+  { ifm3d::buffer_id::O3R_ODS_INFO, data_stream_type::ods },
   { ifm3d::buffer_id::XYZ, data_stream_type::tof_3d },
   { ifm3d::buffer_id::EXPOSURE_TIME, data_stream_type::tof_3d },
   { ifm3d::buffer_id::ILLUMINATION_TEMP, data_stream_type::tof_3d }
