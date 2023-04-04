@@ -266,6 +266,7 @@ private:
   float timeout_tolerance_secs_{};
   float frame_latency_thresh_{};  // seconds
   bool sync_clocks_{};
+  bool is_o3r_{};
   std::uint16_t pcic_port_{};
   ifm3d_ros2::buffer_id_utils::data_stream_type data_stream_type_;
 
@@ -274,7 +275,7 @@ private:
   SoftoffServer soft_off_srv_{};
   SoftonServer soft_on_srv_{};
 
-  ifm3d::O3R::Ptr cam_{};
+  ifm3d::Device::Ptr cam_{};
   ifm3d::FrameGrabber::Ptr fg_{};
   // ifm3d::StlImageBuffer::Ptr im_{};
 

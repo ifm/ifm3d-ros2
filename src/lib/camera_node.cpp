@@ -287,6 +287,9 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   this->get_parameter("ip", this->ip_);
   RCLCPP_INFO(this->logger_, "ip: %s", this->ip_.c_str());
 
+  this->get_parameter("is_o3r", this->is_o3r_);
+  RCLCPP_INFO(this->logger_, "is_o3r: %s", this->is_o3r_ ? "true" : "false");
+
   this->get_parameter("xmlrpc_port", this->xmlrpc_port_);
   RCLCPP_INFO(this->logger_, "xmlrpc_port: %u", this->xmlrpc_port_);
 
@@ -342,21 +345,34 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   //
   // Initialize the camera interface
   //
+  if (is_o3r_)
+  {
+    RCLCPP_INFO(this->logger_, "Initializing O3R camera...");
+    std::shared_ptr<ifm3d::O3R> o3r_ptr = std::make_shared<ifm3d::O3R>(this->ip_, this->xmlrpc_port_);
+    // TODO  No use for this->password_ with O3R devices?
+    this->cam_ = o3r_ptr;
+    RCLCPP_INFO(this->logger_, "Initialized O3R camera.");
 
-  RCLCPP_INFO(this->logger_, "Initializing camera...");
-  this->cam_ = std::make_shared<ifm3d::O3R>(this->ip_, this->xmlrpc_port_);  // TODO(CE) what about  this->password_?
+    // Get PortInfo from Camera to determine data stream type
+    auto ports = o3r_ptr->Ports();
+    this->data_stream_type_ = stream_type_from_port_info(ports, this->pcic_port_);
+
+    // Remove buffer_ids unfit for the given Port
+    this->buffer_id_list_ =
+        buffer_id_utils::buffer_ids_for_data_stream_type(this->buffer_id_list_, this->data_stream_type_);
+    RCLCPP_INFO(logger_, "After removing buffer_ids unfit for the given data stream type, the final list is: [%s].",
+                buffer_id_utils::vector_to_string(this->buffer_id_list_).c_str());
+  }
+  else
+  {
+    RCLCPP_INFO(this->logger_, "Initializing legacy camera...");
+    ifm3d::Device::Ptr device_ptr = ifm3d::Device::MakeShared(this->ip_, this->xmlrpc_port_, this->password_);
+    this->cam_ = device_ptr;
+    RCLCPP_INFO(this->logger_, "Initialized legacy camera.");
+  }
+
   RCLCPP_INFO(this->logger_, "Initializing FrameGrabber");
   this->fg_ = std::make_shared<ifm3d::FrameGrabber>(this->cam_, this->pcic_port_);
-
-  // Get PortInfo from Camera to determine data stream type
-  auto ports = this->cam_->Ports();
-  this->data_stream_type_ = stream_type_from_port_info(ports, this->pcic_port_);
-
-  // Remove buffer_ids unfit for the given Port
-  this->buffer_id_list_ =
-      buffer_id_utils::buffer_ids_for_data_stream_type(this->buffer_id_list_, this->data_stream_type_);
-  RCLCPP_INFO(logger_, "After removing buffer_ids unfit for the given data stream type, the final list is: [%s].",
-              buffer_id_utils::vector_to_string(this->buffer_id_list_).c_str());
 
   RCLCPP_INFO(this->logger_, "Configuration complete.");
   return TC_RETVAL::SUCCESS;
@@ -474,6 +490,13 @@ void CameraNode::init_params()
   ip_descriptor.description = "IP address of the camera";
   ip_descriptor.additional_constraints = "Should be an IPv4 address or resolvable name on your network";
   this->declare_parameter("ip", ifm3d::DEFAULT_IP, ip_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor is_o3r_descriptor;
+  ip_descriptor.name = "is_o3r";
+  ip_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  ip_descriptor.description = "Whether the attached device is a O3R.";
+  ip_descriptor.additional_constraints = "Should be 'true' or 'false'.";
+  this->declare_parameter("is_o3r", true, is_o3r_descriptor);
 
   rcl_interfaces::msg::ParameterDescriptor xmlrpc_port_descriptor;
   xmlrpc_port_descriptor.name = "xmlrpc_port";

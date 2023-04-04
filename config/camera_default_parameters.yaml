@@ -13,6 +13,7 @@
       - EXTRINSIC_CALIB
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
+    is_o3r: true
     password: ""
     pcic_port: 50010
     sync_clocks: false
