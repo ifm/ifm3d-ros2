@@ -55,15 +55,11 @@ On debian based systems they may be installed as follows (replacing `galactic`wi
 $ sudo apt install ros-galactic-launch-testing ros-galactic-launch-testing-ament-cmake
 ```
 
-You will also need to install boost, which is typically pre-installed in ubuntu distributions, but can be missing when using other platforms:
-```
-$ sudo apt install libboost-all-dev
-```
-
 
 ### Building from source
 
-Please see the separate building instruction for building from source: [here](doc/building.md)
+Please see the separate building instruction for building from source: [here](doc/building.md).
+For running the ROS node on an embedded system such as the O3R VPU please build the software inside a [Docker container](Dockerfile).
 
 ### Launch the node
 Launch the camera node (assuming you are in `~/colcon_ws/`):
@@ -79,12 +75,9 @@ To visualize the data with RViz, set the `visualization` argument of the launch 
 $ ros2 launch ifm3d_ros2 camera.launch.py visualization:=true
 ```
 
-:warning: to view the RGB image, follow the instructions [here](doc/view_2d.md).
 
-At this point, you should see an rviz window that looks something like the image below (note that this is the view from 3 camera heads):
 ![rviz1](doc/figures/O3R_merged_point_cloud.png)
-
-Congratulations! You can now have complete control over the O3R perception platform from inside ROS.
+Congratulations! You can now have complete control over the O3R perception platform from inside ROS2.
 
 
 
@@ -113,7 +106,6 @@ Congratulations! You can now have complete control over the O3R perception platf
 | cloud           | sensor_msgs/msg/PointCloud2 | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The point cloud data                                          |
 | confidence      | sensor_msgs/msg/Image       | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The confidence image                                          |
 | distance        | sensor_msgs/msg/Image       | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The radial distance image                                     |
-| *raw_amplitude* | *sensor_msgs/msg/Image*     | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The raw amplitude image (currently not available for the O3R) |
 | rgb             | sensor_msgs/msg/Image       | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The RGB 2D image of the 2D imager                             |
 
 ### Subscribed Topics
