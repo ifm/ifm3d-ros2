@@ -54,17 +54,15 @@ Please see the separate building instruction for building from source: [here](do
 Launch the camera node (assuming you are in `~/colcon_ws/`):
 ```
 $ . install/setup.bash
-$ ros2 launch ifm3d_ros2 camera_managed.launch.py
+$ ros2 launch ifm3d_ros2 camera.launch.py
 ```
 
 > Note: we also provide a helper launch file to start multiple camera nodes. See the documentation [here](doc/multi_head.md).
 
-Open another shell and start the RVIZ node to visualize the data coming from the camera:
+To visualize the data with RViz, set the `visualization` argument of the launch script to `true`:
 ```
-$ ros2 launch ifm3d_ros2 rviz.launch.py
+$ ros2 launch ifm3d_ros2 camera.launch.py visualization:=true
 ```
-> Note: `rviz.launch.py` does not include the camera node itself, but subscribes to published topics (distance, amplitude, etc). A camera node need to be running in parallel to rviz (you can use `camera_managed.launch`).
-> Note also that the `rviz.launch.py` launchfile assumes one data stream publishes at `/ifm3d/camera/<topic_name>`.
 
 :warning: to view the RGB image, follow the instructions [here](doc/view_2d.md).
 
@@ -81,6 +79,7 @@ Congratulations! You can now have complete control over the O3R perception platf
 
 | Name | Data Type | Default Value | Description |
 | --------- | --------- | --------- | --------- |
+| ~/buffer_id_list | string array | | A list of all buffers whch should be collected from the camera. For a full list of available buffers, see include/ifm3d_ros/buffer_id_utils.hpp |
 | ~/frame_latency_thresh | float | 1.0 | Time (seconds) used to determine that timestamps from the camera cannot be trusted. When this threshold is exceeded, when compared to system time, we use the reception time of the frame and not the capture time of the frame. |
 | ~/ip | string | 192.168.0.69 | The ip address of the camera. |
 | ~/password | string | | The password required to establish an edit session with the camera. |
