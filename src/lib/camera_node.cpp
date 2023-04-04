@@ -21,7 +21,7 @@
 #include <ifm3d_ros2/buffer_id_utils.hpp>
 #include <ifm3d_ros2/qos.hpp>
 
-#include <ifm3d/contrib/nlohmann/json.hpp>
+#include <ifm3d/device/json.hpp>
 
 sensor_msgs::msg::Image ifm3d_to_ros_image(ifm3d::Buffer& image,  // Need non-const image because image.begin(),
                                                                   // image.end() don't have const overloads.

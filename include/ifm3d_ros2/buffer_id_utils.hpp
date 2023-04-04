@@ -156,39 +156,6 @@ std::map<ifm3d::buffer_id, message_type> message_type_map = {
  * and backwards compatibility.
  * It is not declared const because the operator[] of std::map would not be available.
  */
-std::multimap<ifm3d::buffer_id, data_stream_type> data_stream_type_map = {
-  { ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::NORM_AMPLITUDE_IMAGE, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::AMPLITUDE_IMAGE, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::GRAYSCALE_IMAGE, data_stream_type::rgb_2d },
-  { ifm3d::buffer_id::RADIAL_DISTANCE_NOISE, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::REFLECTIVITY, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::CARTESIAN_X_COMPONENT, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::CARTESIAN_Y_COMPONENT, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::CARTESIAN_Z_COMPONENT, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::CARTESIAN_ALL, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::UNIT_VECTOR_ALL, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::MONOCHROM_2D_12BIT, data_stream_type::rgb_2d },
-  { ifm3d::buffer_id::MONOCHROM_2D, data_stream_type::rgb_2d },
-  { ifm3d::buffer_id::JPEG_IMAGE, data_stream_type::rgb_2d },
-  { ifm3d::buffer_id::CONFIDENCE_IMAGE, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::DIAGNOSTIC, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::JSON_DIAGNOSTIC, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::EXTRINSIC_CALIB, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::EXTRINSIC_CALIB, data_stream_type::rgb_2d },  // TODO assuming ExCal for both
-  { ifm3d::buffer_id::INTRINSIC_CALIB, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::INVERSE_INTRINSIC_CALIBRATION, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::TOF_INFO, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::RGB_INFO, data_stream_type::rgb_2d },
-  { ifm3d::buffer_id::JSON_MODEL, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::ALGO_DEBUG, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::O3R_ODS_INFO, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::XYZ, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::EXPOSURE_TIME, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::ILLUMINATION_TEMP, data_stream_type::tof_3d }
-};
-
 std::map<ifm3d::buffer_id, std::string> topic_name_map = {
   { ifm3d::buffer_id::RADIAL_DISTANCE_IMAGE, "distance" },
   { ifm3d::buffer_id::NORM_AMPLITUDE_IMAGE, "amplitude" },
