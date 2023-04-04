@@ -98,55 +98,52 @@ RUN mkdir -p /home/ifm/colcon_ws/ifm3d-ros2/src \
 ARG IFM3D_ROS_CLONE_REPO
 ADD . /home/ifm/colcon_ws/ifm3d-ros2/src
 
-ARG ROS2_COMMIT
-RUN cd /home/ifm/colcon_ws/ifm3d-ros2/src && git checkout ${ROS2_COMMIT}
-
+# ARG ROS2_COMMIT
+# RUN cd /home/ifm/colcon_ws/ifm3d-ros2/src && git checkout ${ROS2_COMMIT}
 # RUN sed -i  --expression  's@contrib/nlohmann@device@' /home/ifm/colcon_ws/ifm3d-ros2/src/src/lib/camera_node.cpp
 
 
 RUN /bin/bash -c 'cd /home/ifm/colcon_ws/ifm3d-ros2/; . /opt/ros/${ROS_DISTRO}/setup.bash; ifm3d_DIR=/usr/lib/cmake; export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp; colcon build --cmake-args -DBUILD_TESTING=OFF'
-# RUN /bin/bash -c 'cd /home/ifm/colcon_ws/ifm3d-ros2/; . /opt/ros/${ROS_DISTRO}/setup.bash; ifm3d_DIR=/usr/lib/cmake; colcon build --cmake-args -DBUILD_TESTING=OFF'
 
 
-# # multistage
-# ARG BASE_IMAGE
-# ARG BASE_IMAGE_TAG
-# ARG FINAL_IMAGE_TAG
+# multistage
+ARG BASE_IMAGE
+ARG BASE_IMAGE_TAG
+ARG FINAL_IMAGE_TAG
 
-# FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG}
+FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG}
 
-# ARG DEBIAN_FRONTEND=noninteractive
-# COPY --from=base /install /usrapp
-# COPY --from=base /home/ifm/colcon_ws/ifm3d-ros2/ /home/ifm/colcon_ws/ifm3d-ros2/
+ARG DEBIAN_FRONTEND=noninteractive
+COPY --from=base /install /usr
+COPY --from=base /home/ifm/colcon_ws/ifm3d-ros2/ /home/ifm/colcon_ws/ifm3d-ros2/
 
-# WORKDIR /home/ifm
+WORKDIR /home/ifm
 
-# # install ifm3d dependencies
-# RUN apt-get update \
-#     && apt-get install -y --no-install-recommends \
-#     libgoogle-glog0v5 \
-#     libxmlrpc-c++8v5 \
-#     locales \
-#     sudo \
-#     libssl-dev \
-#     libboost-all-dev \
-#     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
-#     && rm -rf /var/lib/apt/lists/*
+# install ifm3d dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    libxmlrpc-c++8v5 \
+    locales \
+    sudo \
+    libssl-dev \
+    libboost-all-dev \
+    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
+    && rm -rf /var/lib/apt/lists/*
 
-# # Setup localisation
-# RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
-#     locale-gen en_US.UTF-8 && \
-#     /usr/sbin/update-locale LANG=en_US.UTF-8
+# Setup localisation
+RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
+    locale-gen en_US.UTF-8 && \
+    /usr/sbin/update-locale LANG=en_US.UTF-8
 
-# ENV LANG en_US.UTF-8
-# ENV LANGUAGE en_US:en
-# ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
 
-# # Create the rosuser user
-# RUN id rosuser 2>/dev/null || useradd --uid 30000 --create-home -s /bin/bash -U rosuser
-# RUN echo "rosuser ALL=(ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/rosuser
+# Create the rosuser user
+RUN id rosuser 2>/dev/null || useradd --uid 30000 --create-home -s /bin/bash -U rosuser
+RUN echo "rosuser ALL=(ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/rosuser
 
-# USER rosuser
+USER rosuser
 
 # # NOTE: when NOT using the supplied entrypoint.sh script please manually: export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
