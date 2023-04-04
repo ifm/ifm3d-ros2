@@ -4,11 +4,10 @@
 /ifm3d/camera:
   ros__parameters:
     buffer_id_list:
-      - AMPLITUDE_IMAGE
+      - RADIAL_DISTANCE_IMAGE
+      - RADIAL_DISTANCE_NOISE
       - NORM_AMPLITUDE_IMAGE
       - CONFIDENCE_IMAGE
-      - JPEG_IMAGE
-      - RADIAL_DISTANCE_IMAGE
       - XYZ
       - EXTRINSIC_CALIB
     frame_latency_thresh: 1.0
