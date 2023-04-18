@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <lifecycle_msgs/msg/state.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 
@@ -222,7 +223,7 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& opts) : CameraNode::CameraNode
 }
 
 CameraNode::CameraNode(const std::string& node_name, const rclcpp::NodeOptions& opts)
-  : rclcpp_lifecycle::LifecycleNode(node_name, "", opts), logger_(this->get_logger()), is_active_(false)
+  : rclcpp_lifecycle::LifecycleNode(node_name, "", opts), logger_(this->get_logger())
 {
   // unbuffered I/O to stdout (so we can see our log messages)
   std::setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
@@ -290,6 +291,9 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   this->initialize_publishers();
   RCLCPP_INFO(this->logger_, "After publishers declaration");
 
+  // Publish static transform for optical link
+  publish_optical_link_transform();
+
   //
   // We need a global lock on all the ifm3d core data structures
   //
@@ -337,7 +341,6 @@ TC_RETVAL CameraNode::on_activate(const rclcpp_lifecycle::State& prev_state)
   // Register Callbacks to handle new frames and print errors
   this->fg_->OnNewFrame(std::bind(&CameraNode::frame_callback, this, std::placeholders::_1));
   this->fg_->OnError(std::bind(&CameraNode::error_callback, this, std::placeholders::_1));
-  this->is_active_ = true;
   RCLCPP_INFO(this->logger_, "Framegrabber started.");
 
   return TC_RETVAL::SUCCESS;
@@ -347,9 +350,6 @@ TC_RETVAL CameraNode::on_deactivate(const rclcpp_lifecycle::State& prev_state)
 {
   RCLCPP_INFO(this->logger_, "on_deactivate(): %s -> %s", prev_state.label().c_str(),
               this->get_current_state().label().c_str());
-
-  RCLCPP_INFO(this->logger_, "Stopping publishing...");
-  this->is_active_ = false;
 
   RCLCPP_INFO(logger_, "Stopping Framebuffer...");
   this->fg_->Stop().wait();
@@ -370,7 +370,7 @@ TC_RETVAL CameraNode::on_cleanup(const rclcpp_lifecycle::State& prev_state)
 
   std::lock_guard<std::mutex> lock(this->gil_);
   RCLCPP_INFO(this->logger_, "Resetting core ifm3d data structures...");
-  // this->im_.reset();
+
   this->fg_.reset();
   this->cam_.reset();
 
@@ -384,8 +384,6 @@ TC_RETVAL CameraNode::on_shutdown(const rclcpp_lifecycle::State& prev_state)
   RCLCPP_INFO(this->logger_, "on_shutdown(): %s -> %s", prev_state.label().c_str(),
               this->get_current_state().label().c_str());
 
-  this->is_active_ = false;
-
   return TC_RETVAL::SUCCESS;
 }
 
@@ -393,8 +391,6 @@ TC_RETVAL CameraNode::on_error(const rclcpp_lifecycle::State& prev_state)
 {
   RCLCPP_INFO(this->logger_, "on_error(): %s -> %s", prev_state.label().c_str(),
               this->get_current_state().label().c_str());
-
-  this->is_active_ = false;
 
   std::lock_guard<std::mutex> lock(this->gil_);
   RCLCPP_INFO(this->logger_, "Resetting core ifm3d data structures...");
@@ -409,7 +405,7 @@ TC_RETVAL CameraNode::on_error(const rclcpp_lifecycle::State& prev_state)
 
 void CameraNode::init_params()
 {
-  // Node namespace as string to set default frame names
+  // Node name as string to set default frame names
   const std::string node_name(this->get_name());
 
   /*
@@ -456,6 +452,21 @@ void CameraNode::init_params()
       "Name for the point cloud frame, defaults to <node_name>_optical_link.";
   this->declare_parameter("tf.cloud_link.frame_name", node_name + "_optical_link", tf_cloud_link_frame_name_descriptor);
 
+  rcl_interfaces::msg::ParameterDescriptor tf_cloud_link_publish_transform_descriptor;
+  tf_cloud_link_publish_transform_descriptor.name = "tf.cloud_link.publish_transform";
+  tf_cloud_link_publish_transform_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  tf_cloud_link_publish_transform_descriptor.description =
+      "Whether the transform from the cameras mounting point to the point cloud center should be published.";
+  this->declare_parameter("tf.cloud_link.publish_transform", true, tf_cloud_link_publish_transform_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor tf_mounting_link_frame_name_descriptor;
+  tf_mounting_link_frame_name_descriptor.name = "tf.mounting_link.frame_name";
+  tf_mounting_link_frame_name_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
+  tf_mounting_link_frame_name_descriptor.description =
+      "Name for the mounting point frame, defaults to <node_name>_mounting_link.";
+  this->declare_parameter("tf.mounting_link.frame_name", node_name + "_mounting_link",
+                          tf_mounting_link_frame_name_descriptor);
+
   rcl_interfaces::msg::ParameterDescriptor tf_optical_link_frame_name_descriptor;
   tf_optical_link_frame_name_descriptor.name = "tf.optical_link.frame_name";
   tf_optical_link_frame_name_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
@@ -463,6 +474,22 @@ void CameraNode::init_params()
       "Name for the point optical frame, defaults to <node_name>_optical_link.";
   this->declare_parameter("tf.optical_link.frame_name", node_name + "_optical_link",
                           tf_optical_link_frame_name_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor tf_optical_link_publish_transform_descriptor;
+  tf_optical_link_publish_transform_descriptor.name = "tf.optical_link.publish_transform";
+  tf_optical_link_publish_transform_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  tf_optical_link_publish_transform_descriptor.description =
+      "Whether the transform from the cameras mounting point to the point optical center should be published.";
+  this->declare_parameter("tf.optical_link.publish_transform", true, tf_optical_link_publish_transform_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor tf_optical_link_transform_descriptor;
+  std::vector<double> default_transform;
+  default_transform.resize(6, 0.0);
+  tf_optical_link_transform_descriptor.name = "tf.optical_link.transform";
+  tf_optical_link_transform_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE_ARRAY;
+  tf_optical_link_transform_descriptor.description =
+      "Static transform from mounting link to optical link, as [x, y, z, rot_x, rot_y, rot_z]";
+  this->declare_parameter("tf.optical_link.transform", default_transform, tf_optical_link_transform_descriptor);
 
   rcl_interfaces::msg::ParameterDescriptor xmlrpc_port_descriptor;
   xmlrpc_port_descriptor.name = "xmlrpc_port";
@@ -515,8 +542,31 @@ void CameraNode::parse_params()
   this->get_parameter("tf.cloud_link.frame_name", this->tf_cloud_link_frame_name_);
   RCLCPP_INFO(this->logger_, "tf.cloud_link.frame_name: %s", this->tf_cloud_link_frame_name_.c_str());
 
+  this->get_parameter("tf.cloud_link.publish_transform", this->tf_cloud_link_publish_transform_);
+  RCLCPP_INFO(this->logger_, "tf.cloud_link.publish_transform: %s",
+              this->tf_cloud_link_publish_transform_ ? "true" : "false");
+
+  this->get_parameter("tf.mounting_link.frame_name", this->tf_mounting_link_frame_name_);
+  RCLCPP_INFO(this->logger_, "tf.mounting_link.frame_name: %s", this->tf_mounting_link_frame_name_.c_str());
+
   this->get_parameter("tf.optical_link.frame_name", this->tf_optical_link_frame_name_);
   RCLCPP_INFO(this->logger_, "tf.optical_link.frame_name: %s", this->tf_optical_link_frame_name_.c_str());
+
+  this->get_parameter("tf.optical_link.publish_transform", this->tf_optical_link_publish_transform_);
+  RCLCPP_INFO(this->logger_, "tf.optical_link.publish_transform: %s",
+              this->tf_optical_link_publish_transform_ ? "true" : "false");
+
+  this->get_parameter("tf.optical_link.transform", this->tf_optical_link_transform_);
+  if (this->tf_optical_link_transform_.size() != 6)
+  {
+    RCLCPP_WARN(logger_, "Invalid number of entries for tf.optical_link.transform: %ld. %s",
+                this->tf_optical_link_transform_.size(), "Using the first 6 values, filling in with 0.0 if nessesary.");
+    this->tf_optical_link_transform_.resize(6, 0.0);
+  }
+  RCLCPP_INFO(this->logger_, "tf.optical_link.transform: [%f, %f, %f, %f, %f, %f]", this->tf_optical_link_transform_[0],
+              this->tf_optical_link_transform_[1], this->tf_optical_link_transform_[2],
+              this->tf_optical_link_transform_[3], this->tf_optical_link_transform_[4],
+              this->tf_optical_link_transform_[5]);
 
   this->get_parameter("xmlrpc_port", this->xmlrpc_port_);
   RCLCPP_INFO(this->logger_, "xmlrpc_port: %u", this->xmlrpc_port_);
@@ -552,17 +602,64 @@ void CameraNode::set_parameter_event_callbacks()
 
   auto tf_cloud_link_frame_name_cb = [this](const rclcpp::Parameter& p) {
     this->tf_cloud_link_frame_name_ = p.as_string();
-    RCLCPP_INFO(logger_, "New tf.cloud_link.frame_name: '%s'", this->tf_cloud_link_frame_name_.c_str());
+    RCLCPP_INFO(logger_,
+                "This new tf.cloud_link.frame_name will be used as soon as the next Extrinsics buffer is received: "
+                "'%s'",
+                this->tf_cloud_link_frame_name_.c_str());
   };
   registered_param_callbacks_["tf.cloud_link.frame_name"] =
       param_subscriber_->add_parameter_callback("tf.cloud_link.frame_name", tf_cloud_link_frame_name_cb);
 
+  auto tf_cloud_link_publish_transform_cb = [this](const rclcpp::Parameter& p) {
+    this->tf_cloud_link_publish_transform_ = p.as_bool();
+    RCLCPP_INFO(logger_, "New tf.cloud_link.publish_transform: %s",
+                this->tf_cloud_link_publish_transform_ ? "true" : "false");
+  };
+  registered_param_callbacks_["tf.cloud_link.publish_transform"] =
+      param_subscriber_->add_parameter_callback("tf.cloud_link.publish_transform", tf_cloud_link_publish_transform_cb);
+
+  auto tf_mounting_link_frame_name_cb = [this](const rclcpp::Parameter& p) {
+    this->tf_mounting_link_frame_name_ = p.as_string();
+    publish_optical_link_transform();
+    RCLCPP_INFO(logger_, "New tf.mounting_link.frame_name: '%s'", this->tf_mounting_link_frame_name_.c_str());
+  };
+  registered_param_callbacks_["tf.mounting_link.frame_name"] =
+      param_subscriber_->add_parameter_callback("tf.mounting_link.frame_name", tf_mounting_link_frame_name_cb);
+
   auto tf_optical_link_frame_name_cb = [this](const rclcpp::Parameter& p) {
     this->tf_optical_link_frame_name_ = p.as_string();
+    publish_optical_link_transform();
     RCLCPP_INFO(logger_, "New tf.optical_link.frame_name: '%s'", this->tf_optical_link_frame_name_.c_str());
   };
   registered_param_callbacks_["tf.optical_link.frame_name"] =
       param_subscriber_->add_parameter_callback("tf.optical_link.frame_name", tf_optical_link_frame_name_cb);
+
+  auto tf_optical_link_publish_transform_cb = [this](const rclcpp::Parameter& p) {
+    this->tf_optical_link_publish_transform_ = p.as_bool();
+    publish_optical_link_transform();
+    RCLCPP_INFO(logger_, "New tf.optical_link.publish_transform: %s",
+                this->tf_optical_link_publish_transform_ ? "true" : "false");
+  };
+  registered_param_callbacks_["tf.optical_link.publish_transform"] = param_subscriber_->add_parameter_callback(
+      "tf.optical_link.publish_transform", tf_optical_link_publish_transform_cb);
+
+  auto tf_optical_link_transform_cb = [this](const rclcpp::Parameter& p) {
+    std::vector<double> doubles_from_param = p.as_double_array();
+    if (doubles_from_param.size() != 6)
+    {
+      RCLCPP_WARN(logger_, "Invalid number of entries for tf.optical_link.transform: %ld. %s",
+                  doubles_from_param.size(), "Using the first 6 values, filling in with 0.0 if nessesary.");
+      doubles_from_param.resize(6, 0.0);
+    }
+    this->tf_optical_link_transform_ = doubles_from_param;
+    RCLCPP_INFO(this->logger_, "New tf.optical_link.transform: [%f, %f, %f, %f, %f, %f]",
+                this->tf_optical_link_transform_[0], this->tf_optical_link_transform_[1],
+                this->tf_optical_link_transform_[2], this->tf_optical_link_transform_[3],
+                this->tf_optical_link_transform_[4], this->tf_optical_link_transform_[5]);
+    publish_optical_link_transform();
+  };
+  registered_param_callbacks_["tf.optical_link.transform"] =
+      param_subscriber_->add_parameter_callback("tf.optical_link.transform", tf_optical_link_transform_cb);
 
   auto xmlrpc_port_cb = [this](const rclcpp::Parameter& p) {
     this->xmlrpc_port_ = p.as_int();
@@ -579,6 +676,9 @@ void CameraNode::initialize_publishers()
   compressed_image_publishers_.clear();
   pcl_publishers_.clear();
   extrinsics_publishers_.clear();
+
+  // Create static tf publisher
+  tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
 
   std::vector<ifm3d::buffer_id> ids_to_remove{};
 
@@ -862,13 +962,6 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
                    buffer_id_utils::vector_to_string(this->buffer_id_list_).c_str());
   RCLCPP_DEBUG(logger_, "Received new Frame.");
 
-  // Ignore new frames if node not in ACTIVE state
-  if (!this->is_active_)
-  {
-    RCLCPP_INFO(logger_, "Node inactive, ignoring new Frame.");
-    return;
-  }
-
   const auto now = this->get_clock()->now();
 
   auto cloud_header = std_msgs::msg::Header();
@@ -879,7 +972,6 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
   optical_header.frame_id = this->tf_optical_link_frame_name_;
   optical_header.stamp = now;
 
-  // TODO(CE) mutex still needed?
   std::lock_guard<std::mutex> lock(this->gil_);
 
   for (const ifm3d::buffer_id& id : this->buffer_id_list_)
@@ -923,6 +1015,9 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
         auto buffer = frame->GetBuffer(id);
         ExtrinsicsMsg extrinsics_msg = ifm3d_to_extrinsics(buffer, optical_header, logger_);
         extrinsics_publishers_[id]->publish(extrinsics_msg);
+
+        // Set/Update mounting link to cloud link transform
+        publish_cloud_link_transform_if_changed(extrinsics_msg);
       }
       break;
       default:
@@ -971,6 +1066,69 @@ buffer_id_utils::data_stream_type CameraNode::stream_type_from_port_info(const s
   }
 
   return data_stream_type;
+}
+
+void CameraNode::publish_optical_link_transform()
+{
+  if (!tf_optical_link_publish_transform_)
+  {
+    // TF publication deactivated via parameter
+    return;
+  }
+
+  tf2::Quaternion q;
+  q.setRPY(tf_optical_link_transform_[3], tf_optical_link_transform_[4], tf_optical_link_transform_[5]);
+
+  geometry_msgs::msg::TransformStamped t;
+  t.header.stamp = this->get_clock()->now();
+  t.header.frame_id = tf_mounting_link_frame_name_;
+  t.child_frame_id = tf_optical_link_frame_name_;
+  t.transform.translation.x = tf_optical_link_transform_[0];
+  t.transform.translation.y = tf_optical_link_transform_[1];
+  t.transform.translation.z = tf_optical_link_transform_[2];
+  t.transform.rotation.x = q.x();
+  t.transform.rotation.y = q.y();
+  t.transform.rotation.z = q.z();
+  t.transform.rotation.w = q.w();
+
+  tf_static_broadcaster_->sendTransform(t);
+}
+
+void CameraNode::publish_cloud_link_transform_if_changed(const ExtrinsicsMsg& msg)
+{
+  if (!tf_cloud_link_publish_transform_)
+  {
+    // TF publication deactivated via parameter
+    return;
+  }
+
+  tf2::Quaternion q;
+  q.setRPY(msg.rot_x, msg.rot_y, msg.rot_z);
+
+  if ((cloud_link_transform_.header.frame_id == tf_optical_link_frame_name_) &&
+      (cloud_link_transform_.child_frame_id == tf_cloud_link_frame_name_) &&
+      (cloud_link_transform_.transform.translation.x == msg.tx) &&
+      (cloud_link_transform_.transform.translation.y == msg.ty) &&
+      (cloud_link_transform_.transform.translation.z == msg.tz) &&
+      (cloud_link_transform_.transform.rotation.x == q.x()) && (cloud_link_transform_.transform.rotation.y == q.y()) &&
+      (cloud_link_transform_.transform.rotation.z == q.z()) && (cloud_link_transform_.transform.rotation.w == q.w()))
+  {
+    // no change
+    return;
+  }
+
+  cloud_link_transform_.header.stamp = this->get_clock()->now();
+  cloud_link_transform_.header.frame_id = tf_optical_link_frame_name_;
+  cloud_link_transform_.child_frame_id = tf_cloud_link_frame_name_;
+  cloud_link_transform_.transform.translation.x = msg.tx;
+  cloud_link_transform_.transform.translation.y = msg.ty;
+  cloud_link_transform_.transform.translation.z = msg.tz;
+  cloud_link_transform_.transform.rotation.x = q.x();
+  cloud_link_transform_.transform.rotation.y = q.y();
+  cloud_link_transform_.transform.rotation.z = q.z();
+  cloud_link_transform_.transform.rotation.w = q.w();
+
+  tf_static_broadcaster_->sendTransform(cloud_link_transform_);
 }
 
 void CameraNode::error_callback(const ifm3d::Error& error)

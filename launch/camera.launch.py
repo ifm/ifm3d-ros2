@@ -93,24 +93,6 @@ def generate_launch_description():
         log_cmd=True,
     )
 
-    tf_node = Node(
-        executable="static_transform_publisher",
-        package="tf2_ros",
-        name=[LaunchConfiguration("camera_name"), "_internal_transform_publiser"],
-        namespace=LaunchConfiguration("camera_namespace"),
-        arguments=[
-            '0',
-            '0',
-            '0',
-            '0',
-            '0',
-            '0',
-            [LaunchConfiguration("camera_name"), "_optical_link"],
-            [LaunchConfiguration("camera_name"), "_link"],
-        ],
-        log_cmd=True,
-    )
-
     # Launching RViz2 conditionally, depending on the "visualition" argument
     rviz_node = Node(
         executable="rviz2",
@@ -159,7 +141,6 @@ def generate_launch_description():
     for declared_argument in declared_arguments:
         ld.add_entity(declared_argument)
     ld.add_action(camera_node)
-    ld.add_action(tf_node)
     ld.add_action(rviz_node)
     ld.add_action(configure_camera)
     ld.add_action(activate_camera)

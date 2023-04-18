@@ -11,6 +11,7 @@ endif()
 
 set(IFM3D_ROS2_DEPS
   builtin_interfaces
+  geometry_msgs
   lifecycle_msgs
   rclcpp
   rclcpp_components
@@ -20,6 +21,7 @@ set(IFM3D_ROS2_DEPS
   rosidl_default_generators
   sensor_msgs
   std_msgs
+  tf2_ros
   )
 
 find_package(ifm3d 1.2.4 CONFIG REQUIRED COMPONENTS

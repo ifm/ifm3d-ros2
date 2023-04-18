@@ -14,13 +14,15 @@
 #include <thread>
 #include <vector>
 
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
-
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2/LinearMath/Quaternion.h>
 
 #include <ifm3d_ros2/visibility_control.h>
 
@@ -247,6 +249,21 @@ protected:
    */
   void deactivate_publishers();
 
+  /**
+   * Publish the transform from the mounting link to the optical link as static tf
+   */
+  void publish_optical_link_transform();
+
+  /**
+   * @brief Publish the transform from the mounting link to the cloud link as static tf if it changed
+   *
+   * A change can either be new translational/rotational data from extrinsics or
+   * a name change of one of the frames.
+   *
+   * @param msg ExtrinsicsMsg from camera
+   */
+  void publish_cloud_link_transform_if_changed(const ExtrinsicsMsg& msg);
+
   ifm3d_ros2::buffer_id_utils::data_stream_type stream_type_from_port_info(const std::vector<ifm3d::PortInfo>& ports,
                                                                            const uint16_t pcic_port);
 
@@ -261,13 +278,21 @@ private:
   std::string ip_{};
   std::uint16_t pcic_port_{};
   std::string tf_cloud_link_frame_name_{};
+  bool tf_cloud_link_publish_transform_{};
+  std::string tf_mounting_link_frame_name_{};
   std::string tf_optical_link_frame_name_{};
+  bool tf_optical_link_publish_transform_{};
+  std::vector<double> tf_optical_link_transform_{};
   std::uint16_t xmlrpc_port_{};
 
   /// Subscription to parameter changes
   std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
   /// Callbacks need to be stored to work properly; using a map with parameter name as key
   std::map<std::string, rclcpp::ParameterCallbackHandle::SharedPtr> registered_param_callbacks_;
+
+  // TF handling
+  std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
+  geometry_msgs::msg::TransformStamped cloud_link_transform_;
 
   ifm3d_ros2::buffer_id_utils::data_stream_type data_stream_type_;
 
@@ -283,8 +308,6 @@ private:
   std::map<ifm3d::buffer_id, CompressedImagePublisher> compressed_image_publishers_;
   std::map<ifm3d::buffer_id, PCLPublisher> pcl_publishers_;
   std::map<ifm3d::buffer_id, ExtrinsicsPublisher> extrinsics_publishers_;
-
-  std::atomic_bool is_active_{};
 
 };  // end: class CameraNode
 

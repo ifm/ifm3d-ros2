@@ -16,7 +16,12 @@
     tf:
       cloud_link:
         frame_name: "camera_cloud_link"
+        publish_transform: true
+        transform: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      mounting_link:
+        frame_name: "camera_mounting_link"
       optical_link:
         frame_name: "camera_optical_link"
+        publish_transform: true
     use_sim_time: false
     xmlrpc_port: 80
