@@ -11,6 +11,7 @@
 #include <exception>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -221,27 +222,19 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& opts) : CameraNode::CameraNode
 }
 
 CameraNode::CameraNode(const std::string& node_name, const rclcpp::NodeOptions& opts)
-  : rclcpp_lifecycle::LifecycleNode(node_name, "", opts)
-  , logger_(this->get_logger())
-  , is_active_(false)
-  , camera_frame_(this->get_name() + std::string("_link"))
-  , optical_frame_(this->get_name() + std::string("_optical_link"))
+  : rclcpp_lifecycle::LifecycleNode(node_name, "", opts), logger_(this->get_logger()), is_active_(false)
 {
   // unbuffered I/O to stdout (so we can see our log messages)
   std::setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
   RCLCPP_INFO(this->logger_, "namespace: %s", this->get_namespace());
   RCLCPP_INFO(this->logger_, "node name: %s", this->get_name());
   RCLCPP_INFO(this->logger_, "middleware: %s", rmw_get_implementation_identifier());
-  RCLCPP_INFO(this->logger_, "camera frame: %s", this->camera_frame_.c_str());
-  RCLCPP_INFO(this->logger_, "optical frame: %s", this->optical_frame_.c_str());
 
   // declare our parameters and default values -- parameters defined in
   // the passed in `opts` (via __params:=/path/to/params.yaml on cmd line)
   // will override our default values specified.
+  RCLCPP_INFO(this->logger_, "Declaring parameters...");
   this->init_params();
-  set_params_cb_handle_ = this->add_on_set_parameters_callback(
-      std::bind(&ifm3d_ros2::CameraNode::set_params_cb, this, std::placeholders::_1));
-
   RCLCPP_INFO(this->logger_, "After the parameters declaration");
 
   //
@@ -280,53 +273,16 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   // parse params and initialize instance vars
   //
   RCLCPP_INFO(this->logger_, "Parsing parameters...");
+  parse_params();
+  RCLCPP_INFO(this->logger_, "Parameters parsed.");
 
-  this->get_parameter("pcic_port", this->pcic_port_);
-  RCLCPP_INFO(this->logger_, "pcic_port: %u", this->pcic_port_);
-
-  this->get_parameter("ip", this->ip_);
-  RCLCPP_INFO(this->logger_, "ip: %s", this->ip_.c_str());
-
-  this->get_parameter("xmlrpc_port", this->xmlrpc_port_);
-  RCLCPP_INFO(this->logger_, "xmlrpc_port: %u", this->xmlrpc_port_);
-
-  this->get_parameter("password", this->password_);
-  RCLCPP_INFO(this->logger_, "password: %s", std::string(this->password_.size(), '*').c_str());
-
-  std::vector<std::string> buffer_id_strings;
-  this->get_parameter("buffer_id_list", buffer_id_strings);
-  RCLCPP_INFO(this->logger_, "Reading %ld buffer_ids: [%s]", buffer_id_strings.size(),
-              buffer_id_utils::vector_to_string(buffer_id_strings).c_str());
-  // Populate buffer_id_list_ from read strings
-  this->buffer_id_list_.clear();
-  for (const std::string& string : buffer_id_strings)
+  // Add parameter subscriber, if none is active
+  if (!param_subscriber_)
   {
-    ifm3d::buffer_id found_id;
-    if (buffer_id_utils::convert(string, found_id))
-    {
-      this->buffer_id_list_.push_back(found_id);
-    }
-    else
-    {
-      RCLCPP_WARN(this->logger_, "Ignoring unknown buffer_id %s", string.c_str());
-    }
+    RCLCPP_INFO(logger_, "Adding callbacks to handle parameter changes at runtime...");
+    set_parameter_event_callbacks();
+    RCLCPP_INFO(this->logger_, "Callbacks set.");
   }
-  RCLCPP_INFO(this->logger_, "Parsed %ld buffer_ids: %s", this->buffer_id_list_.size(),
-              buffer_id_utils::vector_to_string(this->buffer_id_list_).c_str());
-
-  this->get_parameter("timeout_millis", this->timeout_millis_);
-  RCLCPP_INFO(this->logger_, "timeout_millis: %d", this->timeout_millis_);
-
-  this->get_parameter("timeout_tolerance_secs", this->timeout_tolerance_secs_);
-  RCLCPP_INFO(this->logger_, "timeout_tolerance_secs: %f", this->timeout_tolerance_secs_);
-
-  this->get_parameter("frame_latency_thresh", this->frame_latency_thresh_);
-  RCLCPP_INFO(this->logger_, "frame_latency_thresh (seconds): %f", this->frame_latency_thresh_);
-
-  this->get_parameter("sync_clocks", this->sync_clocks_);
-  RCLCPP_INFO(this->logger_, "sync_clocks: %s", this->sync_clocks_ ? "true" : "false");
-
-  RCLCPP_INFO(this->logger_, "Parameters parsed OK.");
 
   //
   // Set up our publishers.
@@ -344,7 +300,7 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   //
 
   RCLCPP_INFO(this->logger_, "Initializing camera...");
-  this->cam_ = std::make_shared<ifm3d::O3R>(this->ip_, this->xmlrpc_port_);  // TODO(CE) what about  this->password_?
+  this->cam_ = std::make_shared<ifm3d::O3R>(this->ip_, this->xmlrpc_port_);
   RCLCPP_INFO(this->logger_, "Initializing FrameGrabber");
   this->fg_ = std::make_shared<ifm3d::FrameGrabber>(this->cam_, this->pcic_port_);
 
@@ -453,51 +409,14 @@ TC_RETVAL CameraNode::on_error(const rclcpp_lifecycle::State& prev_state)
 
 void CameraNode::init_params()
 {
-  static constexpr auto default_timeout_millis{ 500 };
-  static constexpr auto default_timeout_tolerance_secs{ 5.0 };
-  static constexpr auto default_frame_latency_threshold{ 1.0 };
-  static constexpr auto default_sync_clocks{ false };
-  RCLCPP_INFO(this->logger_, "declaring parameters...");
+  // Node namespace as string to set default frame names
+  const std::string node_name(this->get_name());
 
-  rcl_interfaces::msg::ParameterDescriptor pcic_port_descriptor;
-  pcic_port_descriptor.name = "pcic_port";
-  pcic_port_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
-  pcic_port_descriptor.description =
-      " TCP port the on-image processing platform pcic server is listening on. Corresponds to the port the camera head "
-      "is connected to.";
-  this->declare_parameter("pcic_port", ifm3d::DEFAULT_PCIC_PORT, pcic_port_descriptor);
-  // this->declare_parameter("pcic_port", 50012, pcic_port_descriptor);
-
-  rcl_interfaces::msg::ParameterDescriptor ip_descriptor;
-  ip_descriptor.name = "ip";
-  ip_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
-  ip_descriptor.description = "IP address of the camera";
-  ip_descriptor.additional_constraints = "Should be an IPv4 address or resolvable name on your network";
-  this->declare_parameter("ip", ifm3d::DEFAULT_IP, ip_descriptor);
-
-  rcl_interfaces::msg::ParameterDescriptor xmlrpc_port_descriptor;
-  xmlrpc_port_descriptor.name = "xmlrpc_port";
-  xmlrpc_port_descriptor.type =  // std::uint16_t
-      rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
-  xmlrpc_port_descriptor.description = "TCP port the on-camera xmlrpc server is listening on";
-  xmlrpc_port_descriptor.additional_constraints = "A valid TCP port 0 - 65535";
-  //
-  // XXX: There seems to be an IDL conversion problem here between
-  // the ROS msg and the DDS idl. Need to get back to this when
-  // Dashing is officially released.
-  //
-  // rcl_interfaces::msg::IntegerRange xmlrpc_port_range;
-  // xmlrpc_port_range.from_value = 0;
-  // xmlrpc_port_range.to_value = 65535;
-  // xmlrpc_port_range.step = 1;
-  // xmlrpc_port_descriptor.integer_range = xmlrpc_port_range;
-  this->declare_parameter("xmlrpc_port", ifm3d::DEFAULT_XMLRPC_PORT, xmlrpc_port_descriptor);
-
-  rcl_interfaces::msg::ParameterDescriptor password_descriptor;
-  password_descriptor.name = "password";
-  password_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
-  password_descriptor.description = "Password for camera edit session";
-  this->declare_parameter("password", ifm3d::DEFAULT_PASSWORD, password_descriptor);
+  /*
+   * For all parameters in alphabetical order:
+   *   - Define Descriptor
+   *   - Declare Parameter
+   */
 
   rcl_interfaces::msg::ParameterDescriptor buffer_id_list_descriptor;
   const std::vector<std::string> default_buffer_id_list{
@@ -513,104 +432,143 @@ void CameraNode::init_params()
   buffer_id_list_descriptor.name = "buffer_id_list";
   buffer_id_list_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING_ARRAY;
   buffer_id_list_descriptor.description = "List of buffer_id strings denoting the wanted buffers.";
-
-  //
-  // XXX: add an IntegerRange constraint here
-  //
   this->declare_parameter("buffer_id_list", default_buffer_id_list, buffer_id_list_descriptor);
 
-  rcl_interfaces::msg::ParameterDescriptor timeout_millis_descriptor;
-  timeout_millis_descriptor.name = "timeout_millis";
-  timeout_millis_descriptor.type =  // long (signed)
-      rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
-  timeout_millis_descriptor.description = "How long to block for a single frame from the camera (millis)";
-  timeout_millis_descriptor.additional_constraints = "A timeout <= 0 will block indefinitely";
-  this->declare_parameter("timeout_millis", default_timeout_millis, timeout_millis_descriptor);
+  rcl_interfaces::msg::ParameterDescriptor ip_descriptor;
+  ip_descriptor.name = "ip";
+  ip_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
+  ip_descriptor.description = "IP address of the camera";
+  ip_descriptor.additional_constraints = "Should be an IPv4 address or resolvable name on your network";
+  this->declare_parameter("ip", ifm3d::DEFAULT_IP, ip_descriptor);
 
-  rcl_interfaces::msg::ParameterDescriptor timeout_tolerance_secs_descriptor;
-  timeout_tolerance_secs_descriptor.name = "timeout_tolerance_secs";
-  timeout_tolerance_secs_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE;
-  timeout_tolerance_secs_descriptor.description = "Time (seconds) without a frame to consider the camera disconnected";
-  this->declare_parameter("timeout_tolerance_secs", default_timeout_tolerance_secs, timeout_tolerance_secs_descriptor);
+  rcl_interfaces::msg::ParameterDescriptor pcic_port_descriptor;
+  pcic_port_descriptor.name = "pcic_port";
+  pcic_port_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
+  pcic_port_descriptor.description =
+      " TCP port the on-image processing platform pcic server is listening on. Corresponds to the port the camera head "
+      "is connected to.";
+  this->declare_parameter("pcic_port", ifm3d::DEFAULT_PCIC_PORT, pcic_port_descriptor);
 
-  rcl_interfaces::msg::ParameterDescriptor frame_latency_thresh_descriptor;
-  frame_latency_thresh_descriptor.name = "frame_latency_thresh";
-  frame_latency_thresh_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE;
-  frame_latency_thresh_descriptor.description = "Threshold (seconds) for determining use of acq time vs rcv time";
-  this->declare_parameter("frame_latency_thresh", default_frame_latency_threshold, frame_latency_thresh_descriptor);
+  rcl_interfaces::msg::ParameterDescriptor tf_cloud_link_frame_name_descriptor;
+  tf_cloud_link_frame_name_descriptor.name = "tf.cloud_link.frame_name";
+  tf_cloud_link_frame_name_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
+  tf_cloud_link_frame_name_descriptor.description =
+      "Name for the point cloud frame, defaults to <node_name>_optical_link.";
+  this->declare_parameter("tf.cloud_link.frame_name", node_name + "_optical_link", tf_cloud_link_frame_name_descriptor);
 
-  rcl_interfaces::msg::ParameterDescriptor sync_clocks_descriptor;
-  sync_clocks_descriptor.name = "sync_clocks";
-  sync_clocks_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
-  sync_clocks_descriptor.description = "Attempt to sync host and camera clock";
-  this->declare_parameter("sync_clocks", default_sync_clocks, sync_clocks_descriptor);
+  rcl_interfaces::msg::ParameterDescriptor tf_optical_link_frame_name_descriptor;
+  tf_optical_link_frame_name_descriptor.name = "tf.optical_link.frame_name";
+  tf_optical_link_frame_name_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
+  tf_optical_link_frame_name_descriptor.description =
+      "Name for the point optical frame, defaults to <node_name>_optical_link.";
+  this->declare_parameter("tf.optical_link.frame_name", node_name + "_optical_link",
+                          tf_optical_link_frame_name_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor xmlrpc_port_descriptor;
+  xmlrpc_port_descriptor.name = "xmlrpc_port";
+  xmlrpc_port_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
+  xmlrpc_port_descriptor.description = "TCP port the on-camera xmlrpc server is listening on";
+  xmlrpc_port_descriptor.additional_constraints = "A valid TCP port 0 - 65535";
+  rcl_interfaces::msg::IntegerRange xmlrpc_port_range;
+  xmlrpc_port_range.from_value = 0;
+  xmlrpc_port_range.to_value = 65535;
+  xmlrpc_port_range.step = 1;
+  xmlrpc_port_descriptor.integer_range.push_back(xmlrpc_port_range);
+  this->declare_parameter("xmlrpc_port", ifm3d::DEFAULT_XMLRPC_PORT, xmlrpc_port_descriptor);
 }
 
-rcl_interfaces::msg::SetParametersResult CameraNode::set_params_cb(const std::vector<rclcpp::Parameter>& params)
+void CameraNode::parse_params()
 {
-  //
-  // Some of our parameters can be changed on the fly, others require
-  // us to reconnect to the camera or perhaps connect to a different camera.
-  // If we need to reconnect to the/a camera, we force a state transition
-  // here.
-  //
-  bool reconfigure = false;
-  for (const auto& param : params)
-  {
-    const std::string& name = param.get_name();
-    RCLCPP_INFO(this->logger_, "Handling param change for: %s", name.c_str());
+  /*
+   * For all parameters in alphabetical order:
+   *   - Read currently set parameter
+   *   - Where applicable, parse read data into more useful data type
+   */
 
-    if (name == "timeout_millis")
+  std::vector<std::string> buffer_id_strings;
+  this->get_parameter("buffer_id_list", buffer_id_strings);
+  RCLCPP_INFO(this->logger_, "Reading %ld buffer_ids: [%s]", buffer_id_strings.size(),
+              buffer_id_utils::vector_to_string(buffer_id_strings).c_str());
+  // Populate buffer_id_list_ from read strings
+  this->buffer_id_list_.clear();
+  for (const std::string& string : buffer_id_strings)
+  {
+    ifm3d::buffer_id found_id;
+    if (buffer_id_utils::convert(string, found_id))
     {
-      this->timeout_millis_ = static_cast<int>(param.as_int());
-    }
-    else if (name == "timeout_tolerance_secs")
-    {
-      this->timeout_tolerance_secs_ = static_cast<float>(param.as_double());
-    }
-    else if (name == "frame_latency_thresh")
-    {
-      this->frame_latency_thresh_ = static_cast<float>(param.as_double());
-    }
-    else if (name == "buffer_id_list")
-    {
-      RCLCPP_WARN(logger_, "New buffer_id_list will be used after CONFIGURE transition was called.");
+      this->buffer_id_list_.push_back(found_id);
     }
     else
     {
-      RCLCPP_WARN(this->logger_, "New parameter requires reconfiguration!");
-      reconfigure = true;
+      RCLCPP_WARN(this->logger_, "Ignoring unknown buffer_id %s", string.c_str());
     }
   }
+  RCLCPP_INFO(this->logger_, "Parsed %ld buffer_ids: %s", this->buffer_id_list_.size(),
+              buffer_id_utils::vector_to_string(this->buffer_id_list_).c_str());
 
-  rcl_interfaces::msg::SetParametersResult result;
-  result.successful = true;
-  result.reason = "OK";
+  this->get_parameter("ip", this->ip_);
+  RCLCPP_INFO(this->logger_, "ip: %s", this->ip_.c_str());
 
-  if (reconfigure)
-  {
-    std::thread emit_reconfigure_t([this]() {
-      auto state_id = this->get_current_state().id();
-      switch (state_id)
-      {
-        case lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE:
-          this->cleanup();
-          break;
+  this->get_parameter("pcic_port", this->pcic_port_);
+  RCLCPP_INFO(this->logger_, "pcic_port: %u", this->pcic_port_);
 
-        case lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE:
-          this->deactivate();
-          break;
+  this->get_parameter("tf.cloud_link.frame_name", this->tf_cloud_link_frame_name_);
+  RCLCPP_INFO(this->logger_, "tf.cloud_link.frame_name: %s", this->tf_cloud_link_frame_name_.c_str());
 
-        default:
-          RCLCPP_WARN(this->logger_, "Skipping reconfiguration from state id: %d", state_id);
-          break;
-      }
-    });
-    emit_reconfigure_t.detach();
-  }
+  this->get_parameter("tf.optical_link.frame_name", this->tf_optical_link_frame_name_);
+  RCLCPP_INFO(this->logger_, "tf.optical_link.frame_name: %s", this->tf_optical_link_frame_name_.c_str());
 
-  RCLCPP_INFO(this->logger_, "Set param callback OK.");
-  return result;
+  this->get_parameter("xmlrpc_port", this->xmlrpc_port_);
+  RCLCPP_INFO(this->logger_, "xmlrpc_port: %u", this->xmlrpc_port_);
+}
+
+void CameraNode::set_parameter_event_callbacks()
+{
+  // Create a parameter subscriber that can be used to monitor parameter changes
+  param_subscriber_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
+
+  /*
+   * For all parameters in alphabetical order:
+   *   - Create a callback as lambda to handle parameter change at runtime
+   *   - Add lambda to parameter subscriber
+   */
+
+  auto buffer_id_list_cb = [this](const rclcpp::Parameter& p) {
+    RCLCPP_WARN(logger_, "This new buffer_id_list will be used after CONFIGURE transition was called: %s",
+                buffer_id_utils::vector_to_string(p.as_string_array()).c_str());
+  };
+  registered_param_callbacks_["buffer_id_list"] =
+      param_subscriber_->add_parameter_callback("buffer_id_list", buffer_id_list_cb);
+
+  auto ip_cb = [this](const rclcpp::Parameter& p) {
+    RCLCPP_WARN(logger_, "This new ip will be used after CONFIGURE transition was called: '%s'", p.as_string().c_str());
+  };
+  registered_param_callbacks_["ip"] = param_subscriber_->add_parameter_callback("ip", ip_cb);
+
+  auto pcic_port_cb = [this](const rclcpp::Parameter& p) {
+    RCLCPP_WARN(logger_, "This new pcic_port will be used after CONFIGURE transition was called: %ld", p.as_int());
+  };
+  registered_param_callbacks_["pcic_port"] = param_subscriber_->add_parameter_callback("pcic_port", pcic_port_cb);
+
+  auto tf_cloud_link_frame_name_cb = [this](const rclcpp::Parameter& p) {
+    this->tf_cloud_link_frame_name_ = p.as_string();
+    RCLCPP_INFO(logger_, "New tf.cloud_link.frame_name: '%s'", this->tf_cloud_link_frame_name_.c_str());
+  };
+  registered_param_callbacks_["tf.cloud_link.frame_name"] =
+      param_subscriber_->add_parameter_callback("tf.cloud_link.frame_name", tf_cloud_link_frame_name_cb);
+
+  auto tf_optical_link_frame_name_cb = [this](const rclcpp::Parameter& p) {
+    this->tf_optical_link_frame_name_ = p.as_string();
+    RCLCPP_INFO(logger_, "New tf.optical_link.frame_name: '%s'", this->tf_optical_link_frame_name_.c_str());
+  };
+  registered_param_callbacks_["tf.optical_link.frame_name"] =
+      param_subscriber_->add_parameter_callback("tf.optical_link.frame_name", tf_optical_link_frame_name_cb);
+
+  auto xmlrpc_port_cb = [this](const rclcpp::Parameter& p) {
+    this->xmlrpc_port_ = p.as_int();
+    RCLCPP_INFO(logger_, "New xmlrpc_port: %d", this->xmlrpc_port_);
+  };
+  registered_param_callbacks_["xmlrpc_port"] = param_subscriber_->add_parameter_callback("xmlrpc_port", xmlrpc_port_cb);
 }
 
 void CameraNode::initialize_publishers()
@@ -911,17 +869,15 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
     return;
   }
 
-  rclcpp::Clock ros_clock(RCL_SYSTEM_TIME);
+  const auto now = this->get_clock()->now();
 
-  auto head = std_msgs::msg::Header();
-  head.frame_id = this->camera_frame_;
-  head.stamp = ros_clock.now();
+  auto cloud_header = std_msgs::msg::Header();
+  cloud_header.frame_id = this->tf_cloud_link_frame_name_;
+  cloud_header.stamp = now;
 
-  auto optical_head = std_msgs::msg::Header();
-  optical_head.frame_id = this->optical_frame_;
-  optical_head.stamp = head.stamp;
-
-  rclcpp::Time last_frame_time = head.stamp;
+  auto optical_header = std_msgs::msg::Header();
+  optical_header.frame_id = this->tf_optical_link_frame_name_;
+  optical_header.stamp = now;
 
   // TODO(CE) mutex still needed?
   std::lock_guard<std::mutex> lock(this->gil_);
@@ -946,26 +902,26 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
     {
       case buffer_id_utils::message_type::raw_image: {
         auto buffer = frame->GetBuffer(id);
-        ImageMsg raw_image_msg = ifm3d_to_ros_image(frame->GetBuffer(id), optical_head, logger_);
+        ImageMsg raw_image_msg = ifm3d_to_ros_image(frame->GetBuffer(id), optical_header, logger_);
         image_publishers_[id]->publish(raw_image_msg);
       }
       break;
       case buffer_id_utils::message_type::compressed_image: {
         auto buffer = frame->GetBuffer(id);
         CompressedImageMsg compressed_image_msg =
-            ifm3d_to_ros_compressed_image(frame->GetBuffer(id), optical_head, "jpeg", logger_);
+            ifm3d_to_ros_compressed_image(frame->GetBuffer(id), optical_header, "jpeg", logger_);
         compressed_image_publishers_[id]->publish(compressed_image_msg);
       }
       break;
       case buffer_id_utils::message_type::pointcloud: {
         auto buffer = frame->GetBuffer(id);
-        PCLMsg pointcloud_msg = ifm3d_to_ros_cloud(frame->GetBuffer(id), optical_head, logger_);
+        PCLMsg pointcloud_msg = ifm3d_to_ros_cloud(frame->GetBuffer(id), cloud_header, logger_);
         pcl_publishers_[id]->publish(pointcloud_msg);
       }
       break;
       case buffer_id_utils::message_type::extrinsics: {
         auto buffer = frame->GetBuffer(id);
-        ExtrinsicsMsg extrinsics_msg = ifm3d_to_extrinsics(buffer, optical_head, logger_);
+        ExtrinsicsMsg extrinsics_msg = ifm3d_to_extrinsics(buffer, optical_header, logger_);
         extrinsics_publishers_[id]->publish(extrinsics_msg);
       }
       break;

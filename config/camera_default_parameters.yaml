@@ -11,12 +11,12 @@
       - RADIAL_DISTANCE_IMAGE
       - XYZ
       - EXTRINSIC_CALIB
-    frame_latency_thresh: 1.0
     ip: 192.168.0.69
-    password: ""
     pcic_port: 50010
-    sync_clocks: false
-    timeout_millis: 500
-    timeout_tolerance_secs: 5.0
+    tf:
+      cloud_link:
+        frame_name: "camera_cloud_link"
+      optical_link:
+        frame_name: "camera_optical_link"
     use_sim_time: false
     xmlrpc_port: 80

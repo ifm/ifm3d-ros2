@@ -194,22 +194,19 @@ protected:
   void Softon(std::shared_ptr<rmw_request_id_t> request_header, SoftonRequest req, SoftonResponse resp);
 
   /**
-   * Callback that gets called when a parameter(s) is attempted to be set
-   *
-   * Some parameters can be changed on the fly while others, if changed,
-   * require the node to reconfigure itself (e.g., because it needs to
-   * switch the operating mode of the camera or connect to a different camera
-   * etc.). In general, we take the new parameter values and set them into
-   * the instance variables of this node. However, if a reconfiguration is
-   * required, after looking at all the parameters, a state change that would
-   * ultimately have the camera reinitialize is affected.
-   */
-  rcl_interfaces::msg::SetParametersResult set_params_cb(const std::vector<rclcpp::Parameter>& params);
-
-  /**
    * Declares parameters and default values
    */
   void init_params();
+
+  /**
+   * Reads parameters, needs init_params() to be called beforehand
+   */
+  void parse_params();
+
+  /**
+   * Sets the callbacks handling parameter changes at runtime
+   */
+  void set_parameter_event_callbacks();
 
   /**
    * Callback which receives new Frames from ifm3d
@@ -255,18 +252,23 @@ protected:
 
 private:
   rclcpp::Logger logger_;
-  // global mutex on ifm3d core data structures `cam_`, `fg_`, `im_`
+
+  /// global mutex on ifm3d core data structures `cam_`, `fg_`
   std::mutex gil_{};
 
-  std::string ip_{};
-  std::uint16_t xmlrpc_port_{};
-  std::string password_{};
+  // Values read from parameters
   std::vector<ifm3d::buffer_id> buffer_id_list_{};
-  int timeout_millis_{};
-  float timeout_tolerance_secs_{};
-  float frame_latency_thresh_{};  // seconds
-  bool sync_clocks_{};
+  std::string ip_{};
   std::uint16_t pcic_port_{};
+  std::string tf_cloud_link_frame_name_{};
+  std::string tf_optical_link_frame_name_{};
+  std::uint16_t xmlrpc_port_{};
+
+  /// Subscription to parameter changes
+  std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
+  /// Callbacks need to be stored to work properly; using a map with parameter name as key
+  std::map<std::string, rclcpp::ParameterCallbackHandle::SharedPtr> registered_param_callbacks_;
+
   ifm3d_ros2::buffer_id_utils::data_stream_type data_stream_type_;
 
   DumpServer dump_srv_{};
@@ -276,7 +278,6 @@ private:
 
   ifm3d::O3R::Ptr cam_{};
   ifm3d::FrameGrabber::Ptr fg_{};
-  // ifm3d::StlImageBuffer::Ptr im_{};
 
   std::map<ifm3d::buffer_id, ImagePublisher> image_publishers_;
   std::map<ifm3d::buffer_id, CompressedImagePublisher> compressed_image_publishers_;
@@ -285,10 +286,6 @@ private:
 
   std::atomic_bool is_active_{};
 
-  std::string camera_frame_{};
-  std::string optical_frame_{};
-
-  rclcpp_lifecycle::LifecycleNode::OnSetParametersCallbackHandle::SharedPtr set_params_cb_handle_{};
 };  // end: class CameraNode
 
 }  // namespace ifm3d_ros2
