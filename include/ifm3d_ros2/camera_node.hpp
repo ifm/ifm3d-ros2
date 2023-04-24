@@ -18,6 +18,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -49,6 +50,9 @@ using PCLPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<PCLMsg
 
 using ExtrinsicsMsg = ifm3d_ros2::msg::Extrinsics;
 using ExtrinsicsPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ExtrinsicsMsg>>;
+
+using CameraInfoMsg = sensor_msgs::msg::CameraInfo;
+using CameraInfoPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<CameraInfoMsg>>;
 
 using DumpRequest = std::shared_ptr<ifm3d_ros2::srv::Dump::Request>;
 using DumpResponse = std::shared_ptr<ifm3d_ros2::srv::Dump::Response>;
@@ -285,6 +289,10 @@ private:
   std::vector<double> tf_optical_link_transform_{};
   std::uint16_t xmlrpc_port_{};
 
+  // Values read from incomming image buffers
+  uint32_t width_;
+  uint32_t height_;
+
   /// Subscription to parameter changes
   std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
   /// Callbacks need to be stored to work properly; using a map with parameter name as key
@@ -308,6 +316,7 @@ private:
   std::map<ifm3d::buffer_id, CompressedImagePublisher> compressed_image_publishers_;
   std::map<ifm3d::buffer_id, PCLPublisher> pcl_publishers_;
   std::map<ifm3d::buffer_id, ExtrinsicsPublisher> extrinsics_publishers_;
+  std::map<ifm3d::buffer_id, CameraInfoPublisher> camera_info_publishers_;
 
 };  // end: class CameraNode
 

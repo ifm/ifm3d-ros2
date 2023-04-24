@@ -11,6 +11,7 @@
       - RADIAL_DISTANCE_IMAGE
       - XYZ
       - EXTRINSIC_CALIB
+      - INTRINSIC_CALIB
     ip: 192.168.0.69
     pcic_port: 50010
     tf:

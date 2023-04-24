@@ -29,6 +29,7 @@ enum message_type
   compressed_image,
   pointcloud,
   extrinsics,
+  camera_info,
   not_implemented,
 };
 
@@ -136,7 +137,7 @@ std::map<ifm3d::buffer_id, message_type> message_type_map = {
   { ifm3d::buffer_id::DIAGNOSTIC, message_type::not_implemented },
   { ifm3d::buffer_id::JSON_DIAGNOSTIC, message_type::not_implemented },
   { ifm3d::buffer_id::EXTRINSIC_CALIB, message_type::extrinsics },
-  { ifm3d::buffer_id::INTRINSIC_CALIB, message_type::not_implemented },
+  { ifm3d::buffer_id::INTRINSIC_CALIB, message_type::camera_info },
   { ifm3d::buffer_id::INVERSE_INTRINSIC_CALIBRATION, message_type::not_implemented },
   { ifm3d::buffer_id::TOF_INFO, message_type::not_implemented },
   { ifm3d::buffer_id::RGB_INFO, message_type::not_implemented },
