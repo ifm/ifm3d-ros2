@@ -18,6 +18,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -28,6 +29,9 @@
 
 #include <ifm3d_ros2/buffer_id_utils.hpp>
 #include <ifm3d_ros2/msg/extrinsics.hpp>
+#include <ifm3d_ros2/msg/inverse_intrinsics.hpp>
+#include <ifm3d_ros2/msg/rgb_info.hpp>
+#include <ifm3d_ros2/msg/tof_info.hpp>
 #include <ifm3d_ros2/srv/dump.hpp>
 #include <ifm3d_ros2/srv/config.hpp>
 #include <ifm3d_ros2/srv/softon.hpp>
@@ -49,6 +53,21 @@ using PCLPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<PCLMsg
 
 using ExtrinsicsMsg = ifm3d_ros2::msg::Extrinsics;
 using ExtrinsicsPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ExtrinsicsMsg>>;
+
+using CameraInfoMsg = sensor_msgs::msg::CameraInfo;
+using CameraInfoPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<CameraInfoMsg>>;
+
+using IntrinsicsMsg = ifm3d_ros2::msg::Intrinsics;
+using IntrinsicsPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<IntrinsicsMsg>>;
+
+using InverseIntrinsicsMsg = ifm3d_ros2::msg::InverseIntrinsics;
+using InverseIntrinsicsPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<InverseIntrinsicsMsg>>;
+
+using TOFInfoMsg = ifm3d_ros2::msg::TOFInfo;
+using TOFInfoPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<TOFInfoMsg>>;
+
+using RGBInfoMsg = ifm3d_ros2::msg::RGBInfo;
+using RGBInfoPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<RGBInfoMsg>>;
 
 using DumpRequest = std::shared_ptr<ifm3d_ros2::srv::Dump::Request>;
 using DumpResponse = std::shared_ptr<ifm3d_ros2::srv::Dump::Response>;
@@ -285,6 +304,10 @@ private:
   std::vector<double> tf_optical_link_transform_{};
   std::uint16_t xmlrpc_port_{};
 
+  // Values read from incomming image buffers
+  uint32_t width_;
+  uint32_t height_;
+
   /// Subscription to parameter changes
   std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
   /// Callbacks need to be stored to work properly; using a map with parameter name as key
@@ -308,6 +331,11 @@ private:
   std::map<ifm3d::buffer_id, CompressedImagePublisher> compressed_image_publishers_;
   std::map<ifm3d::buffer_id, PCLPublisher> pcl_publishers_;
   std::map<ifm3d::buffer_id, ExtrinsicsPublisher> extrinsics_publishers_;
+  std::map<ifm3d::buffer_id, CameraInfoPublisher> camera_info_publishers_;
+  std::map<ifm3d::buffer_id, RGBInfoPublisher> rgb_info_publishers_;
+  std::map<ifm3d::buffer_id, TOFInfoPublisher> tof_info_publishers_;
+  std::map<ifm3d::buffer_id, IntrinsicsPublisher> intrinsics_publishers_;
+  std::map<ifm3d::buffer_id, InverseIntrinsicsPublisher> inverse_intrinsics_publishers_;
 
 };  // end: class CameraNode
 

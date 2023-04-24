@@ -20,192 +20,11 @@
 #include <lifecycle_msgs/msg/state.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 
+#include <ifm3d_ros2/buffer_conversions.hpp>
 #include <ifm3d_ros2/buffer_id_utils.hpp>
 #include <ifm3d_ros2/qos.hpp>
 
 #include <ifm3d/contrib/nlohmann/json.hpp>
-
-sensor_msgs::msg::Image ifm3d_to_ros_image(ifm3d::Buffer& image,  // Need non-const image because image.begin(),
-                                                                  // image.end() don't have const overloads.
-                                           const std_msgs::msg::Header& header, const rclcpp::Logger& logger)
-{
-  static constexpr auto max_pixel_format = static_cast<std::size_t>(ifm3d::pixel_format::FORMAT_32F3);
-  static constexpr auto image_format_info = [] {
-    auto image_format_info = std::array<const char*, max_pixel_format + 1>{};
-
-    {
-      using namespace ifm3d;
-      using namespace sensor_msgs::image_encodings;
-      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_8U)] = TYPE_8UC1;
-      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_8S)] = TYPE_8SC1;
-      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_16U)] = TYPE_16UC1;
-      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_16S)] = TYPE_16SC1;
-      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_32U)] = "32UC1";
-      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_32S)] = TYPE_32SC1;
-      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_32F)] = TYPE_32FC1;
-      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_64U)] = "64UC1";
-      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_64F)] = TYPE_64FC1;
-      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_16U2)] = TYPE_16UC2;
-      image_format_info[static_cast<std::size_t>(pixel_format::FORMAT_32F3)] = TYPE_32FC3;
-    }
-
-    return image_format_info;
-  }();
-
-  const auto format = static_cast<std::size_t>(image.dataFormat());
-
-  sensor_msgs::msg::Image result{};
-  result.header = header;
-  result.height = image.height();
-  result.width = image.width();
-  result.is_bigendian = 0;
-
-  if (image.begin<std::uint8_t>() == image.end<std::uint8_t>())
-  {
-    return result;
-  }
-
-  if (format >= max_pixel_format)
-  {
-    RCLCPP_ERROR(logger, "Pixel format out of range (%ld >= %ld)", format, max_pixel_format);
-    return result;
-  }
-
-  result.encoding = image_format_info.at(format);
-  result.step = result.width * sensor_msgs::image_encodings::bitDepth(image_format_info.at(format)) / 8;
-  result.data.insert(result.data.end(), image.ptr<>(0), std::next(image.ptr<>(0), result.step * result.height));
-
-  if (result.encoding.empty())
-  {
-    RCLCPP_WARN(logger, "Can't handle encoding %ld (32U == %ld, 64U == %ld)", format,
-                static_cast<std::size_t>(ifm3d::pixel_format::FORMAT_32U),
-                static_cast<std::size_t>(ifm3d::pixel_format::FORMAT_64U));
-    result.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
-  }
-
-  return result;
-}
-
-sensor_msgs::msg::Image ifm3d_to_ros_image(ifm3d::Buffer&& image, const std_msgs::msg::Header& header,
-                                           const rclcpp::Logger& logger)
-{
-  return ifm3d_to_ros_image(image, header, logger);
-}
-
-sensor_msgs::msg::CompressedImage ifm3d_to_ros_compressed_image(ifm3d::Buffer& image,  // Need non-const image because
-                                                                                       // image.begin(), image.end()
-                                                                                       // don't have const overloads.
-                                                                const std_msgs::msg::Header& header,
-                                                                const std::string& format,  // "jpeg" or "png"
-                                                                const rclcpp::Logger& logger)
-{
-  sensor_msgs::msg::CompressedImage result{};
-  result.header = header;
-  result.format = format;
-
-  if (const auto dataFormat = image.dataFormat();
-      dataFormat != ifm3d::pixel_format::FORMAT_8S && dataFormat != ifm3d::pixel_format::FORMAT_8U)
-  {
-    RCLCPP_ERROR(logger, "Invalid data format for %s data (%ld)", format.c_str(), static_cast<std::size_t>(dataFormat));
-    return result;
-  }
-
-  result.data.insert(result.data.end(), image.ptr<>(0), std::next(image.ptr<>(0), image.width() * image.height()));
-  return result;
-}
-
-sensor_msgs::msg::CompressedImage ifm3d_to_ros_compressed_image(ifm3d::Buffer&& image,
-                                                                const std_msgs::msg::Header& header,
-                                                                const std::string& format, const rclcpp::Logger& logger)
-{
-  return ifm3d_to_ros_compressed_image(image, header, format, logger);
-}
-
-sensor_msgs::msg::PointCloud2 ifm3d_to_ros_cloud(ifm3d::Buffer& image,  // Need non-const image because image.begin(),
-                                                                        // image.end() don't have const overloads.
-                                                 const std_msgs::msg::Header& header, const rclcpp::Logger& logger)
-{
-  sensor_msgs::msg::PointCloud2 result{};
-  result.header = header;
-  result.height = image.height();
-  result.width = image.width();
-  result.is_bigendian = false;
-
-  if (image.begin<std::uint8_t>() == image.end<std::uint8_t>())
-  {
-    return result;
-  }
-
-  if (image.dataFormat() != ifm3d::pixel_format::FORMAT_32F3 && image.dataFormat() != ifm3d::pixel_format::FORMAT_32F)
-  {
-    RCLCPP_ERROR(logger, "Unsupported pixel format %ld for point cloud", static_cast<std::size_t>(image.dataFormat()));
-    return result;
-  }
-
-  sensor_msgs::msg::PointField x_field{};
-  x_field.name = "x";
-  x_field.offset = 0;
-  x_field.datatype = sensor_msgs::msg::PointField::FLOAT32;
-  x_field.count = 1;
-
-  sensor_msgs::msg::PointField y_field{};
-  y_field.name = "y";
-  y_field.offset = 4;
-  y_field.datatype = sensor_msgs::msg::PointField::FLOAT32;
-  y_field.count = 1;
-
-  sensor_msgs::msg::PointField z_field{};
-  z_field.name = "z";
-  z_field.offset = 8;
-  z_field.datatype = sensor_msgs::msg::PointField::FLOAT32;
-  z_field.count = 1;
-
-  result.fields = {
-    x_field,
-    y_field,
-    z_field,
-  };
-
-  result.point_step = result.fields.size() * sizeof(float);
-  result.row_step = result.point_step * result.width;
-  result.is_dense = true;
-  result.data.insert(result.data.end(), image.ptr<>(0), std::next(image.ptr<>(0), result.row_step * result.height));
-
-  return result;
-}
-
-sensor_msgs::msg::PointCloud2 ifm3d_to_ros_cloud(ifm3d::Buffer&& image, const std_msgs::msg::Header& header,
-                                                 const rclcpp::Logger& logger)
-{
-  return ifm3d_to_ros_cloud(image, header, logger);
-}
-
-ifm3d_ros2::msg::Extrinsics ifm3d_to_extrinsics(ifm3d::Buffer& buffer, const std_msgs::msg::Header& header,
-                                                const rclcpp::Logger& logger)
-{
-  ifm3d_ros2::msg::Extrinsics extrinsics_msg;
-  extrinsics_msg.header = header;
-  try
-  {
-    extrinsics_msg.tx = buffer.at<double>(0);
-    extrinsics_msg.ty = buffer.at<double>(1);
-    extrinsics_msg.tz = buffer.at<double>(2);
-    extrinsics_msg.rot_x = buffer.at<double>(3);
-    extrinsics_msg.rot_y = buffer.at<double>(4);
-    extrinsics_msg.rot_z = buffer.at<double>(5);
-  }
-  catch (const std::out_of_range& ex)
-  {
-    RCLCPP_WARN(logger, "Out-of-range error fetching extrinsics");
-  }
-  return extrinsics_msg;
-}
-
-ifm3d_ros2::msg::Extrinsics ifm3d_to_extrinsics(ifm3d::Buffer&& buffer, const std_msgs::msg::Header& header,
-                                                const rclcpp::Logger& logger)
-{
-  return ifm3d_to_extrinsics(buffer, header, logger);
-}
 
 using json = ifm3d::json;
 using namespace std::chrono_literals;
@@ -223,7 +42,7 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& opts) : CameraNode::CameraNode
 }
 
 CameraNode::CameraNode(const std::string& node_name, const rclcpp::NodeOptions& opts)
-  : rclcpp_lifecycle::LifecycleNode(node_name, "", opts), logger_(this->get_logger())
+  : rclcpp_lifecycle::LifecycleNode(node_name, "", opts), logger_(this->get_logger()), width_(0), height_(0)
 {
   // unbuffered I/O to stdout (so we can see our log messages)
   std::setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
@@ -704,6 +523,19 @@ void CameraNode::initialize_publishers()
       case buffer_id_utils::message_type::extrinsics:
         extrinsics_publishers_[id] = this->create_publisher<ExtrinsicsMsg>(topic_name, qos);
         break;
+      case buffer_id_utils::message_type::intrinsics:
+        intrinsics_publishers_[id] = this->create_publisher<IntrinsicsMsg>(topic_name, qos);
+        camera_info_publishers_[id] = this->create_publisher<CameraInfoMsg>("~/camera_info", qos);
+        break;
+      case buffer_id_utils::message_type::rgb_info:
+        rgb_info_publishers_[id] = this->create_publisher<RGBInfoMsg>(topic_name, qos);
+        break;
+      case buffer_id_utils::message_type::tof_info:
+        tof_info_publishers_[id] = this->create_publisher<TOFInfoMsg>(topic_name, qos);
+        break;
+      case buffer_id_utils::message_type::inverse_intrinsics:
+        inverse_intrinsics_publishers_[id] = this->create_publisher<InverseIntrinsicsMsg>(topic_name, qos);
+        break;
       default:
         std::string id_string;
         convert(id, id_string);
@@ -747,6 +579,26 @@ void CameraNode::activate_publishers()
   {
     publisher->on_activate();
   }
+  for (auto& [id, publisher] : intrinsics_publishers_)
+  {
+    publisher->on_activate();
+  }
+  for (auto& [id, publisher] : camera_info_publishers_)
+  {
+    publisher->on_activate();
+  }
+  for (auto& [id, publisher] : tof_info_publishers_)
+  {
+    publisher->on_activate();
+  }
+  for (auto& [id, publisher] : rgb_info_publishers_)
+  {
+    publisher->on_activate();
+  }
+  for (auto& [id, publisher] : inverse_intrinsics_publishers_)
+  {
+    publisher->on_activate();
+  }
 };
 
 void CameraNode::deactivate_publishers()
@@ -764,6 +616,26 @@ void CameraNode::deactivate_publishers()
     publisher->on_deactivate();
   }
   for (auto& [id, publisher] : extrinsics_publishers_)
+  {
+    publisher->on_deactivate();
+  }
+  for (auto& [id, publisher] : intrinsics_publishers_)
+  {
+    publisher->on_deactivate();
+  }
+  for (auto& [id, publisher] : camera_info_publishers_)
+  {
+    publisher->on_deactivate();
+  }
+  for (auto& [id, publisher] : tof_info_publishers_)
+  {
+    publisher->on_deactivate();
+  }
+  for (auto& [id, publisher] : rgb_info_publishers_)
+  {
+    publisher->on_deactivate();
+  }
+  for (auto& [id, publisher] : inverse_intrinsics_publishers_)
   {
     publisher->on_deactivate();
   }
@@ -994,30 +866,70 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
     {
       case buffer_id_utils::message_type::raw_image: {
         auto buffer = frame->GetBuffer(id);
-        ImageMsg raw_image_msg = ifm3d_to_ros_image(frame->GetBuffer(id), optical_header, logger_);
+        ImageMsg raw_image_msg = ifm3d_ros2::ifm3d_to_ros_image(frame->GetBuffer(id), optical_header, logger_);
         image_publishers_[id]->publish(raw_image_msg);
+        width_ = raw_image_msg.width;
+        height_ = raw_image_msg.width;
       }
       break;
       case buffer_id_utils::message_type::compressed_image: {
         auto buffer = frame->GetBuffer(id);
         CompressedImageMsg compressed_image_msg =
-            ifm3d_to_ros_compressed_image(frame->GetBuffer(id), optical_header, "jpeg", logger_);
+            ifm3d_ros2::ifm3d_to_ros_compressed_image(frame->GetBuffer(id), optical_header, "jpeg", logger_);
         compressed_image_publishers_[id]->publish(compressed_image_msg);
       }
       break;
       case buffer_id_utils::message_type::pointcloud: {
         auto buffer = frame->GetBuffer(id);
-        PCLMsg pointcloud_msg = ifm3d_to_ros_cloud(frame->GetBuffer(id), cloud_header, logger_);
+        PCLMsg pointcloud_msg = ifm3d_ros2::ifm3d_to_ros_cloud(frame->GetBuffer(id), cloud_header, logger_);
         pcl_publishers_[id]->publish(pointcloud_msg);
       }
       break;
       case buffer_id_utils::message_type::extrinsics: {
         auto buffer = frame->GetBuffer(id);
-        ExtrinsicsMsg extrinsics_msg = ifm3d_to_extrinsics(buffer, optical_header, logger_);
+        ExtrinsicsMsg extrinsics_msg = ifm3d_ros2::ifm3d_to_extrinsics(buffer, optical_header, logger_);
         extrinsics_publishers_[id]->publish(extrinsics_msg);
 
         // Set/Update mounting link to cloud link transform
         publish_cloud_link_transform_if_changed(extrinsics_msg);
+      }
+      break;
+      case buffer_id_utils::intrinsics: {
+        auto buffer = frame->GetBuffer(id);
+        IntrinsicsMsg intrinsics_msg = ifm3d_ros2::ifm3d_to_intrinsics(buffer, optical_header, logger_);
+        intrinsics_publishers_[id]->publish(intrinsics_msg);
+
+        // Also publish CameraInfo from Intrinsics
+        if (width_ == 0 || height_ == 0)
+        {
+          RCLCPP_WARN_THROTTLE(logger_, clk, 5000, "Needs at least one raw image buffer to parse CameraInfo!");
+        }
+        else
+        {
+          CameraInfoMsg camera_info_msg =
+              ifm3d_ros2::ifm3d_to_camera_info(buffer, optical_header, height_, width_, logger_);
+          RCLCPP_INFO_ONCE(logger_, "Parsing CameraInfo successfull.");
+          camera_info_publishers_[id]->publish(camera_info_msg);
+        }
+      }
+      break;
+      case buffer_id_utils::message_type::inverse_intrinsics: {
+        auto buffer = frame->GetBuffer(id);
+        InverseIntrinsicsMsg inverse_intrinsics_msg =
+            ifm3d_ros2::ifm3d_to_inverse_intrinsics(buffer, optical_header, logger_);
+        inverse_intrinsics_publishers_[id]->publish(inverse_intrinsics_msg);
+      }
+      break;
+      case buffer_id_utils::message_type::tof_info: {
+        auto buffer = frame->GetBuffer(id);
+        TOFInfoMsg tof_info_msg = ifm3d_ros2::ifm3d_to_tof_info(buffer, optical_header, logger_);
+        tof_info_publishers_[id]->publish(tof_info_msg);
+      }
+      break;
+      case buffer_id_utils::message_type::rgb_info: {
+        auto buffer = frame->GetBuffer(id);
+        RGBInfoMsg rgb_info_msg = ifm3d_ros2::ifm3d_to_rgb_info(buffer, optical_header, logger_);
+        rgb_info_publishers_[id]->publish(rgb_info_msg);
       }
       break;
       default:

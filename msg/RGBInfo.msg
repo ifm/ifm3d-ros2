@@ -1,0 +1,9 @@
+std_msgs/Header header
+
+uint32 version
+uint32 frame_counter
+uint64 timestamp_ns
+float32 exposure_time
+ifm3d_ros2/Extrinsics extrinsics
+ifm3d_ros2/Intrinsics intrinsics
+ifm3d_ros2/InverseIntrinsics inverse_intrinsics

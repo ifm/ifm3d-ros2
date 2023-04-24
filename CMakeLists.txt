@@ -35,6 +35,10 @@ ament_auto_find_build_dependencies(REQUIRED ${IFM3D_ROS2_DEPS})
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Extrinsics.msg"
+  "msg/Intrinsics.msg"
+  "msg/InverseIntrinsics.msg"
+  "msg/RGBInfo.msg"
+  "msg/TOFInfo.msg"
   "srv/Dump.srv"
   "srv/Config.srv"
   "srv/Softoff.srv"
