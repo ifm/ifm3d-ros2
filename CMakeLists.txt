@@ -11,6 +11,7 @@ endif()
 
 set(IFM3D_ROS2_DEPS
   builtin_interfaces
+  diagnostic_msgs
   geometry_msgs
   lifecycle_msgs
   rclcpp
