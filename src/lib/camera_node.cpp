@@ -152,7 +152,7 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
     auto events = diagnostic_json["events"];
     for (auto event : events)
     {
-      msg.status.push_back(create_diagnostic_status(diagnostic_msgs::msg::DiagnosticStatus::OK, event));
+      msg.status.push_back(create_diagnostic_status(diagnostic_msgs::msg::DiagnosticStatus::OK, event.dump()));
     }
     diagnostic_publisher_->publish(msg);
   });
