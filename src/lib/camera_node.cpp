@@ -1137,12 +1137,19 @@ DiagnosticStatusMsg CameraNode::create_diagnostic_status(const uint8_t level, co
     msg.message = parsed_json["description"];
   }
 
-  for (json::iterator it = parsed_json.begin(); it != parsed_json.end(); it++)
+  for (auto& it : parsed_json.items())
   {
-    diagnostic_msgs::msg::KeyValue obj;
-    obj.key = it.key();
-    obj.value = it.key();
-    msg.values.push_back(obj);
+    try
+    {
+      diagnostic_msgs::msg::KeyValue obj;
+      obj.key = it.key();
+      obj.value = it.value().dump();
+      msg.values.push_back(obj);
+    }
+    catch (const std::exception& e)
+    {
+      RCLCPP_WARN(logger_, "Couldn't parse entry of diagnostics status %s: %s", msg.name, e.what());
+    }
   }
 
   return msg;
