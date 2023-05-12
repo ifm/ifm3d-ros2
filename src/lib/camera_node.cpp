@@ -50,6 +50,9 @@ CameraNode::CameraNode(const std::string& node_name, const rclcpp::NodeOptions& 
   RCLCPP_INFO(this->logger_, "node name: %s", this->get_name());
   RCLCPP_INFO(this->logger_, "middleware: %s", rmw_get_implementation_identifier());
 
+  hardware_id_ = std::string(get_namespace()) + "/" + std::string(get_name());
+  RCLCPP_INFO(logger_, "hardware_id: %s", hardware_id_.c_str());
+
   // declare our parameters and default values -- parameters defined in
   // the passed in `opts` (via __params:=/path/to/params.yaml on cmd line)
   // will override our default values specified.
@@ -137,6 +140,24 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   RCLCPP_INFO(logger_, "After removing buffer_ids unfit for the given data stream type, the final list is: [%s].",
               buffer_id_utils::vector_to_string(this->buffer_id_list_).c_str());
 
+  // Timer to pull diagnostics data from ifm3d
+  RCLCPP_INFO(logger_, "Registering timer to pull diagnostics...");
+  diagnostic_timer_ = this->create_wall_timer(1s, [this]() {
+    std::lock_guard<std::mutex> lock(this->gil_);
+    ifm3d::json diagnostic_json = cam_->GetDiagnostic();
+    RCLCPP_DEBUG(this->get_logger(), "Diagnostics: %s", diagnostic_json.dump().c_str());
+
+    DiagnosticArrayMsg msg;
+    msg.header.stamp = get_clock()->now();
+    auto events = diagnostic_json["events"];
+    for (auto event : events)
+    {
+      msg.status.push_back(create_diagnostic_status(diagnostic_msgs::msg::DiagnosticStatus::OK, event.dump()));
+    }
+    diagnostic_publisher_->publish(msg);
+  });
+  diagnostic_timer_->cancel();  // Deactivate timer, manage activity via lifecycle
+
   RCLCPP_INFO(this->logger_, "Configuration complete.");
   return TC_RETVAL::SUCCESS;
 }
@@ -160,7 +181,13 @@ TC_RETVAL CameraNode::on_activate(const rclcpp_lifecycle::State& prev_state)
   // Register Callbacks to handle new frames and print errors
   this->fg_->OnNewFrame(std::bind(&CameraNode::frame_callback, this, std::placeholders::_1));
   this->fg_->OnError(std::bind(&CameraNode::error_callback, this, std::placeholders::_1));
+  //  this->fg_->OnAsyncError(std::bind(&CameraNode::async_error_callback, this, std::placeholders::_1,
+  //  std::placeholders::_2)); this->fg_->OnAsyncNotification(std::bind(&CameraNode::async_notification_callback, this,
+  //  std::placeholders::_1, std::placeholders::_2));
   RCLCPP_INFO(this->logger_, "Framegrabber started.");
+
+  diagnostic_timer_->reset();
+  RCLCPP_INFO(this->logger_, "Diagnostic monitoring active.");
 
   return TC_RETVAL::SUCCESS;
 }
@@ -169,6 +196,9 @@ TC_RETVAL CameraNode::on_deactivate(const rclcpp_lifecycle::State& prev_state)
 {
   RCLCPP_INFO(this->logger_, "on_deactivate(): %s -> %s", prev_state.label().c_str(),
               this->get_current_state().label().c_str());
+
+  diagnostic_timer_->cancel();
+  RCLCPP_INFO(this->logger_, "Diagnostic monitoring inactive.");
 
   RCLCPP_INFO(logger_, "Stopping Framebuffer...");
   this->fg_->Stop().wait();
@@ -499,6 +529,10 @@ void CameraNode::initialize_publishers()
   // Create static tf publisher
   tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
 
+  // Create diagnostics publisher
+  // Messages shall be published to global /diagnostics topic and not local one, similar to /tf
+  diagnostic_publisher_ = this->create_publisher<DiagnosticArrayMsg>("/diagnostics", 10);
+
   std::vector<ifm3d::buffer_id> ids_to_remove{};
 
   // Create correctly typed publishers for all given buffer_ids
@@ -523,8 +557,18 @@ void CameraNode::initialize_publishers()
       case buffer_id_utils::message_type::extrinsics:
         extrinsics_publishers_[id] = this->create_publisher<ExtrinsicsMsg>(topic_name, qos);
         break;
-      case buffer_id_utils::message_type::camera_info:
-        camera_info_publishers_[id] = this->create_publisher<CameraInfoMsg>(topic_name, qos);
+      case buffer_id_utils::message_type::intrinsics:
+        intrinsics_publishers_[id] = this->create_publisher<IntrinsicsMsg>(topic_name, qos);
+        camera_info_publishers_[id] = this->create_publisher<CameraInfoMsg>("~/camera_info", qos);
+        break;
+      case buffer_id_utils::message_type::rgb_info:
+        rgb_info_publishers_[id] = this->create_publisher<RGBInfoMsg>(topic_name, qos);
+        break;
+      case buffer_id_utils::message_type::tof_info:
+        tof_info_publishers_[id] = this->create_publisher<TOFInfoMsg>(topic_name, qos);
+        break;
+      case buffer_id_utils::message_type::inverse_intrinsics:
+        inverse_intrinsics_publishers_[id] = this->create_publisher<InverseIntrinsicsMsg>(topic_name, qos);
         break;
       default:
         std::string id_string;
@@ -569,10 +613,27 @@ void CameraNode::activate_publishers()
   {
     publisher->on_activate();
   }
+  for (auto& [id, publisher] : intrinsics_publishers_)
+  {
+    publisher->on_activate();
+  }
   for (auto& [id, publisher] : camera_info_publishers_)
   {
     publisher->on_activate();
   }
+  for (auto& [id, publisher] : tof_info_publishers_)
+  {
+    publisher->on_activate();
+  }
+  for (auto& [id, publisher] : rgb_info_publishers_)
+  {
+    publisher->on_activate();
+  }
+  for (auto& [id, publisher] : inverse_intrinsics_publishers_)
+  {
+    publisher->on_activate();
+  }
+  diagnostic_publisher_->on_activate();
 };
 
 void CameraNode::deactivate_publishers()
@@ -593,10 +654,27 @@ void CameraNode::deactivate_publishers()
   {
     publisher->on_deactivate();
   }
+  for (auto& [id, publisher] : intrinsics_publishers_)
+  {
+    publisher->on_deactivate();
+  }
   for (auto& [id, publisher] : camera_info_publishers_)
   {
     publisher->on_deactivate();
   }
+  for (auto& [id, publisher] : tof_info_publishers_)
+  {
+    publisher->on_deactivate();
+  }
+  for (auto& [id, publisher] : rgb_info_publishers_)
+  {
+    publisher->on_deactivate();
+  }
+  for (auto& [id, publisher] : inverse_intrinsics_publishers_)
+  {
+    publisher->on_deactivate();
+  }
+  diagnostic_publisher_->on_deactivate();
 };
 
 void CameraNode::Config(const std::shared_ptr<rmw_request_id_t> /*unused*/, ConfigRequest req, ConfigResponse resp)
@@ -852,18 +930,42 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
         publish_cloud_link_transform_if_changed(extrinsics_msg);
       }
       break;
-      case buffer_id_utils::camera_info: {
+      case buffer_id_utils::intrinsics: {
+        auto buffer = frame->GetBuffer(id);
+        IntrinsicsMsg intrinsics_msg = ifm3d_ros2::ifm3d_to_intrinsics(buffer, optical_header, logger_);
+        intrinsics_publishers_[id]->publish(intrinsics_msg);
+
+        // Also publish CameraInfo from Intrinsics
         if (width_ == 0 || height_ == 0)
         {
           RCLCPP_WARN_THROTTLE(logger_, clk, 5000, "Needs at least one raw image buffer to parse CameraInfo!");
         }
         else
         {
-          auto buffer = frame->GetBuffer(id);
-          CameraInfoMsg camera_info_msg = ifm3d_ros2::ifm3d_to_camera_info(buffer, optical_header, height_, width_, logger_);
+          CameraInfoMsg camera_info_msg =
+              ifm3d_ros2::ifm3d_to_camera_info(buffer, optical_header, height_, width_, logger_);
           RCLCPP_INFO_ONCE(logger_, "Parsing CameraInfo successfull.");
           camera_info_publishers_[id]->publish(camera_info_msg);
         }
+      }
+      break;
+      case buffer_id_utils::message_type::inverse_intrinsics: {
+        auto buffer = frame->GetBuffer(id);
+        InverseIntrinsicsMsg inverse_intrinsics_msg =
+            ifm3d_ros2::ifm3d_to_inverse_intrinsics(buffer, optical_header, logger_);
+        inverse_intrinsics_publishers_[id]->publish(inverse_intrinsics_msg);
+      }
+      break;
+      case buffer_id_utils::message_type::tof_info: {
+        auto buffer = frame->GetBuffer(id);
+        TOFInfoMsg tof_info_msg = ifm3d_ros2::ifm3d_to_tof_info(buffer, optical_header, logger_);
+        tof_info_publishers_[id]->publish(tof_info_msg);
+      }
+      break;
+      case buffer_id_utils::message_type::rgb_info: {
+        auto buffer = frame->GetBuffer(id);
+        RGBInfoMsg rgb_info_msg = ifm3d_ros2::ifm3d_to_rgb_info(buffer, optical_header, logger_);
+        rgb_info_publishers_[id]->publish(rgb_info_msg);
       }
       break;
       default:
@@ -980,16 +1082,77 @@ void CameraNode::publish_cloud_link_transform_if_changed(const ExtrinsicsMsg& ms
 void CameraNode::error_callback(const ifm3d::Error& error)
 {
   RCLCPP_ERROR(logger_, "Error received from ifm3d: %s", error.what());
+  // TODO send diagnostic message
 }
 
 void CameraNode::async_error_callback(int i, const std::string& s)
 {
   RCLCPP_ERROR(logger_, "AsyncError received from ifm3d: %d %s", i, s.c_str());
+  DiagnosticArrayMsg msg;
+  msg.header.stamp = get_clock()->now();
+  msg.status.push_back(create_diagnostic_status(diagnostic_msgs::msg::DiagnosticStatus::ERROR, s));
+  diagnostic_publisher_->publish(msg);
 }
 
 void CameraNode::async_notification_callback(const std::string& s1, const std::string& s2)
 {
   RCLCPP_INFO(logger_, "AsyncNotification received from ifm3d: %s  |  %s", s1.c_str(), s2.c_str());
+  DiagnosticArrayMsg msg;
+  msg.header.stamp = get_clock()->now();
+  msg.status.push_back(create_diagnostic_status(diagnostic_msgs::msg::DiagnosticStatus::OK, s2));
+  diagnostic_publisher_->publish(msg);
+}
+
+DiagnosticStatusMsg CameraNode::create_diagnostic_status(const uint8_t level, const std::string& json_msg)
+{
+  DiagnosticStatusMsg msg;
+  msg.level = level;
+  msg.hardware_id = hardware_id_;
+
+  ifm3d::json parsed_json;
+
+  try
+  {
+    parsed_json = json::parse(json_msg);
+  }
+  catch (...)
+  {
+    RCLCPP_ERROR(logger_, "Invalid JSON received from callback with level %d", level);
+    return msg;
+  }
+
+  if (parsed_json.empty())
+  {
+    RCLCPP_WARN(logger_, "Empty JSON received from callback with level %d", level);
+    return msg;
+  }
+
+  if (parsed_json.contains("name"))
+  {
+    msg.name = parsed_json["name"];
+  }
+
+  if (parsed_json.contains("description"))
+  {
+    msg.message = parsed_json["description"];
+  }
+
+  for (auto& it : parsed_json.items())
+  {
+    try
+    {
+      diagnostic_msgs::msg::KeyValue obj;
+      obj.key = it.key();
+      obj.value = it.value().dump();
+      msg.values.push_back(obj);
+    }
+    catch (const std::exception& e)
+    {
+      RCLCPP_WARN(logger_, "Couldn't parse entry of diagnostics status %s: %s", msg.name, e.what());
+    }
+  }
+
+  return msg;
 }
 
 }  // namespace ifm3d_ros2

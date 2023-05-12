@@ -8,6 +8,7 @@
 #define IFM3D_ROS2_BUFFER_CONVERSIONS_HPP_
 
 #include <ifm3d/fg.h>
+#include <ifm3d/deserialize.h>
 #include <ifm3d_ros2/msg/extrinsics.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/distortion_models.hpp>
@@ -205,6 +206,9 @@ sensor_msgs::msg::CameraInfo ifm3d_to_camera_info(ifm3d::Buffer& buffer, const s
                                                   const uint32_t height, const uint32_t width,
                                                   const rclcpp::Logger& logger)
 {
+  ifm3d::calibration::IntrinsicCalibration intrinsic;
+  intrinsic.Read(buffer.ptr<uint8_t>(0));
+
   sensor_msgs::msg::CameraInfo camera_info_msg;
   camera_info_msg.header = header;
 
@@ -212,28 +216,28 @@ sensor_msgs::msg::CameraInfo ifm3d_to_camera_info(ifm3d::Buffer& buffer, const s
   {
     camera_info_msg.height = height;
     camera_info_msg.width = width;
-    camera_info_msg.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;  // TODO
+    camera_info_msg.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
 
     // Read data from buffer
-    const double fx = buffer.at<double>(0);
-    const double fy = buffer.at<double>(1);
-    const double mx = buffer.at<double>(2);
-    const double my = buffer.at<double>(3);
-    const double alpha = buffer.at<double>(4);
-    const double k1 = buffer.at<double>(5);
-    const double k2 = buffer.at<double>(6);
-    const double k3 = buffer.at<double>(7);
-    const double k4 = buffer.at<double>(8);
+    const float fx = intrinsic.model_parameters[0];
+    const float fy = intrinsic.model_parameters[1];
+    const float mx = intrinsic.model_parameters[2];
+    const float my = intrinsic.model_parameters[3];
+    const float alpha = intrinsic.model_parameters[4];
+    const float k1 = intrinsic.model_parameters[5];
+    const float k2 = intrinsic.model_parameters[6];
+    const float k3 = intrinsic.model_parameters[7];
+    const float k4 = intrinsic.model_parameters[8];
     // next in buffer is k5 for bouguet or theta_max for fisheye model, both not needed here
 
-    const double ix = width - 1;
-    const double iy = height - 1;
-    const double cy = (iy + 0.5 - my) / fy;
-    const double cx = (ix + 0.5 - mx) / fx - alpha * cy;
-    const double r2 = cx * cx + cy * cy;
-    const double h = 2 * cx * cy;
-    const double tx = k3 * h + k4 * (r2 + 2 * cx * cx);
-    const double ty = k3 * (r2 + 2 * cy * cy) + k4 * h;
+    const float ix = width - 1;
+    const float iy = height - 1;
+    const float cy = (iy + 0.5 - my) / fy;
+    const float cx = (ix + 0.5 - mx) / fx - alpha * cy;
+    const float r2 = cx * cx + cy * cy;
+    const float h = 2 * cx * cy;
+    const float tx = k3 * h + k4 * (r2 + 2 * cx * cx);
+    const float ty = k3 * (r2 + 2 * cy * cy) + k4 * h;
 
     // Distortion parameters
     camera_info_msg.d.resize(5);
@@ -257,10 +261,10 @@ sensor_msgs::msg::CameraInfo ifm3d_to_camera_info(ifm3d::Buffer& buffer, const s
     camera_info_msg.p[6] = cy;
     camera_info_msg.p[10] = 1.0;  // fixed to 1.0
 
-    RCLCPP_INFO_ONCE(logger,
-                     "Intrinsics:\nfx=%f \nfy=%f \nmx=%f \nmy=%f \nalpha=%f \nk1=%f \nk2=%f \nk3=%f \nk4=%f "
-                     "\nCalculated:\nix=%f \niy=%f \ncx=%f \ncy=%f \nr2=%f \nh=%f \ntx=%f \nty=%f",
-                     fx, fy, mx, my, alpha, k1, k2, k3, k4, ix, iy, cx, cy, r2, h, tx, ty);
+    RCLCPP_DEBUG_ONCE(logger,
+                      "Intrinsics:\nfx=%f \nfy=%f \nmx=%f \nmy=%f \nalpha=%f \nk1=%f \nk2=%f \nk3=%f \nk4=%f "
+                      "\nCalculated:\nix=%f \niy=%f \ncx=%f \ncy=%f \nr2=%f \nh=%f \ntx=%f \nty=%f",
+                      fx, fy, mx, my, alpha, k1, k2, k3, k4, ix, iy, cx, cy, r2, h, tx, ty);
   }
   catch (const std::out_of_range& ex)
   {
@@ -276,6 +280,165 @@ sensor_msgs::msg::CameraInfo ifm3d_to_camera_info(ifm3d::Buffer&& buffer, const 
 
 {
   return ifm3d_to_camera_info(buffer, header, height, width, logger);
+}
+
+ifm3d_ros2::msg::Intrinsics ifm3d_to_intrinsics(ifm3d::Buffer& buffer, const std_msgs::msg::Header& header,
+                                                const rclcpp::Logger& logger)
+{
+  ifm3d_ros2::msg::Intrinsics intrinsics_msg;
+  intrinsics_msg.header = header;
+
+  ifm3d::calibration::IntrinsicCalibration intrinsics;
+
+  try
+  {
+    intrinsics.Read(buffer.ptr<uint8_t>(0));
+    intrinsics_msg.model_id = intrinsics.model_id;
+    intrinsics_msg.model_parameters = intrinsics.model_parameters;
+  }
+  catch (...)
+  {
+    RCLCPP_ERROR(logger, "Failed to read intrinsics.");
+  }
+
+  return intrinsics_msg;
+}
+
+ifm3d_ros2::msg::Intrinsics ifm3d_to_intrinsics(ifm3d::Buffer&& buffer, const std_msgs::msg::Header& header,
+                                                const rclcpp::Logger& logger)
+
+{
+  return ifm3d_to_intrinsics(buffer, header, logger);
+}
+
+ifm3d_ros2::msg::InverseIntrinsics ifm3d_to_inverse_intrinsics(ifm3d::Buffer& buffer,
+                                                               const std_msgs::msg::Header& header,
+                                                               const rclcpp::Logger& logger)
+{
+  ifm3d_ros2::msg::InverseIntrinsics inverse_intrinsics_msg;
+  inverse_intrinsics_msg.header = header;
+
+  ifm3d::calibration::InverseIntrinsicCalibration inverse_intrinsics;
+
+  try
+  {
+    inverse_intrinsics.Read(buffer.ptr<uint8_t>(0));
+    inverse_intrinsics_msg.model_id = inverse_intrinsics.model_id;
+    inverse_intrinsics_msg.model_parameters = inverse_intrinsics.model_parameters;
+  }
+  catch (...)
+  {
+    RCLCPP_ERROR(logger, "Failed to read inverse intrinsics.");
+  }
+
+  return inverse_intrinsics_msg;
+}
+
+ifm3d_ros2::msg::InverseIntrinsics ifm3d_to_inverse_intrinsics(ifm3d::Buffer&& buffer,
+                                                               const std_msgs::msg::Header& header,
+                                                               const rclcpp::Logger& logger)
+
+{
+  return ifm3d_to_inverse_intrinsics(buffer, header, logger);
+}
+
+ifm3d_ros2::msg::RGBInfo ifm3d_to_rgb_info(ifm3d::Buffer& buffer, const std_msgs::msg::Header& header,
+                                           const rclcpp::Logger& logger)
+{
+  ifm3d_ros2::msg::RGBInfo rgb_info_msg;
+  rgb_info_msg.header = header;
+
+  try
+  {
+    auto rgb_info = ifm3d::RGBInfoV1::Deserialize(buffer);
+
+    rgb_info_msg.version = rgb_info.version;
+    rgb_info_msg.frame_counter = rgb_info.frame_counter;
+    rgb_info_msg.timestamp_ns = rgb_info.timestamp_ns;
+    rgb_info_msg.exposure_time = rgb_info.exposure_time;
+
+    rgb_info_msg.extrinsics.header = header;
+    rgb_info_msg.extrinsics.tx = rgb_info.extrinsic_optic_to_user.trans_x;
+    rgb_info_msg.extrinsics.ty = rgb_info.extrinsic_optic_to_user.trans_y;
+    rgb_info_msg.extrinsics.tz = rgb_info.extrinsic_optic_to_user.trans_z;
+    rgb_info_msg.extrinsics.rot_x = rgb_info.extrinsic_optic_to_user.rot_x;
+    rgb_info_msg.extrinsics.rot_y = rgb_info.extrinsic_optic_to_user.rot_y;
+    rgb_info_msg.extrinsics.rot_z = rgb_info.extrinsic_optic_to_user.rot_z;
+
+    rgb_info_msg.intrinsics.header = header;
+    rgb_info_msg.intrinsics.model_id = rgb_info.intrinsic_calibration.model_id;
+    rgb_info_msg.intrinsics.model_parameters = rgb_info.intrinsic_calibration.model_parameters;
+
+    rgb_info_msg.inverse_intrinsics.header = header;
+    rgb_info_msg.inverse_intrinsics.model_id = rgb_info.inverse_intrinsic_calibration.model_id;
+    rgb_info_msg.inverse_intrinsics.model_parameters = rgb_info.inverse_intrinsic_calibration.model_parameters;
+  }
+  catch (...)
+  {
+    RCLCPP_ERROR(logger, "Failed to read rgb info.");
+  }
+
+  return rgb_info_msg;
+}
+
+ifm3d_ros2::msg::RGBInfo ifm3d_to_rgb_info(ifm3d::Buffer&& buffer, const std_msgs::msg::Header& header,
+                                           const rclcpp::Logger& logger)
+
+{
+  return ifm3d_to_rgb_info(buffer, header, logger);
+}
+
+ifm3d_ros2::msg::TOFInfo ifm3d_to_tof_info(ifm3d::Buffer& buffer, const std_msgs::msg::Header& header,
+                                           const rclcpp::Logger& logger)
+{
+  ifm3d_ros2::msg::TOFInfo tof_info_msg;
+  tof_info_msg.header = header;
+
+  try
+  {
+    auto tof_info = ifm3d::TOFInfoV4::Deserialize(buffer);
+    tof_info_msg.measurement_block_index = tof_info.measurement_block_index;
+    tof_info_msg.measurement_range_min = tof_info.measurement_range_min;
+    tof_info_msg.measurement_range_max = tof_info.measurement_range_max;
+    tof_info_msg.version = tof_info.version;
+    tof_info_msg.distance_resolution = tof_info.distance_resolution;
+    tof_info_msg.amplitude_resolution = tof_info.amplitude_resolution;
+    tof_info_msg.amp_normalization_factors = tof_info.amp_normalization_factors;
+    tof_info_msg.exposure_timestamps_ns = tof_info.exposure_timestamps_ns;
+    tof_info_msg.exposure_times_s = tof_info.exposure_times_s;
+    tof_info_msg.illu_temperature = tof_info.illu_temperature;
+    tof_info_msg.mode = std::string(std::begin(tof_info.mode), std::end(tof_info.mode));
+    tof_info_msg.imager = std::string(std::begin(tof_info.imager), std::end(tof_info.imager));
+
+    tof_info_msg.extrinsics.header = header;
+    tof_info_msg.extrinsics.tx = tof_info.extrinsic_optic_to_user.trans_x;
+    tof_info_msg.extrinsics.ty = tof_info.extrinsic_optic_to_user.trans_y;
+    tof_info_msg.extrinsics.tz = tof_info.extrinsic_optic_to_user.trans_z;
+    tof_info_msg.extrinsics.rot_x = tof_info.extrinsic_optic_to_user.rot_x;
+    tof_info_msg.extrinsics.rot_y = tof_info.extrinsic_optic_to_user.rot_y;
+    tof_info_msg.extrinsics.rot_z = tof_info.extrinsic_optic_to_user.rot_z;
+
+    tof_info_msg.intrinsics.header = header;
+    tof_info_msg.intrinsics.model_id = tof_info.intrinsic_calibration.model_id;
+    tof_info_msg.intrinsics.model_parameters = tof_info.intrinsic_calibration.model_parameters;
+
+    tof_info_msg.inverse_intrinsics.header = header;
+    tof_info_msg.inverse_intrinsics.model_id = tof_info.inverse_intrinsic_calibration.model_id;
+    tof_info_msg.inverse_intrinsics.model_parameters = tof_info.inverse_intrinsic_calibration.model_parameters;
+  }
+  catch (...)
+  {
+    RCLCPP_ERROR(logger, "Failed to read tof info.");
+  }
+
+  return tof_info_msg;
+}
+
+ifm3d_ros2::msg::TOFInfo ifm3d_to_tof_info(ifm3d::Buffer&& buffer, const std_msgs::msg::Header& header,
+                                           const rclcpp::Logger& logger)
+
+{
+  return ifm3d_to_tof_info(buffer, header, logger);
 }
 
 }  // namespace ifm3d_ros2

@@ -5,13 +5,16 @@
   ros__parameters:
     buffer_id_list:
       - AMPLITUDE_IMAGE
-      - NORM_AMPLITUDE_IMAGE
       - CONFIDENCE_IMAGE
-      - JPEG_IMAGE
-      - RADIAL_DISTANCE_IMAGE
-      - XYZ
       - EXTRINSIC_CALIB
       - INTRINSIC_CALIB
+      - INVERSE_INTRINSIC_CALIBRATION
+      - JPEG_IMAGE
+      - NORM_AMPLITUDE_IMAGE
+      - RADIAL_DISTANCE_IMAGE
+      - RGB_INFO
+      - TOF_INFO
+      - XYZ
     ip: 192.168.0.69
     pcic_port: 50010
     tf:

@@ -25,11 +25,14 @@ enum data_stream_type
  */
 enum message_type
 {
-  raw_image,
+  intrinsics,
   compressed_image,
-  pointcloud,
   extrinsics,
-  camera_info,
+  inverse_intrinsics,
+  pointcloud,
+  raw_image,
+  rgb_info,
+  tof_info,
   not_implemented,
 };
 
@@ -99,7 +102,9 @@ std::multimap<ifm3d::buffer_id, data_stream_type> data_stream_type_map = {
   { ifm3d::buffer_id::EXTRINSIC_CALIB, data_stream_type::tof_3d },
   { ifm3d::buffer_id::EXTRINSIC_CALIB, data_stream_type::rgb_2d },  // TODO assuming ExCal for both
   { ifm3d::buffer_id::INTRINSIC_CALIB, data_stream_type::tof_3d },
+  { ifm3d::buffer_id::INTRINSIC_CALIB, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::INVERSE_INTRINSIC_CALIBRATION, data_stream_type::tof_3d },
+  { ifm3d::buffer_id::INVERSE_INTRINSIC_CALIBRATION, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::TOF_INFO, data_stream_type::tof_3d },
   { ifm3d::buffer_id::RGB_INFO, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::JSON_MODEL, data_stream_type::tof_3d },
@@ -137,10 +142,10 @@ std::map<ifm3d::buffer_id, message_type> message_type_map = {
   { ifm3d::buffer_id::DIAGNOSTIC, message_type::not_implemented },
   { ifm3d::buffer_id::JSON_DIAGNOSTIC, message_type::not_implemented },
   { ifm3d::buffer_id::EXTRINSIC_CALIB, message_type::extrinsics },
-  { ifm3d::buffer_id::INTRINSIC_CALIB, message_type::camera_info },
-  { ifm3d::buffer_id::INVERSE_INTRINSIC_CALIBRATION, message_type::not_implemented },
-  { ifm3d::buffer_id::TOF_INFO, message_type::not_implemented },
-  { ifm3d::buffer_id::RGB_INFO, message_type::not_implemented },
+  { ifm3d::buffer_id::INTRINSIC_CALIB, message_type::intrinsics },
+  { ifm3d::buffer_id::INVERSE_INTRINSIC_CALIBRATION, message_type::inverse_intrinsics },
+  { ifm3d::buffer_id::TOF_INFO, message_type::tof_info },
+  { ifm3d::buffer_id::RGB_INFO, message_type::rgb_info },
   { ifm3d::buffer_id::JSON_MODEL, message_type::not_implemented },
   { ifm3d::buffer_id::ALGO_DEBUG, message_type::not_implemented },
   { ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID, message_type::not_implemented },
@@ -153,7 +158,7 @@ std::map<ifm3d::buffer_id, message_type> message_type_map = {
 /**
  * @brief mapping buffer_ids to topic names
  *
- * To allow for easily readable topic names, usage of common ROS terms (like camera_info)
+ * To allow for easily readable topic names, usage of common ROS terms
  * and backwards compatibility.
  * It is not declared const because the operator[] of std::map would not be available.
  */

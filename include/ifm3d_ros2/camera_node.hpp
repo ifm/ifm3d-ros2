@@ -14,6 +14,7 @@
 #include <thread>
 #include <vector>
 
+#include <diagnostic_msgs/msg/diagnostic_array.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
@@ -29,6 +30,9 @@
 
 #include <ifm3d_ros2/buffer_id_utils.hpp>
 #include <ifm3d_ros2/msg/extrinsics.hpp>
+#include <ifm3d_ros2/msg/inverse_intrinsics.hpp>
+#include <ifm3d_ros2/msg/rgb_info.hpp>
+#include <ifm3d_ros2/msg/tof_info.hpp>
 #include <ifm3d_ros2/srv/dump.hpp>
 #include <ifm3d_ros2/srv/config.hpp>
 #include <ifm3d_ros2/srv/softon.hpp>
@@ -38,6 +42,10 @@
 #include <ifm3d/fg.h>
 
 using TC_RETVAL = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+
+using DiagnosticStatusMsg = diagnostic_msgs::msg::DiagnosticStatus;
+using DiagnosticArrayMsg = diagnostic_msgs::msg::DiagnosticArray;
+using DiagnosticArrayPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<DiagnosticArrayMsg>>;
 
 using ImageMsg = sensor_msgs::msg::Image;
 using ImagePublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ImageMsg>>;
@@ -53,6 +61,18 @@ using ExtrinsicsPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher
 
 using CameraInfoMsg = sensor_msgs::msg::CameraInfo;
 using CameraInfoPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<CameraInfoMsg>>;
+
+using IntrinsicsMsg = ifm3d_ros2::msg::Intrinsics;
+using IntrinsicsPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<IntrinsicsMsg>>;
+
+using InverseIntrinsicsMsg = ifm3d_ros2::msg::InverseIntrinsics;
+using InverseIntrinsicsPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<InverseIntrinsicsMsg>>;
+
+using TOFInfoMsg = ifm3d_ros2::msg::TOFInfo;
+using TOFInfoPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<TOFInfoMsg>>;
+
+using RGBInfoMsg = ifm3d_ros2::msg::RGBInfo;
+using RGBInfoPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<RGBInfoMsg>>;
 
 using DumpRequest = std::shared_ptr<ifm3d_ros2::srv::Dump::Request>;
 using DumpResponse = std::shared_ptr<ifm3d_ros2::srv::Dump::Response>;
@@ -235,6 +255,12 @@ protected:
   void async_notification_callback(const std::string& s1, const std::string& s2);
 
   /**
+   * Creates a DiagnosticStatus message from a JSON string.
+   *
+   */
+  DiagnosticStatusMsg create_diagnostic_status(const uint8_t level, const std::string& json_msg);
+
+  /**
    * @brief Create publishers according to buffer_id_list_.
    *
    * First, this clears internal publisher lists.
@@ -274,8 +300,18 @@ protected:
 private:
   rclcpp::Logger logger_;
 
+  /// For diagnostics, "<namespace>/<node_name>"
+  std::string hardware_id_;
+
+  // ifm3d camera and framegrabber pointers
+  ifm3d::O3R::Ptr cam_{};
+  ifm3d::FrameGrabber::Ptr fg_{};
+
   /// global mutex on ifm3d core data structures `cam_`, `fg_`
   std::mutex gil_{};
+
+  /// Differentiation between 2D and 3D data stream, derived from ifm3d::O3R cam_
+  ifm3d_ros2::buffer_id_utils::data_stream_type data_stream_type_;
 
   // Values read from parameters
   std::vector<ifm3d::buffer_id> buffer_id_list_{};
@@ -302,21 +338,26 @@ private:
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
   geometry_msgs::msg::TransformStamped cloud_link_transform_;
 
-  ifm3d_ros2::buffer_id_utils::data_stream_type data_stream_type_;
-
+  // Service Servers
   DumpServer dump_srv_{};
   ConfigServer config_srv_{};
   SoftoffServer soft_off_srv_{};
   SoftonServer soft_on_srv_{};
 
-  ifm3d::O3R::Ptr cam_{};
-  ifm3d::FrameGrabber::Ptr fg_{};
-
+  // Publishers
+  DiagnosticArrayPublisher diagnostic_publisher_;
   std::map<ifm3d::buffer_id, ImagePublisher> image_publishers_;
   std::map<ifm3d::buffer_id, CompressedImagePublisher> compressed_image_publishers_;
   std::map<ifm3d::buffer_id, PCLPublisher> pcl_publishers_;
   std::map<ifm3d::buffer_id, ExtrinsicsPublisher> extrinsics_publishers_;
   std::map<ifm3d::buffer_id, CameraInfoPublisher> camera_info_publishers_;
+  std::map<ifm3d::buffer_id, RGBInfoPublisher> rgb_info_publishers_;
+  std::map<ifm3d::buffer_id, TOFInfoPublisher> tof_info_publishers_;
+  std::map<ifm3d::buffer_id, IntrinsicsPublisher> intrinsics_publishers_;
+  std::map<ifm3d::buffer_id, InverseIntrinsicsPublisher> inverse_intrinsics_publishers_;
+
+  // Timer for publishing diagnostics
+  rclcpp::TimerBase::SharedPtr diagnostic_timer_;
 
 };  // end: class CameraNode
 
