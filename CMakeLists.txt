@@ -25,7 +25,7 @@ set(IFM3D_ROS2_DEPS
   tf2_ros
   )
 
-find_package(ifm3d 1.2.4 CONFIG REQUIRED COMPONENTS
+find_package(ifm3d 1.2.6 CONFIG REQUIRED COMPONENTS
   device
   framegrabber
   )
