@@ -55,15 +55,11 @@ On debian based systems they may be installed as follows (replacing `galactic`wi
 $ sudo apt install ros-galactic-launch-testing ros-galactic-launch-testing-ament-cmake
 ```
 
-You will also need to install boost, which is typically pre-installed in ubuntu distributions, but can be missing when using other platforms:
-```
-$ sudo apt install libboost-all-dev
-```
-
 
 ### Building from source
 
-Please see the separate building instruction for building from source: [here](doc/building.md)
+Please see the separate building instruction for building from source: [here](doc/building.md).
+For running the ROS node on an embedded system such as the O3R VPU please build the software inside a [Docker container](Dockerfile).
 
 ### Launch the node
 Launch the camera node (assuming you are in `~/colcon_ws/`):
@@ -79,12 +75,9 @@ To visualize the data with RViz, set the `visualization` argument of the launch 
 $ ros2 launch ifm3d_ros2 camera.launch.py visualization:=true
 ```
 
-:warning: to view the RGB image, follow the instructions [here](doc/view_2d.md).
 
-At this point, you should see an rviz window that looks something like the image below (note that this is the view from 3 camera heads):
 ![rviz1](doc/figures/O3R_merged_point_cloud.png)
-
-Congratulations! You can now have complete control over the O3R perception platform from inside ROS.
+Congratulations! You can now have complete control over the O3R perception platform from inside ROS2.
 
 
 
@@ -92,18 +85,18 @@ Congratulations! You can now have complete control over the O3R perception platf
 
 ### Parameters
 
-| Name | Data Type | Default Value | Description |
-| --------- | --------- | --------- | --------- |
-| ~/buffer_id_list | string array | | A list of all buffers whch should be collected from the camera. For a full list of available buffers, see include/ifm3d_ros/buffer_id_utils.hpp |
-| ~/frame_latency_thresh | float | 1.0 | Time (seconds) used to determine that timestamps from the camera cannot be trusted. When this threshold is exceeded, when compared to system time, we use the reception time of the frame and not the capture time of the frame. |
-| ~/ip | string | 192.168.0.69 | The ip address of the camera. |
-| ~/password | string | | The password required to establish an edit session with the camera. |
-| ~/schema_mask | int16 |0xf | The schema mask to apply to the active session with the frame grabber. This determines which images are available for publication from the camera. More about schemas can be gleaned from the ifm3d project |
-| ~/timeout_millis | int | 500 | The number of milliseconds to wait for the framegrabber to return new frame data before declaring a "timeout" and to stop blocking on new data. |
-| ~/timeout_tolerance_secs | float | 5.0 | The wall time to wait with no new data from the camera before trying to establish a new connection to the camera. This helps to provide robustness against camera cables becoming unplugged or other in-field pathologies which would cause the connection between the ROS node and the camera to be broken. |
-| ~/sync_clocks DEPRECATED | bool | false | Attempt to sync the camera clock to the system clock at start-up. The side-effect is that timestamps on the image should reflect the capture time as opposed to the receipt time. Please note: resolution of this sync is only granular to 1 second. If fine-grained image acquisition times are needed, consider using the on-camera NTP server (available on select camera models). |
-| ~/xmlrpc_port | uint16 | 80 | The TCP port the camera's xmlrpc server is listening on for requests. |
-| ~/pcic_port | uint16 | 50010 | The TCP (data) port the camera's pcic server is listening on for requests. |
+| Name                     | Data Type | Default Value | Description                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------ | --------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ~/frame_latency_thresh   | float     | 1.0           | Time (seconds) used to determine that timestamps from the camera cannot be trusted. When this threshold is exceeded, when compared to system time, we use the reception time of the frame and not the capture time of the frame.                                                                                                                                                      |
+| ~/ip                     | string    | 192.168.0.69  | The ip address of the camera.                                                                                                                                                                                                                                                                                                                                                         |
+| ~/password               | string    |               | The password required to establish an edit session with the camera.                                                                                                                                                                                                                                                                                                                   |
+| ~/schema_mask            | int16     | 0xf           | The schema mask to apply to the active session with the frame grabber. This determines which images are available for publication from the camera. More about schemas can be gleaned from the ifm3d project                                                                                                                                                                           |
+| ~/timeout_millis         | int       | 500           | The number of milliseconds to wait for the framegrabber to return new frame data before declaring a "timeout" and to stop blocking on new data.                                                                                                                                                                                                                                       |
+| ~/timeout_tolerance_secs | float     | 5.0           | The wall time to wait with no new data from the camera before trying to establish a new connection to the camera. This helps to provide robustness against camera cables becoming unplugged or other in-field pathologies which would cause the connection between the ROS node and the camera to be broken.                                                                          |
+| ~/sync_clocks DEPRECATED | bool      | false         | Attempt to sync the camera clock to the system clock at start-up. The side-effect is that timestamps on the image should reflect the capture time as opposed to the receipt time. Please note: resolution of this sync is only granular to 1 second. If fine-grained image acquisition times are needed, consider using the on-camera NTP server (available on select camera models). |
+| ~/xmlrpc_port            | uint16    | 80            | The TCP port the camera's xmlrpc server is listening on for requests.                                                                                                                                                                                                                                                                                                                 |
+| ~/pcic_port              | uint16    | 50010         | The TCP (data) port the camera's pcic server is listening on for requests.                                                                                                                                                                                                                                                                                                            |
+| ~/log_level| string | warning| ifm3d-ros2 node logging level.  |
 
 ### Published Topics
 
@@ -113,7 +106,7 @@ Congratulations! You can now have complete control over the O3R perception platf
 | cloud           | sensor_msgs/msg/PointCloud2 | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The point cloud data                                          |
 | confidence      | sensor_msgs/msg/Image       | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The confidence image                                          |
 | distance        | sensor_msgs/msg/Image       | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The radial distance image                                     |
-| *raw_amplitude* | *sensor_msgs/msg/Image*     | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The raw amplitude image (currently not available for the O3R) |
+| raw_amplitude | sensor_msgs/msg/Image     | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The raw amplitude image (currently not available for the O3R) |
 | rgb             | sensor_msgs/msg/Image       | <a href="include/ifm3d_ros2/qos.hpp">ifm3d_ros::LowLatencyQoS</a> | The RGB 2D image of the 2D imager                             |
 
 ### Subscribed Topics

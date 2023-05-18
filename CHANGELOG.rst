@@ -2,9 +2,53 @@
 Changelog for package ifm3d-ros2
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1
+===
+
+1.1.0 (unreleased)
+------------------
+*
+* Include helper files:
+  * Dockerfile for building the ROS2 node inside a Docker container
+  * Helper build and launch scripts for ROS Docker images
+
+* Differentiating between rgb_2d and tof_3d data streams:
+  * Using ifm3d::O3R instead of ifm3d::Device to access camera
+  * Added data_stream_type enum
+  * Added multimap of buffer_id to data_stream_type mapping
+
+* Moved Publishers into node namespace: This matches the old ROS node (<= 1.0.x) version's naming.
+
+* switch to a new camera.launch.py launch file: launches and activates single camera node
+  * focusses on configurability
+  * camera_default_parameters.yaml contains only default params
+  * Add option for visualization to launch file: If visualization is true, RViz2 with the config file from etc is opened
+  * Formatting of node names improved
+* old launch files are marked as deprecated and will be removed with next release: please migrate your launch files to the new structure
+
+launch file for direct use via inclusion, param file as guidance for users
+* Added publication of extrinsic calibration, improved handling of missing buffers
+* Switching json handling to ifm3d::json
+* Waiting on std::future after starting the framegrabber.
+* Reduce logging level for continuous outputs.
+
+
+
 1.0
 ===
-1.0.2 (unreleased)
+1.0.4 (unreleased)
+------------------
+* Updating to underlying ifm3d API version 1.1.1
+* Name change for TOF_INFO and RGB_INFO buffer.
+* Added Error, AsynError and AsyncNotification callbacks.
+
+1.0.3 (unreleased)
+------------------
+* Updating to underlying ifm3d API version 1.0.1
+* Switching to using buffer_ids instead of schemas to determine data types.
+* Introducing buffer_id_utils.hpp for buffer_id handling.
+
+1.0.2
 ------------------
 * Fixed tf chain in launchfiles
 
