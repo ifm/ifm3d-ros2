@@ -1,4 +1,5 @@
-## Multi head launch file configuration
+# Multi head launch file configuration
+
 It is possible to stream data from multiple ports, while connecting both
 2D and 3D data from your camera with your VPU or even with multiple cameras
 connected to one VPU.
@@ -18,7 +19,7 @@ The Ports on the VPU should be connected as follows:
 * Camera 3D: Port 2
 
 The configuration for the nodes is read from a two different files:
-o3r_2d.yaml and o3r_3d.yaml
+o3r_2d.yaml and o3r_3d.yaml. To change the port configuration, edit the YAML file directly.
 
 To launch this example, use the following command:
 ```

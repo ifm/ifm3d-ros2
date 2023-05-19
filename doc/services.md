@@ -1,24 +1,25 @@
-# ifm3d-ros2: Dump and Config
 
-The ifm3d_ros2 package allows us to configure the O3R camera platform via two separate ways:  
+# Advertised Services
+| Name    | Service Definition                          | Description                                                                                                               |
+| ------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Dump    | <a href="srv/Dump.srv">ifm3d/Dump</a>       | Dumps the state of the camera parameters to JSON                                                                          |
+| Config  | <a href="srv/Config.srv">ifm3d/Config</a>   | Provides a means to configure the camera and imager settings, declaratively from a JSON encoding of the desired settings. |
+| Softon  | <a href="srv/Softon.srv">ifm3d/Softon</a>   | Provides a means to quickly change the camera state from IDLE to RUN.                                                     |
+| Softoff | <a href="srv/Softoff.srv">ifm3d/Softoff</a> | Provides a means to quickly change the camera state from RUN to IDLE.                                                     |
+
+## Dump and Config
+
+The ifm3d_ros2 package allows the user to configure the O3R camera platform via two separate ways:  
 1. Use ROS native service calls
-2. Use dump and config service proxies
+2. Use the dump and config service proxies
 
-## 1. ROS native service calls
-Per camera head connected to the visual processing unit (VPU) of the O3R platform these services are available:  
+### ROS native service calls
 
-| Name | Service Definition | Description |
-| ---- | ---- | ---- |
-| Dump | ifm3d_ros2/camera/Dump | Dumps the state of the camera system as a JSON (formatted as a string) |
-| Config | ifm3d_ros2/camera/Config | Provides a means to configure the VPU and Heads (imager settings), declaratively from a JSON (string) encoding of the desired settings. |
-
-As you can see the two services `Dump` and `Config` are also part of this list. 
-
-### Dump
-Calling the native ROS service `/ifm3d_ros2/camera/Dump` for a certain `camera` will return a string containing with the camera configuration as a JSON string. Please notice the use of backslashes (`\` before each `"`) to escape each upper quotation mark. This is necessary to allow us to keep the JSON syntax native to the underlying API (ifm3d).  
+#### Dump
+Calling the native ROS service `/ifm3d_ros2/camera/Dump` for a certain `camera` will return the camera configuration as a JSON string. Please notice the use of backslashes (`\` before each `"`) to escape each upper quotation mark. This is necessary to allow us to keep the JSON syntax native to the underlying API (ifm3d).  
 
 Call this service via, e.g. for camera:
-```
+```bash
 $ ros2 service call /ifm3d/camera/Dump ifm3d_ros2/srv/Dump
 
 1637355550.468025 [0]       ros2: using network interface enp0s31f6 (udp/192.168.0.10) selected arbitrarily from: enp0s31f6, wlp0s20f3, docker0, enx98fc84eebfc8
@@ -29,10 +30,10 @@ ifm3d_ros2.srv.Dump_Response(status=0, config='{"device":{"clock":{"currentTime"
 ```
 
 
-### Config
+#### Config
 Below you can see an example on how to configure your camera via a ROS service call. The JSON string can be a partial JSON string. It only needs to follow basic JSON syntax. Please wrap the JSON string in a YAML syntax and use the field `"json"`.
 
-```
+```bash
 $ ros2 service call /ifm3d/camera/Config ifm3d_ros2/srv/Config "{json: '{\"ports\":{\"port0\":{\"mode\":\"standard_range4m\"}}}'}"
 1637355711.266033 [0]       ros2: using network interface enp0s31f6 (udp/192.168.0.10) selected arbitrarily from: enp0s31f6, wlp0s20f3, docker0, enx98fc84eebfc8
 requester: making request: ifm3d_ros2.srv.Config_Request(json='{"ports":{"port2":{"mode":"standard_range4m"}}}')
@@ -43,7 +44,7 @@ ifm3d_ros2.srv.Config_Response(status=0, msg='OK')
 
 
 
-## 2. dump and config service proxies
+### Dump and config service proxies
 `ifm3d-ros2` provides access to each camera parameter via the `Dump` and `Config` services exposed by the `camera_node`. 
 
 Additionally, command-line scripts called `dump` and `config` are provided as wrapper interfaces to the native API `ifm3d`. This gives a feel similar to using the underlying C++ API's command-line tool, from the ROS-independent driver except proxying the calls through the ROS network.
@@ -51,7 +52,7 @@ Additionally, command-line scripts called `dump` and `config` are provided as wr
 For example, to dump the state of the camera:
 (exemplary output from an O3R perception platform with one camera head connected is shown)
 
-```
+```bash
 $ ros2 run ifm3d_ros2 dump
 {
   "device": {
@@ -226,19 +227,21 @@ $ ros2 run ifm3d_ros2 dump
 }
 ```
 
-Chaining together Linux pipelines works just as it does in `ifm3d`. For example, using a combination of `dump` and `config` to change the frame rate
+Chaining together Linux pipelines works just as it does in `ifm3d`. For example, using a combination of `dump` and `config` to change the framerate
 from 5Hz to 10Hz of the single application on this particular camera would look like:
 
-```
+```bash
 $ ros2 run ifm3d_ros2 dump | jq '.ports.port0.mode="standard_range2m"' | ros2 run ifm3d_ros2 config
 $ ros2 run ifm3d_ros2 dump | jq .ports.port0.mode
 "standard_range2m"
 ```
 
-**NOTE:** If you do not have `jq` on your system, it can be installed with: `$ sudo apt install jq`
+:::{note}
+If you do not have `jq` on your system, it can be installed with: `$ sudo apt install jq`.
+:::
 
 For the `config` command, one difference between our ROS implementation and the `ifm3d` implementation is that we only accept input on `stdin`. So, if you had a file with JSON you wish to configure your camera with, you would simply use the file I/O redirection facilities of your shell (or something like `cat`) to feed the data to `stdin`. For example, in `bash`:
 
-```
+```bash
 $ ros2 run ifm3d_ros2 config < camera.json
 ```
