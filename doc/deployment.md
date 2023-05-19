@@ -71,7 +71,7 @@ $ ros2 launch ifm3d_ros2 camera.launch.py
 :::{note}
 The command above uses the default configuration defined in the `/config/camera_default_parameters.yaml` file. You can adapt the parameters by using a different config file:
 ```bash
-$ ros2 launch ifm3d_ros2 camera.launch.py -p parameter_file_directory:=config/examples parameter_file_name:=o3r_3d.yaml
+root@62b0c2e120bb:/home/ifm/$ ros2 launch ifm3d_ros2 camera.launch.py  parameter_file_directory:=config/examples parameter_file_name:=o3r_3d.yaml camera_name:=camera_3d
 ```
 :::
 
