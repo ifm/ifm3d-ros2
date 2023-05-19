@@ -1,19 +1,3 @@
-# ifm3d-ros2 overview
-*This documentation is formatted to be read on [www.ifm3d.com](https://ifm3d.com/ROS/ifm3d-ros2/README.html).*
-
-:::{warning} 
-The ifm3d-ros2 package has had major changes recently. Please be aware that this might cause problems on your system for building pipelines based on our old build instructions.
-:::
-
-
-:::{note}
-This release is intended to be used with the O3R camera platform ONLY. For other ifm cameras (e.g. O3D3xx and O3X2xx) please see the tagged release 0.3.0.
-:::
-
-`ifm3d-ros2` is a wrapper around [ifm3d](https://github.com/ifm/ifm3d) enabling the usage of ifm O3R ToF camera platform from within [ROS 2](https://index.ros.org/doc/ros2/) software systems.
-
-![rviz](doc/figures/O3R_merged_point_cloud.png)
-
 
 ## Software Compatibility Matrix
 
