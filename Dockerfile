@@ -37,7 +37,7 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir /home/ifm/ifm3d
 ADD https://github.com/ifm/ifm3d/releases/download/v${IFM3D_VERSION}/ifm3d-ubuntu-22.04-${ARCH}-debs_${IFM3D_VERSION}.tar /home/ifm/ifm3d
 RUN cd /home/ifm/ifm3d &&\
-    tar -xf ifm3d-ubuntu-22.04-arm64-debs_${IFM3D_VERSION}.tar &&  \
+    tar -xf ifm3d-ubuntu-22.04-${ARCH}-debs_${IFM3D_VERSION}.tar &&  \
     dpkg -i *.deb
 
 # Clone and build ifm3d-ros2 repo
