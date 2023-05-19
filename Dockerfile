@@ -68,12 +68,19 @@ RUN apt-get update \
     libgoogle-glog0v5 \    
     libboost-all-dev \
     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
-    ros-${ROS_DISTRO}-tf2 \
+    python3-rosdep \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ifm3d
 RUN cd /home/ifm/ifm3d &&\
     dpkg -i *.deb
+
+RUN cd /home/ifm/colcon_ws && \
+    apt-get update &&\
+    rosdep init && \
+    rosdep update --rosdistro=${ROS_DISTRO} && \
+    rosdep install --from-path src -y --ignore-src -t exec
+
 
 # Setup localisation
 RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
