@@ -1,3 +1,4 @@
+ARG ARCH="amd64"
 ARG BASE_IMAGE="arm64v8/ros"
 ARG BUILD_IMAGE_TAG="humble"
 ARG FINAL_IMAGE_TAG="humble-ros-core"
@@ -9,6 +10,7 @@ FROM ${BASE_IMAGE}:${BUILD_IMAGE_TAG} AS build
 ARG IFM3D_VERSION
 ARG IFM3D_ROS2_REPO
 ARG IFM3D_ROS2_BRANCH
+ARG ARCH
 
 # Create the ifm user
 RUN id ifm 2>/dev/null || useradd --uid 30000 --create-home -s /bin/bash -U ifm
@@ -33,7 +35,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install ifm3d using the deb files
 RUN mkdir /home/ifm/ifm3d
-ADD https://github.com/ifm/ifm3d/releases/download/v${IFM3D_VERSION}/ifm3d-ubuntu-22.04-arm64-debs_${IFM3D_VERSION}.tar /home/ifm/ifm3d
+ADD https://github.com/ifm/ifm3d/releases/download/v${IFM3D_VERSION}/ifm3d-ubuntu-22.04-${ARCH}-debs_${IFM3D_VERSION}.tar /home/ifm/ifm3d
 RUN cd /home/ifm/ifm3d &&\
     tar -xf ifm3d-ubuntu-22.04-arm64-debs_${IFM3D_VERSION}.tar &&  \
     dpkg -i *.deb
