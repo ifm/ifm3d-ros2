@@ -43,8 +43,6 @@ RUN mkdir -p /home/ifm/colcon_ws/src && \
     cd /home/ifm/colcon_ws/src && \
     git clone ${IFM3D_ROS2_REPO} -b ${IFM3D_ROS2_BRANCH} --single-branch 
 
-# RUN /bin/bash -c 'cd /home/ifm/colcon_ws; . /opt/ros/${ROS_DISTRO}/setup.bash; ifm3d_DIR=/usr/lib/cmake; export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp; colcon build --cmake-args -DBUILD_TESTING=OFF'
-# RUN /bin/bash -c 'cd /home/ifm/colcon_ws; . /opt/ros/${ROS_DISTRO}/setup.bash; export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp; colcon build --cmake-args -DBUILD_TESTING=OFF'
 SHELL ["/bin/bash", "-c"]
 RUN cd /home/ifm/colcon_ws && \
     source /opt/ros/${ROS_DISTRO}/setup.bash && \
@@ -70,6 +68,7 @@ RUN apt-get update \
     libgoogle-glog0v5 \    
     libboost-all-dev \
     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
+    ros-${ROS_DISTRO}-tf2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ifm3d
