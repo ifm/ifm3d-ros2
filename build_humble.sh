@@ -23,6 +23,7 @@ FINAL_IMAGE_TAG="humble-ros-core"
 IFM3D_VERSION="1.2.6"
 IFM3D_ROS2_REPO="https://github.com/ifm/ifm3d-ros2.git"
 IFM3D_ROS2_BRANCH="lm_humble_tests"
+UBUNTU_VERSION="22.04"
 
 docker build --no-cache -t $TAG \
     --build-arg ARCH=${ARCH} \
