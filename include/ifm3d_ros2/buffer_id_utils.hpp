@@ -102,7 +102,6 @@ std::multimap<ifm3d::buffer_id, data_stream_type> data_stream_type_map = {
   { ifm3d::buffer_id::JSON_DIAGNOSTIC, data_stream_type::tof_3d },
   { ifm3d::buffer_id::JSON_DIAGNOSTIC, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::EXTRINSIC_CALIB, data_stream_type::tof_3d },
-  { ifm3d::buffer_id::EXTRINSIC_CALIB, data_stream_type::rgb_2d },  // TODO assuming ExCal for both
   { ifm3d::buffer_id::INTRINSIC_CALIB, data_stream_type::tof_3d },
   { ifm3d::buffer_id::INTRINSIC_CALIB, data_stream_type::rgb_2d },
   { ifm3d::buffer_id::INVERSE_INTRINSIC_CALIBRATION, data_stream_type::tof_3d },

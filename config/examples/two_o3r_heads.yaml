@@ -6,7 +6,7 @@
   ros__parameters:
     buffer_id_list:
       - JPEG_IMAGE
-      - EXTRINSIC_CALIB
+      - RGB_INFO
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""
@@ -39,7 +39,7 @@
   ros__parameters:
     buffer_id_list:
       - JPEG_IMAGE
-      - EXTRINSIC_CALIB
+      - RGB_INFO
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""

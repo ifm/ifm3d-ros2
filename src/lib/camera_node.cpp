@@ -266,12 +266,13 @@ void CameraNode::init_params()
   rcl_interfaces::msg::ParameterDescriptor buffer_id_list_descriptor;
   const std::vector<std::string> default_buffer_id_list{
     //
-    "NORM_AMPLITUDE_IMAGE",   //
     "CONFIDENCE_IMAGE",       //
-    "JPEG_IMAGE",             //
-    "RADIAL_DISTANCE_IMAGE",  //
-    "XYZ",                    //
     "EXTRINSIC_CALIB",        //
+    "JPEG_IMAGE",             //
+    "NORM_AMPLITUDE_IMAGE",   //
+    "RADIAL_DISTANCE_IMAGE",  //
+    "RGB_INFO",               //
+    "XYZ",                    //
   };
   buffer_id_list_descriptor.name = "buffer_id_list";
   buffer_id_list_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING_ARRAY;
