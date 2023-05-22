@@ -12,6 +12,7 @@ ARG IFM3D_VERSION
 ARG IFM3D_ROS2_REPO
 ARG IFM3D_ROS2_BRANCH
 ARG ARCH
+ARG UBUNTU_VERSION
 
 # Create the ifm user
 RUN id ifm 2>/dev/null || useradd --uid 30000 --create-home -s /bin/bash -U ifm
