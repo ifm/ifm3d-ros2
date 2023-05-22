@@ -1,4 +1,4 @@
-# How to visualize the point cloud with RVIZ
+# How to visualize data with RVIZ
 The included launch file `camera.launch.py` will publish and remap all topics and services to `/ifm3d/camera`, 
 for example the point cloud topic will be remapped to `/ifm3d/camera/cloud`.
 Both the namespace (default: `ifm3d`) and the node name (default: `camera`)
@@ -10,7 +10,18 @@ You have to change the topic subscribtions yourself when using non-default value
 ```bash
 ros2 launch ifm3d_ros2 camera.launch.py visualization:=true
 ```
+## Viewing the RGB image
 
+The RGB image is published on the `/ifm3d/camera*/rgb` topic in a compressed JPEG format.
+This is useful to save bandwidth, but cannot be visualized as-is with RViz.
+
+The image can be uncompressed using the `image_transport republish` node:
+```bash
+$ sudo apt install ros-galactic-compressed-image-transport
+$ ros2 run image_transport republish compressed raw --ros-args --remap /in/compressed:=/ifm3d/camera/rgb --remap out:=/uncompressed_rgb
+```
+
+In RViz, you can now subscribe to the `/uncompressed_rgb` topic to visualize the RGB image.
 ## QoS reliability - best effort
 When you open RVIZ for the first time and subscribe to the point cloud topic, it will not be displayed as we need to change the default quality of service (QoS) settings per topic.
 
