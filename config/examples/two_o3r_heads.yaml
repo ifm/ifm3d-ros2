@@ -5,6 +5,7 @@
 /ifm3d/left_camera_2d:
   ros__parameters:
     buffer_id_list:
+      - DIAGNOSTIC    
       - JPEG_IMAGE
       - RGB_INFO
     frame_latency_thresh: 1.0
@@ -20,11 +21,12 @@
 /ifm3d/left_camera_3d:
   ros__parameters:
     buffer_id_list:
-      - NORM_AMPLITUDE_IMAGE
       - CONFIDENCE_IMAGE
+      - DIAGNOSTIC    
+      - EXTRINSIC_CALIB
+      - NORM_AMPLITUDE_IMAGE
       - RADIAL_DISTANCE_IMAGE
       - XYZ
-      - EXTRINSIC_CALIB
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""
@@ -38,6 +40,7 @@
 /ifm3d/right_camera_2d:
   ros__parameters:
     buffer_id_list:
+      - DIAGNOSTIC    
       - JPEG_IMAGE
       - RGB_INFO
     frame_latency_thresh: 1.0
@@ -53,11 +56,12 @@
 /ifm3d/right_camera_3d:
   ros__parameters:
     buffer_id_list:
-      - NORM_AMPLITUDE_IMAGE
       - CONFIDENCE_IMAGE
+      - DIAGNOSTIC    
+      - EXTRINSIC_CALIB
+      - NORM_AMPLITUDE_IMAGE
       - RADIAL_DISTANCE_IMAGE
       - XYZ
-      - EXTRINSIC_CALIB
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""

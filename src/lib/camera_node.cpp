@@ -267,6 +267,7 @@ void CameraNode::init_params()
   const std::vector<std::string> default_buffer_id_list{
     //
     "CONFIDENCE_IMAGE",       //
+    "DIAGNOSTIC",             //
     "EXTRINSIC_CALIB",        //
     "JPEG_IMAGE",             //
     "NORM_AMPLITUDE_IMAGE",   //

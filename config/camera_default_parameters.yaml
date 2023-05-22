@@ -5,6 +5,7 @@
   ros__parameters:
     buffer_id_list:
       - CONFIDENCE_IMAGE
+      - DIAGNOSTIC
       - EXTRINSIC_CALIB
       - INTRINSIC_CALIB
       - INVERSE_INTRINSIC_CALIBRATION
