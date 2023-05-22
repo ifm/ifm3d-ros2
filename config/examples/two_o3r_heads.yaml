@@ -20,7 +20,6 @@
 /ifm3d/left_camera_3d:
   ros__parameters:
     buffer_id_list:
-      - AMPLITUDE_IMAGE
       - NORM_AMPLITUDE_IMAGE
       - CONFIDENCE_IMAGE
       - RADIAL_DISTANCE_IMAGE
@@ -54,7 +53,6 @@
 /ifm3d/right_camera_3d:
   ros__parameters:
     buffer_id_list:
-      - AMPLITUDE_IMAGE
       - NORM_AMPLITUDE_IMAGE
       - CONFIDENCE_IMAGE
       - RADIAL_DISTANCE_IMAGE

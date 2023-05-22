@@ -18,4 +18,4 @@
 | ~/tf.optical_link.frame_name | string | <node_name>_optical_link | Name for the point optical frame. |
 | ~/tf.optical_link.publish_transform | bool | true | Whether the transform from the cameras mounting point to the point optical center should be published. |
 | ~/tf.optical_link.transform | double array | [0, 0, 0, 0, 0, 0] | Static transform from mounting link to optical link, as [x, y, z, rot_x, rot_y, rot_z] |
-| ~/buffer_id_list | string array | {"AMPLITUDE_IMAGE", "NORM_AMPLITUDE_IMAGE", "CONFIDENCE_IMAGE", JPEG_IMAGE", "RADIAL_DISTANCE_IMAGE", "XYZ", "EXTRINSIC_CALIB", } | List of buffer_id strings denoting the wanted buffers. |
+| ~/buffer_id_list | string array | {"NORM_AMPLITUDE_IMAGE", "CONFIDENCE_IMAGE", JPEG_IMAGE", "RADIAL_DISTANCE_IMAGE", "XYZ", "EXTRINSIC_CALIB", } | List of buffer_id strings denoting the wanted buffers. |

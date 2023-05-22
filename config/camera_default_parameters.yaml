@@ -4,7 +4,6 @@
 /ifm3d/camera:
   ros__parameters:
     buffer_id_list:
-      - AMPLITUDE_IMAGE
       - CONFIDENCE_IMAGE
       - EXTRINSIC_CALIB
       - INTRINSIC_CALIB
