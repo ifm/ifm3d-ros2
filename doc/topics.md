@@ -13,7 +13,7 @@
 | extrinsics      | ifm3d_ros2::msg::Extrinsics  | The extrinsic calibration of the camera (camera to world)           |
 | INTRINSIC_CALIB | ifm3d_ros2::msg::Intrinsics  | The intrinsic calibration of the camera (optical system parameters) |
 | INVERSE_INTRINSIC_CALIBRATION | ifm3d_ros2::msg::InverseIntrinsics | The inverse intrinsic calibration of the camera |
-| camera_info     | sensor_msgs::msg::CameraInfo | The camera info topic containing the distortion model               |
+| camera_info     | sensor_msgs::msg::CameraInfo | The camera info topic containing the distortion model. This topic is published if the INTRINSIC_CALIB is part of the buffer list               |
 | TOF_INFO        | ifm3d_ros2::msg::TOFInfo     | A topic gathering various information from the tof camera (see [TOFinfo.msg](../msg/TOFInfo.msg)) |
 | RGB_INFO        | ifm3d_ros2::msg::RGBInfo     | A topic gathering various information from the rgb camera (see [RGBInfo.msg](../msg/RGBInfo.msg)) |
 | diagnostics     | diagnostic_msgs::msg::DiagnosticArray | Diagnostic messages pulled from the device every second    |
