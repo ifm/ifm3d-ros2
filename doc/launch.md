@@ -1,4 +1,3 @@
-
 # Launch the node
 
 Due to an incompatibility between FastDDS (the default DDS implementation for ROS Humble) and the ifm3d API, the DDS settings need to be changed before running ifm3d-ros2:

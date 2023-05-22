@@ -17,7 +17,7 @@ This is useful to save bandwidth, but cannot be visualized as-is with RViz.
 
 The image can be uncompressed using the `image_transport republish` node:
 ```bash
-$ sudo apt install ros-galactic-compressed-image-transport
+$ sudo apt install ros-humble-compressed-image-transport
 $ ros2 run image_transport republish compressed raw --ros-args --remap /in/compressed:=/ifm3d/camera/rgb --remap out:=/uncompressed_rgb
 ```
 
