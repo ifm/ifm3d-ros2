@@ -52,5 +52,5 @@ They can act as inspiration when configuring your own multi-camera setup.
 
 You can launch the node with a custom configuration, for example with:
 ```bash
-$ ros2 launch ifm3d_ros2 camera.launch.py parameter_file_directory:="config/examples" parameter_file_name:="o3r_3d.yaml"
+$ ros2 launch ifm3d_ros2 camera.launch.py camera_name:=camera_3d parameter_file_directory:="config/examples" parameter_file_name:="o3r_3d.yaml"
 ```
