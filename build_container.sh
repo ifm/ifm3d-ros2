@@ -11,7 +11,7 @@ set -euo pipefail
 ##############
 # For ARM64V8:
 ##############
-ARCH="arm64v8"
+ARCH="arm64"
 BASE_IMAGE="arm64v8/ros"
 TAG=ifm3d-ros:humble-arm64_v8
 
@@ -25,7 +25,7 @@ IFM3D_ROS2_REPO="https://github.com/ifm/ifm3d-ros2.git"
 IFM3D_ROS2_BRANCH="lm_humble_tests"
 UBUNTU_VERSION="22.04"
 
-docker build --no-cache -t $TAG \
+docker build -t $TAG \
     --build-arg ARCH=${ARCH} \
     --build-arg BASE_IMAGE=${BASE_IMAGE} \
     --build-arg BUILD_IMAGE_TAG=${BUILD_IMAGE_TAG} \
