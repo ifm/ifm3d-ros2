@@ -55,7 +55,7 @@ $ docker save docker.io/library/ifm3d-ros:humble-arm64_v8 | ssh -C oem@192.168.0
 - SSH to the VPU and run the container: 
 ```bash
 $ ssh oem@192.168.0.69 #Adapt to the IP address of your VPU
-o3r-vpu-c0$ docker run -ti ifm3d-ros:humble-arm64_v8
+o3r-vpu-c0$ docker run -ti --net=host ifm3d-ros:humble-arm64_v8
 root@952330b98eac:/home/ifm# 
 ```
 -  Source ROS2 and the `ìfm3d_ros2` installation: 
@@ -99,3 +99,10 @@ $ ros2 topic list
 ```bash
 $ rviz2
 ``` 
+
+:::{tip}
+To use Rviz2 from a docker container, the container has to be started with a specific environment:
+```bash
+$ docker run -it -v /tmp/.X11-unix:/tmp/.X11-unix --env=DISPLAY --env=QT_X11_NO_MITSHM=1 --net=host --privileged ros:humble-ros-core
+```
+:::
