@@ -300,7 +300,7 @@ void CameraNode::init_params()
   tf_cloud_link_frame_name_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
   tf_cloud_link_frame_name_descriptor.description =
       "Name for the point cloud frame, defaults to <node_name>_optical_link.";
-  this->declare_parameter("tf.cloud_link.frame_name", node_name + "_optical_link", tf_cloud_link_frame_name_descriptor);
+  this->declare_parameter("tf.cloud_link.frame_name", node_name + "_cloud_link", tf_cloud_link_frame_name_descriptor);
 
   rcl_interfaces::msg::ParameterDescriptor tf_cloud_link_publish_transform_descriptor;
   tf_cloud_link_publish_transform_descriptor.name = "tf.cloud_link.publish_transform";
