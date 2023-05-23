@@ -5,9 +5,6 @@
 ### Ubuntu and ROS
 We suggest building the `ifm3d-ros2` node on top of [Ubuntu 22.04 Jammy Jellyfish](https://releases.ubuntu.com/jammy/) and [ROS Humble](https://docs.ros.org/en/humble/index.html).
 
->  This ROS node only supports cycloneDDS as the DDS implementation. To use it, install cycloneDDS with `sudo apt-get install ros-foxy-rmw-cyclonedds-cpp` (do this once), and export the configuration with `export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp` (do this every time).
-
-
 ### ifm3d C++ API
 The ROS node `ifm3d_ros2` requires the C++ API ifm3d to be installed locally for your system before compiling and running the ROS node.
 Refer to [the compatibility matrix](../README.md) to find out the correct ifm3d API version.
@@ -64,7 +61,6 @@ Build your workspace:
 
 ```bash
 $ cd ~/colcon_ws/
-$ export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 $ colcon build --cmake-args -DBUILD_TESTING=OFF
 Starting >>> ifm3d_ros2
 Finished <<< ifm3d_ros2 [17.6s]

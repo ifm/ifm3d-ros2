@@ -27,7 +27,7 @@ $ ./build_humble.sh
  => [build 6/9] ADD https://github.com/ifm/ifm3d/releases/download/v1.2.6/ifm3d-ubuntu-22.04-arm64-debs_1.2.6.tar /home/ifm/ifm3d                                       0.0s 
  => [build 7/9] RUN cd /home/ifm/ifm3d &&    tar -xf ifm3d-ubuntu-22.04-arm64-debs_1.2.6.tar &&      dpkg -i *.deb                                                      2.1s 
  => [build 8/9] RUN mkdir -p /home/ifm/colcon_ws/src &&     cd /home/ifm/colcon_ws/src &&     git clone https://github.com/ifm/ifm3d-ros2.git -b lm_humble_tests --sin  4.2s 
- => [build 9/9] RUN cd /home/ifm/colcon_ws &&     source /opt/ros/humble/setup.bash &&     export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp &&     colcon build --cmake-  242.8s 
+ => [build 9/9] RUN cd /home/ifm/colcon_ws &&     source /opt/ros/humble/setup.bash &&     colcon build --cmake-  242.8s 
  => [stage-1 2/7] COPY --from=build /home/ifm/colcon_ws /home/ifm/colcon_ws                                                                                             0.1s 
  => [stage-1 3/7] COPY --from=build /home/ifm/ifm3d/*.deb /home/ifm/ifm3d/                                                                                              0.0s 
  => [stage-1 4/7] WORKDIR /home/ifm                                                                                                                                     0.0s 

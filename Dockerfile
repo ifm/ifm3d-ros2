@@ -2,16 +2,16 @@ ARG ARCH="amd64"
 ARG BASE_IMAGE="arm64v8/ros"
 ARG BUILD_IMAGE_TAG="humble"
 ARG FINAL_IMAGE_TAG="humble-ros-core"
-ARG IFM3D_VERSION="1.2.6"
-ARG IFM3D_ROS2_REPO="https://github.com/ifm/ifm3d-ros2.git"
 ARG IFM3D_ROS2_BRANCH="master"
+ARG IFM3D_ROS2_REPO="https://github.com/ifm/ifm3d-ros2.git"
+ARG IFM3D_VERSION="1.2.6"
 ARG UBUNTU_VERSION="22.04"
 
 FROM ${BASE_IMAGE}:${BUILD_IMAGE_TAG} AS build
-ARG IFM3D_VERSION
-ARG IFM3D_ROS2_REPO
-ARG IFM3D_ROS2_BRANCH
 ARG ARCH
+ARG IFM3D_ROS2_BRANCH
+ARG IFM3D_ROS2_REPO
+ARG IFM3D_VERSION
 ARG UBUNTU_VERSION
 
 # Create the ifm user
@@ -21,19 +21,18 @@ WORKDIR /home/ifm
 # Dependencies for both ifm3d and ifm3d-ros2
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    coreutils \
     git \
     jq \
-    libxmlrpc-c++8-dev \
-    libproj-dev \
-    build-essential \
-    coreutils \
-    cmake \
-    wget \
-    libssl-dev \
+    libboost-all-dev \    
     libgoogle-glog-dev \
     libgoogle-glog0v5 \
-    libboost-all-dev \    
-    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp
+    libproj-dev \
+    libssl-dev \
+    libxmlrpc-c++8-dev \
+    wget 
 
 # Install ifm3d using the deb files
 RUN mkdir /home/ifm/ifm3d
@@ -42,15 +41,19 @@ RUN cd /home/ifm/ifm3d &&\
     tar -xf ifm3d-ubuntu-${UBUNTU_VERSION}-${ARCH}-debs_${IFM3D_VERSION}.tar &&  \
     dpkg -i *.deb
 
-# Clone and build ifm3d-ros2 repo
-RUN mkdir -p /home/ifm/colcon_ws/src && \
-    cd /home/ifm/colcon_ws/src && \
-    git clone ${IFM3D_ROS2_REPO} -b ${IFM3D_ROS2_BRANCH} --single-branch 
+ADD . /home/ifm/colcon_ws/src/ifm3d-ros2
+RUN cd /home/ifm/colcon_ws && \
+    rosdep update --rosdistro=${ROS_DISTRO} && \
+    rosdep install --from-path src -y --ignore-src -t build
+
+# # Clone and build ifm3d-ros2 repo
+# RUN mkdir -p /home/ifm/colcon_ws/src && \
+#     cd /home/ifm/colcon_ws/src && \
+#     git clone ${IFM3D_ROS2_REPO} -b ${IFM3D_ROS2_BRANCH} --single-branch 
 
 SHELL ["/bin/bash", "-c"]
 RUN cd /home/ifm/colcon_ws && \
     source /opt/ros/${ROS_DISTRO}/setup.bash && \
-    export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && \ 
     colcon build --cmake-args -DBUILD_TESTING=OFF
 
 # Multistage build to reduce image size
@@ -65,13 +68,11 @@ WORKDIR /home/ifm
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+    libboost-all-dev \
+    libgoogle-glog0v5 \    
+    libssl-dev \
     libxmlrpc-c++8v5 \
     locales \
-    sudo \
-    libssl-dev \
-    libgoogle-glog0v5 \    
-    libboost-all-dev \
-    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
     python3-rosdep \
     && rm -rf /var/lib/apt/lists/*
 
@@ -94,5 +95,3 @@ RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
-
-# NOTE: Make sure to run export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
