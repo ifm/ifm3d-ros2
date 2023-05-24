@@ -24,7 +24,7 @@
 #include <ifm3d_ros2/buffer_id_utils.hpp>
 #include <ifm3d_ros2/qos.hpp>
 
-#include <ifm3d/contrib/nlohmann/json.hpp>
+#include <ifm3d/device/json.hpp>
 
 using json = ifm3d::json;
 using namespace std::chrono_literals;
