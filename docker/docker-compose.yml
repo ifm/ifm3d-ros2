@@ -1,0 +1,31 @@
+version: "2.3"
+services:
+  ifm3d_ros:
+    tty: true
+    image: ifm3d-ros:humble-arm64_v8
+
+    restart: unless-stopped
+
+    logging:
+      driver: "json-file"
+      options:
+        mode: non-blocking
+        max-buffer-size: "20m"
+    environment:
+      - ROS_DOMAIN_ID=228
+    ipc: host
+
+    command:
+      - /bin/bash
+      - -c
+      - |
+        set -a
+        . /opt/ros/humble/setup.sh;
+        . /home/ifm/colcon_ws/install/setup.sh;
+        export IFM3D_IP="127.0.0.1";
+        export GLOG_logtostderr=1;
+        export GLOG_minloglevel=3;
+        echo ROS_DOMAIN_ID=$$ROS_DOMAIN_ID;
+        ros2 launch ifm3d_ros2 camera.launch.py parameter_file_name:=o3r_2d.yaml
+
+    network_mode: host

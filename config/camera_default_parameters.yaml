@@ -4,8 +4,8 @@
 /ifm3d/camera:
   ros__parameters:
     buffer_id_list:
-      - AMPLITUDE_IMAGE
       - CONFIDENCE_IMAGE
+      - DIAGNOSTIC
       - EXTRINSIC_CALIB
       - INTRINSIC_CALIB
       - INVERSE_INTRINSIC_CALIBRATION
@@ -21,11 +21,11 @@
       cloud_link:
         frame_name: "camera_cloud_link"
         publish_transform: true
-        transform: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
       mounting_link:
         frame_name: "camera_mounting_link"
       optical_link:
         frame_name: "camera_optical_link"
         publish_transform: true
+        transform: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     use_sim_time: false
     xmlrpc_port: 80

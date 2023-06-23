@@ -4,12 +4,12 @@
 /ifm3d/camera_3d:
   ros__parameters:
     buffer_id_list:
-      - AMPLITUDE_IMAGE
-      - NORM_AMPLITUDE_IMAGE
       - CONFIDENCE_IMAGE
+      - DIAGNOSTIC
+      - EXTRINSIC_CALIB
+      - NORM_AMPLITUDE_IMAGE
       - RADIAL_DISTANCE_IMAGE
       - XYZ
-      - EXTRINSIC_CALIB
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""
