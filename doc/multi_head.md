@@ -1,18 +1,52 @@
-## Multi head launch file configuration
-How to start streams from multiple heads at the same time:  
+# Multi head launch file configuration
 
-Use as following command: (relative location starting from your `colcon_ws`)
+It is possible to stream data from multiple imagers and camera heads (i.e. ports): while connecting both 2D and 3D data from your camera with your VPU or even with multiple cameras connected to one VPU.
+
+This can be achieved by altering your launch configuration yaml file and setting the camera-specific parameters, namely `pcic-port` and `buff_id_lists`, correctly.
+There are examples provided doing exactly that.
+
+## `o3r_2d.yaml`
+This example configuration connects to the 2D (RGB) data stream of one O3R camera head connected to port 0:
+
+The Ports on the VPU should be connected as follows:
+* Camera 2D: physical port 0 - corresponds to `pcic_port=50010`
+
+To launch this example, use the following command:
+```bash
+ros2 launch ifm3d_ros2 camera.launch.py parameter_file_name:=o3r_2d.yaml
 ```
-ros2 launch ifm3d_ros2 multi_cameras.launch.py namespace:='ifm3d_ros2' params:='src/config/params_2cams.yaml'
+
+## `o3r_3d.yaml`
+This example configuration connects to the 3D (TOF) data stream of one O3R camera head connected to port 2:
+
+The Ports on the VPU should be connected as follows:
+* Camera 3D: physical port 2 - corresponds to `pcic_port=50012`
+
+To launch this example, use the following command:
+```bash
+ros2 launch ifm3d_ros2 camera.launch.py parameter_file_name:=o3r_3d.yaml
 ```
 
-This will launch two instances of the lifecycle node and publish their data to independent topics and coordinate reference frames.  
+## `o3r_3d.yaml`
+This example configuration connects to two 3D (TOF) data stream **AND** two 2D (RGB) data stream of **two** O3R camera head connected to ports 0 - 3:
 
-> Note: Please be aware that the `namespace:=ifm3d_ros2` argument has to be the same as the first field in the yaml configuration file. Otherwise, the namespace and dependent topic name declarations will not match.
+The Ports on the VPU should be connected as follows:
+Camera head 1:
+* Camera 2D: physical port 0 - corresponds to `pcic_port=50010`
+* Camera 3D: physical port 2 - corresponds to `pcic_port=50012`
 
-### up to 6 heads
-We ship this ROS node with two example yaml files:
-1. For 2 imagers, i.e both the 2D RGB imager and 3D TOF imager of a O3R camera head are connected.
-2. For 6 imager: no specific match for 2D RGB or 3D TOF imagers
+Camera head 2:
+* Camera 2D: physical port 1 - corresponds to `pcic_port=50011`
+* Camera 3D: physical port 3 - corresponds to `pcic_port=50013`
 
-Please build your own yaml starting from this. A node process requires exactly one image stream. If the node gets started while the image stream is missing the node's process will reply with timeout warnings displayed on your main process shell. 
+To launch this example, use the following command:
+```bash
+ros2 launch ifm3d_ros2 two_o3r_heads.launch.py parameter_file_name:=two_o3r_heads.yaml
+```
+
+### Adapting the camera configuration to your needs
+The example configurations are provided in the directory `config/examples`.
+They can act as inspiration when configuring your own multi-camera setup.
+
+Please edit / add your own specific hardware and software configuration via these configuration yml files.
+For a specific number of ros node camera streams other than 1 or 4 (see examples) please create a updated launch helper yourself.

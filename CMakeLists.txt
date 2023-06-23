@@ -11,6 +11,8 @@ endif()
 
 set(IFM3D_ROS2_DEPS
   builtin_interfaces
+  diagnostic_msgs
+  geometry_msgs
   lifecycle_msgs
   rclcpp
   rclcpp_components
@@ -20,12 +22,12 @@ set(IFM3D_ROS2_DEPS
   rosidl_default_generators
   sensor_msgs
   std_msgs
+  tf2_ros
   )
 
-find_package(ifm3d 0.93.0 CONFIG REQUIRED COMPONENTS
-  camera
+find_package(ifm3d 1.2.6 CONFIG REQUIRED COMPONENTS
+  device
   framegrabber
-  stlimage
   )
 find_package(ament_cmake_auto REQUIRED)
 find_package(ament_cmake_ros REQUIRED)
@@ -34,6 +36,10 @@ ament_auto_find_build_dependencies(REQUIRED ${IFM3D_ROS2_DEPS})
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Extrinsics.msg"
+  "msg/Intrinsics.msg"
+  "msg/InverseIntrinsics.msg"
+  "msg/RGBInfo.msg"
+  "msg/TOFInfo.msg"
   "srv/Dump.srv"
   "srv/Config.srv"
   "srv/Softoff.srv"
@@ -52,9 +58,8 @@ include_directories(include)
 #
 add_library(ifm3d_ros2_camera_node SHARED src/lib/camera_node.cpp)
 target_link_libraries(ifm3d_ros2_camera_node
-  ifm3d::camera
+  ifm3d::device
   ifm3d::framegrabber
-  ifm3d::stlimage
   )
 ament_target_dependencies(ifm3d_ros2_camera_node ${IFM3D_ROS2_DEPS})
 rclcpp_components_register_nodes(

@@ -1,23 +1,28 @@
-## HOW to visualize the point cloud with RVIZ
-The included launch file `camera_managed.launch.py` will publish and remap all topics and services to `/ifm3d_ros2/xxx`, for example the point cloud topic will be remapped to `/ifm3d_ros2/camera/cloud`.  
+# How to visualize data with RVIZ
+The included launch file `camera.launch.py` will publish and remap all topics and services to `/ifm3d/camera`, for example the point cloud topic will be remapped to `/ifm3d/camera/cloud`.
+Both the namespace (default: `ifm3d`) and the node name (default: `camera`) can be changed via the launch description files.
 
-### QoS reliability - best effort
-When you open RVIZ for the first time and subscribe the point cloud topic to it, it will not be displayed as we need to change the default qualitty of service (QoS) settings per topic.
+A pre-configured RViz2 will be launched when setting the `visualization` argument of the launch file to `true`. Be aware that the RViz configuration assumes the default namespace and node name.
+You have to change the topic subscriptions yourself when using non-default values.
+```bash
+ros2 launch ifm3d_ros2 camera.launch.py visualization:=true
+```
+## Viewing the RGB image
+
+The RGB image is published on the `/ifm3d/camera*/rgb` topic in a compressed JPEG format.
+This is useful to save bandwidth, but cannot be visualized as-is with RViz.
+
+The image can be uncompressed using the `image_transport republish` node:
+```bash
+$ sudo apt install ros-humble-compressed-image-transport
+$ ros2 run image_transport republish compressed raw --ros-args --remap /in/compressed:=/ifm3d/camera/rgb --remap out:=/uncompressed_rgb
+```
+
+In RViz, you can now subscribe to the `/uncompressed_rgb` topic to visualize the RGB image.
+## QoS reliability - best effort
+When you open RVIZ for the first time and subscribe to the point cloud topic, it will not be displayed as we need to change the default quality of service (QoS) settings per topic.
 
 To change these settings:
 1. subscribe to a topic in RVIZ by adding it (ADD button)
 2. Expand the topic settings
 3. Select `reliability` and set it to `Best Effort`
-
-### Change axis directions to suit your interpretation of a robot coordinate reference system
-We have removed the rotation parameter which have been part of the `camera_managed.launch.py` launch file which move the axis directions around. This decision was reached because we believe there should be only one place to change the extrinsic parameters to keep things unambiguous.  
-We suggest changing the extrinsic parameters via our JSON interface (see ifm3d) and the mapped dump and config ROS services for this. The extrinsic parameters are applied to every measurement (distance image, and point cloud).  
-
-If you would still like to add a `tf publisher` which switches the X-, and Z-axis please see the example below. Afterwards the Z-axis will measure positive values in the direction of the center optical ray of each camera.
-```
- <node pkg="tf2_ros"
-        type="static_transform_publisher"
-        name="$(arg camera)_tf"
-        args="0 0 0 -1.5707963267948966 0 -1.5707963267948966 $(arg frame_id_base)_link $(arg frame_id_base)_optical_link"
-        respawn="$(arg respawn)" />
-```

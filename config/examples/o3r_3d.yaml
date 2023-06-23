@@ -1,0 +1,21 @@
+# Example configuration for the 3d data stream of an O3R camera.
+# Expected to be used with example/o3r_2d_and_3d.launch.py
+
+/ifm3d/camera_3d:
+  ros__parameters:
+    buffer_id_list:
+      - CONFIDENCE_IMAGE
+      - DIAGNOSTIC
+      - EXTRINSIC_CALIB
+      - NORM_AMPLITUDE_IMAGE
+      - RADIAL_DISTANCE_IMAGE
+      - XYZ
+    frame_latency_thresh: 1.0
+    ip: 192.168.0.69
+    password: ""
+    pcic_port: 50012 # 3D stream connected to Port 2
+    sync_clocks: false
+    timeout_millis: 500
+    timeout_tolerance_secs: 5.0
+    use_sim_time: false
+    xmlrpc_port: 80

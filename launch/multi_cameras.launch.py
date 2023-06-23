@@ -17,6 +17,17 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.actions import OpaqueFunction
 
+deprecation_warning = LogInfo(
+    msg="""
+
+    ######################################################################################
+    #                                                                                    #
+    #  This launch script is deprecated. Use the parametrized camera.launch.py instead!  #
+    #                                                                                    #
+    ######################################################################################
+    """
+)
+
 ifm3d_ros2_dir = get_package_share_directory('ifm3d_ros2')
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
@@ -54,7 +65,8 @@ def add_camera_loop(context, *args, **kwargs):
 
 def generate_launch_description():
     """Launch the camera_managed.launch.py launch file."""
-    ld = LaunchDescription()
+    ld = LaunchDescription(deprecated_reason="Deprecated in favor of camera.launch.py")
+    ld.add_action(deprecation_warning)
     DeclareLaunchArgument(
         'namespace', 
         default_value='ifm3d',

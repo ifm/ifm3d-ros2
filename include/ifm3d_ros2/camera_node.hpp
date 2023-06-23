@@ -14,27 +14,38 @@
 #include <thread>
 #include <vector>
 
+#include <diagnostic_msgs/msg/diagnostic_array.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
-
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2/LinearMath/Quaternion.h>
 
 #include <ifm3d_ros2/visibility_control.h>
 
+#include <ifm3d_ros2/buffer_id_utils.hpp>
 #include <ifm3d_ros2/msg/extrinsics.hpp>
+#include <ifm3d_ros2/msg/inverse_intrinsics.hpp>
+#include <ifm3d_ros2/msg/rgb_info.hpp>
+#include <ifm3d_ros2/msg/tof_info.hpp>
 #include <ifm3d_ros2/srv/dump.hpp>
 #include <ifm3d_ros2/srv/config.hpp>
 #include <ifm3d_ros2/srv/softon.hpp>
 #include <ifm3d_ros2/srv/softoff.hpp>
 
-#include <ifm3d/camera/camera_base.h>
+#include <ifm3d/device.h>
 #include <ifm3d/fg.h>
-#include <ifm3d/stlimage.h>
 
 using TC_RETVAL = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+
+using DiagnosticStatusMsg = diagnostic_msgs::msg::DiagnosticStatus;
+using DiagnosticArrayMsg = diagnostic_msgs::msg::DiagnosticArray;
+using DiagnosticArrayPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<DiagnosticArrayMsg>>;
 
 using ImageMsg = sensor_msgs::msg::Image;
 using ImagePublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ImageMsg>>;
@@ -47,6 +58,21 @@ using PCLPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<PCLMsg
 
 using ExtrinsicsMsg = ifm3d_ros2::msg::Extrinsics;
 using ExtrinsicsPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ExtrinsicsMsg>>;
+
+using CameraInfoMsg = sensor_msgs::msg::CameraInfo;
+using CameraInfoPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<CameraInfoMsg>>;
+
+using IntrinsicsMsg = ifm3d_ros2::msg::Intrinsics;
+using IntrinsicsPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<IntrinsicsMsg>>;
+
+using InverseIntrinsicsMsg = ifm3d_ros2::msg::InverseIntrinsics;
+using InverseIntrinsicsPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<InverseIntrinsicsMsg>>;
+
+using TOFInfoMsg = ifm3d_ros2::msg::TOFInfo;
+using TOFInfoPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<TOFInfoMsg>>;
+
+using RGBInfoMsg = ifm3d_ros2::msg::RGBInfo;
+using RGBInfoPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<RGBInfoMsg>>;
 
 using DumpRequest = std::shared_ptr<ifm3d_ros2::srv::Dump::Request>;
 using DumpResponse = std::shared_ptr<ifm3d_ros2::srv::Dump::Response>;
@@ -194,73 +220,147 @@ protected:
   void Softon(std::shared_ptr<rmw_request_id_t> request_header, SoftonRequest req, SoftonResponse resp);
 
   /**
-   * Callback that gets called when a parameter(s) is attempted to be set
-   *
-   * Some parameters can be changed on the fly while others, if changed,
-   * require the node to reconfigure itself (e.g., because it needs to
-   * switch the operating mode of the camera or connect to a different camera
-   * etc.). In general, we take the new parameter values and set them into
-   * the instance variables of this node. However, if a reconfiguration is
-   * required, after looking at all the parameters, a state change that would
-   * ultimately have the camera reinitialize is affected.
-   */
-  rcl_interfaces::msg::SetParametersResult set_params_cb(const std::vector<rclcpp::Parameter>& params);
-
-  /**
    * Declares parameters and default values
    */
   void init_params();
 
   /**
-   * Thread function that publishes data to clients
+   * Reads parameters, needs init_params() to be called beforehand
    */
-  void publish_loop();
+  void parse_params();
 
   /**
-   * Utility function that makes a best effort to stop the thread publishing
-   * loop.
+   * Sets the callbacks handling parameter changes at runtime
    */
-  void stop_publish_loop();
+  void set_parameter_event_callbacks();
+
+  /**
+   * Callback which receives new Frames from ifm3d
+   */
+  void frame_callback(ifm3d::Frame::Ptr frame);
+
+  /**
+   * Callback which receives Errors from ifm3d
+   */
+  void error_callback(const ifm3d::Error& error);
+
+  /**
+   * Callback which receives AsyncErrors from ifm3d
+   */
+  void async_error_callback(int i, const std::string& s);
+
+  /**
+   * Callback which receives AsyncNotifications from ifm3d
+   */
+  void async_notification_callback(const std::string& s1, const std::string& s2);
+
+  /**
+   * Creates a DiagnosticStatus message from a JSON string.
+   *
+   */
+  DiagnosticStatusMsg create_diagnostic_status(const uint8_t level, const std::string& json_msg);
+
+  /**
+   * @brief Create publishers according to buffer_id_list_.
+   *
+   * First, this clears internal publisher lists.
+   * Populates the internal publisher lists with new Publishers.
+   * Uses buffer_id_utils to determine message types.
+   */
+  void initialize_publishers();
+
+  /**
+   * Activates all publishers on the internal publisher lists.
+   */
+  void activate_publishers();
+
+  /**
+   * Deactivates all publishers on the internal publisher lists.
+   */
+  void deactivate_publishers();
+
+  /**
+   * Publish the transform from the mounting link to the optical link as static tf
+   */
+  void publish_optical_link_transform();
+
+  /**
+   * @brief Publish the transform from the mounting link to the cloud link as static tf if it changed
+   *
+   * A change can either be new translational/rotational data from extrinsics or
+   * a name change of one of the frames.
+   *
+   * @param msg ExtrinsicsMsg from camera
+   */
+  void publish_cloud_link_transform_if_changed(const ExtrinsicsMsg& msg);
+
+  ifm3d_ros2::buffer_id_utils::data_stream_type stream_type_from_port_info(const std::vector<ifm3d::PortInfo>& ports,
+                                                                           const uint16_t pcic_port);
 
 private:
   rclcpp::Logger logger_;
-  // global mutex on ifm3d core data structures `cam_`, `fg_`, `im_`
+
+  /// For diagnostics, "<namespace>/<node_name>"
+  std::string hardware_id_;
+
+  // ifm3d camera and framegrabber pointers
+  ifm3d::O3R::Ptr cam_{};
+  ifm3d::FrameGrabber::Ptr fg_{};
+  ifm3d::FrameGrabber::Ptr fg_diag_{};
+
+  /// global mutex on ifm3d core data structures `cam_`, `fg_`
   std::mutex gil_{};
 
-  std::string ip_{};
-  std::uint16_t xmlrpc_port_{};
-  std::string password_{};
-  std::uint16_t schema_mask_{};
-  int timeout_millis_{};
-  float timeout_tolerance_secs_{};
-  float frame_latency_thresh_{};  // seconds
-  bool sync_clocks_{};
-  std::uint16_t pcic_port_{};
+  /// Differentiation between 2D and 3D data stream, derived from ifm3d::O3R cam_
+  ifm3d_ros2::buffer_id_utils::data_stream_type data_stream_type_;
 
+  // Values read from parameters
+  std::vector<ifm3d::buffer_id> buffer_id_list_{};
+  std::string ip_{};
+  std::uint16_t pcic_port_{};
+  std::string tf_cloud_link_frame_name_{};
+  bool tf_cloud_link_publish_transform_{};
+  std::string tf_mounting_link_frame_name_{};
+  std::string tf_optical_link_frame_name_{};
+  bool tf_optical_link_publish_transform_{};
+  std::vector<double> tf_optical_link_transform_{};
+  std::uint16_t xmlrpc_port_{};
+  std::string diag_mode_{};
+
+  // Values read from incomming image buffers
+  uint32_t width_;
+  uint32_t height_;
+
+  /// Subscription to parameter changes
+  std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
+  /// Callbacks need to be stored to work properly; using a map with parameter name as key
+  std::map<std::string, rclcpp::ParameterCallbackHandle::SharedPtr> registered_param_callbacks_;
+
+  // TF handling
+  std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
+  geometry_msgs::msg::TransformStamped cloud_link_transform_;
+
+  // Service Servers
   DumpServer dump_srv_{};
   ConfigServer config_srv_{};
   SoftoffServer soft_off_srv_{};
   SoftonServer soft_on_srv_{};
 
-  ifm3d::CameraBase::Ptr cam_{};
-  ifm3d::FrameGrabber::Ptr fg_{};
-  ifm3d::StlImageBuffer::Ptr im_{};
+  // Publishers
+  DiagnosticArrayPublisher diagnostic_publisher_;
+  std::map<ifm3d::buffer_id, ImagePublisher> image_publishers_;
+  std::map<ifm3d::buffer_id, CompressedImagePublisher> compressed_image_publishers_;
+  std::map<ifm3d::buffer_id, PCLPublisher> pcl_publishers_;
+  std::map<ifm3d::buffer_id, ExtrinsicsPublisher> extrinsics_publishers_;
+  std::map<ifm3d::buffer_id, CameraInfoPublisher> camera_info_publishers_;
+  std::map<ifm3d::buffer_id, RGBInfoPublisher> rgb_info_publishers_;
+  std::map<ifm3d::buffer_id, TOFInfoPublisher> tof_info_publishers_;
+  std::map<ifm3d::buffer_id, IntrinsicsPublisher> intrinsics_publishers_;
+  std::map<ifm3d::buffer_id, InverseIntrinsicsPublisher> inverse_intrinsics_publishers_;
 
-  ImagePublisher conf_pub_{};
-  ImagePublisher distance_pub_{};
-  ImagePublisher amplitude_pub_{};
-  ImagePublisher raw_amplitude_pub_{};
-  PCLPublisher cloud_pub_{};
-  ExtrinsicsPublisher extrinsics_pub_{};
-  CompressedImagePublisher rgb_pub_{};
+  // Timer for publishing diagnostics
+  rclcpp::TimerBase::SharedPtr diagnostic_timer_;
 
-  std::thread pub_loop_{};
-  std::atomic_bool test_destroy_{};
-
-  std::string camera_frame_{};
-  std::string optical_frame_{};
-
-  rclcpp_lifecycle::LifecycleNode::OnSetParametersCallbackHandle::SharedPtr set_params_cb_handle_{};
 };  // end: class CameraNode
 
 }  // namespace ifm3d_ros2

@@ -1,0 +1,31 @@
+# Example configuration for one camera
+# Expected to be used with camera.launch.py using default name and namespace
+
+/ifm3d/camera:
+  ros__parameters:
+    buffer_id_list:
+      - CONFIDENCE_IMAGE
+      - DIAGNOSTIC
+      - EXTRINSIC_CALIB
+      - INTRINSIC_CALIB
+      - INVERSE_INTRINSIC_CALIBRATION
+      - JPEG_IMAGE
+      - NORM_AMPLITUDE_IMAGE
+      - RADIAL_DISTANCE_IMAGE
+      - RGB_INFO
+      - TOF_INFO
+      - XYZ
+    ip: 192.168.0.69
+    pcic_port: 50010
+    tf:
+      cloud_link:
+        frame_name: "camera_cloud_link"
+        publish_transform: true
+      mounting_link:
+        frame_name: "camera_mounting_link"
+      optical_link:
+        frame_name: "camera_optical_link"
+        publish_transform: true
+        transform: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    use_sim_time: false
+    xmlrpc_port: 80
