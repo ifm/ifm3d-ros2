@@ -306,6 +306,7 @@ private:
   // ifm3d camera and framegrabber pointers
   ifm3d::O3R::Ptr cam_{};
   ifm3d::FrameGrabber::Ptr fg_{};
+  ifm3d::FrameGrabber::Ptr fg_diag_{};
 
   /// global mutex on ifm3d core data structures `cam_`, `fg_`
   std::mutex gil_{};
@@ -324,6 +325,7 @@ private:
   bool tf_optical_link_publish_transform_{};
   std::vector<double> tf_optical_link_transform_{};
   std::uint16_t xmlrpc_port_{};
+  std::string diag_mode_{};
 
   // Values read from incomming image buffers
   uint32_t width_;

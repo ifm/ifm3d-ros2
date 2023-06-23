@@ -20,6 +20,5 @@ test $# -ge 1 && shift
 docker run -it -p 11311:11311 $image \
   sh -c ". /opt/ros/foxy/setup.sh; \
   . /home/ifm/colcon_ws/ifm3d-ros2/install/setup.sh; \
-  export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp; \
   ros2 launch ifm3d_ros2 $launchfile $@"
 

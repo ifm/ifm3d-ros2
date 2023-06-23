@@ -4,8 +4,9 @@
 /ifm3d/camera_2d:
   ros__parameters:
     buffer_id_list:
+      - DIAGNOSTIC
       - JPEG_IMAGE
-      - EXTRINSIC_CALIB
+      - RGB_INFO
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""

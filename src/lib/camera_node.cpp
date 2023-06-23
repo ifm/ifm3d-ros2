@@ -24,8 +24,6 @@
 #include <ifm3d_ros2/buffer_id_utils.hpp>
 #include <ifm3d_ros2/qos.hpp>
 
-#include <ifm3d/device/json.hpp>
-
 using json = ifm3d::json;
 using namespace std::chrono_literals;
 
@@ -129,7 +127,7 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   this->cam_ = std::make_shared<ifm3d::O3R>(this->ip_, this->xmlrpc_port_);
   RCLCPP_INFO(this->logger_, "Initializing FrameGrabber");
   this->fg_ = std::make_shared<ifm3d::FrameGrabber>(this->cam_, this->pcic_port_);
-
+  this->fg_diag_ = std::make_shared<ifm3d::FrameGrabber>(this->cam_, 50009);
   // Get PortInfo from Camera to determine data stream type
   auto ports = this->cam_->Ports();
   this->data_stream_type_ = stream_type_from_port_info(ports, this->pcic_port_);
@@ -144,17 +142,27 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   RCLCPP_INFO(logger_, "Registering timer to pull diagnostics...");
   diagnostic_timer_ = this->create_wall_timer(1s, [this]() {
     std::lock_guard<std::mutex> lock(this->gil_);
-    ifm3d::json diagnostic_json = cam_->GetDiagnostic();
-    RCLCPP_DEBUG(this->get_logger(), "Diagnostics: %s", diagnostic_json.dump().c_str());
+    if (this->diag_mode_=="periodic"){
+      try{
+        ifm3d::json diagnostic_json = cam_->GetDiagnostic();
+        RCLCPP_DEBUG(this->get_logger(), "Diagnostics: %s", diagnostic_json.dump().c_str());
 
-    DiagnosticArrayMsg msg;
-    msg.header.stamp = get_clock()->now();
-    auto events = diagnostic_json["events"];
-    for (auto event : events)
-    {
-      msg.status.push_back(create_diagnostic_status(diagnostic_msgs::msg::DiagnosticStatus::OK, event.dump()));
+        DiagnosticArrayMsg msg;
+        msg.header.stamp = get_clock()->now();
+        auto events = diagnostic_json["events"];
+        for (auto event : events)
+        {
+          msg.status.push_back(create_diagnostic_status(diagnostic_msgs::msg::DiagnosticStatus::OK, event.dump()));
+        }
+        diagnostic_publisher_->publish(msg);
+      }
+      catch (const ifm3d::Error& ex){
+        RCLCPP_INFO(this->get_logger(), "ifm3d error while trying to get the diagnostic: %s", ex.what());
+      }
+      catch (...){
+        RCLCPP_INFO(this->get_logger(), "Unknown error while trying to get the diagnostic");
+      }
     }
-    diagnostic_publisher_->publish(msg);
   });
   diagnostic_timer_->cancel();  // Deactivate timer, manage activity via lifecycle
 
@@ -181,9 +189,11 @@ TC_RETVAL CameraNode::on_activate(const rclcpp_lifecycle::State& prev_state)
   // Register Callbacks to handle new frames and print errors
   this->fg_->OnNewFrame(std::bind(&CameraNode::frame_callback, this, std::placeholders::_1));
   this->fg_->OnError(std::bind(&CameraNode::error_callback, this, std::placeholders::_1));
-  //  this->fg_->OnAsyncError(std::bind(&CameraNode::async_error_callback, this, std::placeholders::_1,
-  //  std::placeholders::_2)); this->fg_->OnAsyncNotification(std::bind(&CameraNode::async_notification_callback, this,
-  //  std::placeholders::_1, std::placeholders::_2));
+  this->fg_diag_->OnAsyncError(std::bind(&CameraNode::async_error_callback, this, std::placeholders::_1,
+   std::placeholders::_2));
+  this->fg_diag_->OnAsyncNotification(std::bind(&CameraNode::async_notification_callback, this,
+   std::placeholders::_1, std::placeholders::_2));
+  this->fg_diag_->Start({}).wait();
   RCLCPP_INFO(this->logger_, "Framegrabber started.");
 
   diagnostic_timer_->reset();
@@ -266,13 +276,13 @@ void CameraNode::init_params()
   rcl_interfaces::msg::ParameterDescriptor buffer_id_list_descriptor;
   const std::vector<std::string> default_buffer_id_list{
     //
-    "AMPLITUDE_IMAGE",        //
-    "NORM_AMPLITUDE_IMAGE",   //
     "CONFIDENCE_IMAGE",       //
-    "JPEG_IMAGE",             //
-    "RADIAL_DISTANCE_IMAGE",  //
-    "XYZ",                    //
     "EXTRINSIC_CALIB",        //
+    "JPEG_IMAGE",             //
+    "NORM_AMPLITUDE_IMAGE",   //
+    "RADIAL_DISTANCE_IMAGE",  //
+    "RGB_INFO",               //
+    "XYZ",                    //
   };
   buffer_id_list_descriptor.name = "buffer_id_list";
   buffer_id_list_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING_ARRAY;
@@ -299,7 +309,7 @@ void CameraNode::init_params()
   tf_cloud_link_frame_name_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
   tf_cloud_link_frame_name_descriptor.description =
       "Name for the point cloud frame, defaults to <node_name>_optical_link.";
-  this->declare_parameter("tf.cloud_link.frame_name", node_name + "_optical_link", tf_cloud_link_frame_name_descriptor);
+  this->declare_parameter("tf.cloud_link.frame_name", node_name + "_cloud_link", tf_cloud_link_frame_name_descriptor);
 
   rcl_interfaces::msg::ParameterDescriptor tf_cloud_link_publish_transform_descriptor;
   tf_cloud_link_publish_transform_descriptor.name = "tf.cloud_link.publish_transform";
@@ -351,6 +361,19 @@ void CameraNode::init_params()
   xmlrpc_port_range.step = 1;
   xmlrpc_port_descriptor.integer_range.push_back(xmlrpc_port_range);
   this->declare_parameter("xmlrpc_port", ifm3d::DEFAULT_XMLRPC_PORT, xmlrpc_port_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor diag_mode_descriptor;
+  diag_mode_descriptor.name = "diag_mode";
+  diag_mode_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
+  diag_mode_descriptor.description =
+      "Diagnostic mode: asynchronous monitoring or periodic polling.";
+  this->declare_parameter("diag_mode", "async", diag_mode_descriptor);
+
+  // TODO: extend parameter description to include required params:
+  // password: for lock / unlock of JSON configuration
+
+
+
 }
 
 void CameraNode::parse_params()
@@ -419,6 +442,9 @@ void CameraNode::parse_params()
 
   this->get_parameter("xmlrpc_port", this->xmlrpc_port_);
   RCLCPP_INFO(this->logger_, "xmlrpc_port: %u", this->xmlrpc_port_);
+
+  this->get_parameter("diag_mode", this->diag_mode_);
+  RCLCPP_INFO(this->logger_, "diag_mode: %s", this->diag_mode_.c_str());
 }
 
 void CameraNode::set_parameter_event_callbacks()
@@ -515,6 +541,12 @@ void CameraNode::set_parameter_event_callbacks()
     RCLCPP_INFO(logger_, "New xmlrpc_port: %d", this->xmlrpc_port_);
   };
   registered_param_callbacks_["xmlrpc_port"] = param_subscriber_->add_parameter_callback("xmlrpc_port", xmlrpc_port_cb);
+
+  auto diag_mode_cb = [this](const rclcpp::Parameter& p) {
+    this->diag_mode_ = p.as_string();
+    RCLCPP_INFO(logger_, "New diag_mode: %s", this->diag_mode_.c_str());
+  };
+  registered_param_callbacks_["diag_mode"] = param_subscriber_->add_parameter_callback("diag_mode", diag_mode_cb);
 }
 
 void CameraNode::initialize_publishers()
@@ -1087,11 +1119,13 @@ void CameraNode::error_callback(const ifm3d::Error& error)
 
 void CameraNode::async_error_callback(int i, const std::string& s)
 {
-  RCLCPP_ERROR(logger_, "AsyncError received from ifm3d: %d %s", i, s.c_str());
-  DiagnosticArrayMsg msg;
-  msg.header.stamp = get_clock()->now();
-  msg.status.push_back(create_diagnostic_status(diagnostic_msgs::msg::DiagnosticStatus::ERROR, s));
-  diagnostic_publisher_->publish(msg);
+  if (this->diag_mode_=="async"){
+    RCLCPP_ERROR(logger_, "AsyncError received from ifm3d: %d %s", i, s.c_str());
+    DiagnosticArrayMsg msg;
+    msg.header.stamp = get_clock()->now();
+    msg.status.push_back(create_diagnostic_status(diagnostic_msgs::msg::DiagnosticStatus::ERROR, s));
+    diagnostic_publisher_->publish(msg);
+  }
 }
 
 void CameraNode::async_notification_callback(const std::string& s1, const std::string& s2)

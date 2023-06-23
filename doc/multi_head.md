@@ -1,50 +1,52 @@
-## Multi head launch file configuration
-It is possible to stream data from multiple ports, while connecting both
-2D and 3D data from your camera with your VPU or even with multiple cameras
-connected to one VPU.
+# Multi head launch file configuration
 
-This can be achieved by including the provided 'camera.launch.py` multiple times
-into one launch script and setting the camera-specific parameters (like PCIC-port) correctly.
+It is possible to stream data from multiple imagers and camera heads (i.e. ports): while connecting both 2D and 3D data from your camera with your VPU or even with multiple cameras connected to one VPU.
 
-There are two examples provided doing exactly that.
+This can be achieved by altering your launch configuration yaml file and setting the camera-specific parameters, namely `pcic-port` and `buff_id_lists`, correctly.
+There are examples provided doing exactly that.
 
-### example_o3r_2d_and_3d.launch.py
-This example script connects two CameraNodes to the 2D and 3D stream of one O3R.
-
-The nodes are named camera_2d and camera_3d.
+## `o3r_2d.yaml`
+This example configuration connects to the 2D (RGB) data stream of one O3R camera head connected to port 0:
 
 The Ports on the VPU should be connected as follows:
-* Camera 2D: Port 0
-* Camera 3D: Port 2
-
-The configuration for the nodes is read from a two different files:
-o3r_2d.yaml and o3r_3d.yaml
+* Camera 2D: physical port 0 - corresponds to `pcic_port=50010`
 
 To launch this example, use the following command:
-```
-ros2 launch ifm3d_ros2 example_o3r_2d_and_3d.launch.py
+```bash
+ros2 launch ifm3d_ros2 camera.launch.py parameter_file_name:=o3r_2d.yaml
 ```
 
-### example_two_o3r_heads.launch.py
-This example script connects four CameraNodes to the 2D and 3D streams of two O3R.
-
-The nodes are named left_camera_2d, left_camera_3d, right_camera_2d and
-right_camera_3d. The differentiation in left and right is arbitrary and only acts
-as illustration for a fictitious use case.
+## `o3r_3d.yaml`
+This example configuration connects to the 3D (TOF) data stream of one O3R camera head connected to port 2:
 
 The Ports on the VPU should be connected as follows:
-* Left Camera 2D: Port 0
-* Left Camera 3D: Port 2
-* Right Camera 2D: Port 1
-* Right Camera 3D: Port 3
-
-The configuration for all four nodes is read from a single file: two_o3r_heads.yaml
+* Camera 3D: physical port 2 - corresponds to `pcic_port=50012`
 
 To launch this example, use the following command:
+```bash
+ros2 launch ifm3d_ros2 camera.launch.py parameter_file_name:=o3r_3d.yaml
 ```
-ros2 launch ifm3d_ros2 example_two_o3r_heads.launch.py
+
+## `o3r_3d.yaml`
+This example configuration connects to two 3D (TOF) data stream **AND** two 2D (RGB) data stream of **two** O3R camera head connected to ports 0 - 3:
+
+The Ports on the VPU should be connected as follows:
+Camera head 1:
+* Camera 2D: physical port 0 - corresponds to `pcic_port=50010`
+* Camera 3D: physical port 2 - corresponds to `pcic_port=50012`
+
+Camera head 2:
+* Camera 2D: physical port 1 - corresponds to `pcic_port=50011`
+* Camera 3D: physical port 3 - corresponds to `pcic_port=50013`
+
+To launch this example, use the following command:
+```bash
+ros2 launch ifm3d_ros2 two_o3r_heads.launch.py parameter_file_name:=two_o3r_heads.yaml
 ```
 
 ### Adapting the camera configuration to your needs
-There are multiple example configurations provided in `config/example`.
+The example configurations are provided in the directory `config/examples`.
 They can act as inspiration when configuring your own multi-camera setup.
+
+Please edit / add your own specific hardware and software configuration via these configuration yml files.
+For a specific number of ros node camera streams other than 1 or 4 (see examples) please create a updated launch helper yourself.
