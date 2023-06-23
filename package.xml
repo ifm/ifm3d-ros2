@@ -7,7 +7,7 @@
   <description>ifm ToF Camera ROS2 package</description>
   <maintainer email="support.robotics@ifm.com">ifm Robotics Support</maintainer>
   <license>Apache 2.0</license>
-  <author email="Philipp.Senger@ifm.com">Philipp Senger</author>
+  <author email="support.robotics@ifm.com">ifm Robotics Support</author>
 
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <buildtool_depend>ament_cmake_ros</buildtool_depend>
