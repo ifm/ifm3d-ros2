@@ -17,15 +17,11 @@ This release is intended to be used with the O3R camera platform ONLY. For other
 
 ## Software Compatibility Matrix
 
-### Prerelease versions
-
-| ifm3d_ros2 version | ifm3d version | (O3R) embedded FW versions | ROS 2 distribution |
-| ------------------ | ------------- | -------------------------- | ------------------ |
-| 1.1.0              | 1.2.6         | 1.0.14                     | Humble             |
 ### Release versions
 
 | ifm3d_ros2 version | ifm3d version | (O3R) embedded FW versions | ROS 2 distribution |
 | ------------------ | ------------- | -------------------------- | ------------------ |
+| 1.1.0              | 1.2.6         | 1.0.14                     | Humble             |
 | 1.0.1              | 0.93.0        | 0.14.23                    | Foxy               |
 
 ### Deprecated ifm3d-ros2 Versions
