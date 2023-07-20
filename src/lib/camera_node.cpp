@@ -937,7 +937,7 @@ void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)
         ImageMsg raw_image_msg = ifm3d_ros2::ifm3d_to_ros_image(frame->GetBuffer(id), optical_header, logger_);
         image_publishers_[id]->publish(raw_image_msg);
         width_ = raw_image_msg.width;
-        height_ = raw_image_msg.width;
+        height_ = raw_image_msg.height;
       }
       break;
       case buffer_id_utils::message_type::compressed_image: {
