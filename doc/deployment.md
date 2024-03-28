@@ -40,7 +40,10 @@ $ ./build_humble.sh
  => => naming to docker.io/library/ifm3d-ros:humble-arm64_v8
 ```
 ## Deploy the container
-To deploy the container on to the VPU, or use the container locally to interact with the O3R platform, please refer to our [docker documentation](../../../documentation/SoftwareInterfaces/Docker/index_docker.md).
+To deploy the container on to the VPU, or use the container locally to interact with the O3R platform, please refer to our [docker documentation](https://ifm3d.com/latest/SoftwareInterfaces/Docker/index_docker.html).
+
+## Resource management
+Resources on the OVP8xx are limited and shared between all the running processes. We recommend assigning the Docker process to specific cores so as not to interfere with other applications. Refer to [the resource management documentation on ifm3d.com](https://ifm3d.com/latest/SoftwareInterfaces/Docker/cpu.html).
 
 ## Distributed setup
 It is possible to run a complete ROS system in a distributed way. In this section we provide instructions to run ifm3d-ros2 in a container deployed on the VPU (primary container), and the visualization locally on a laptop (secondary system).
@@ -48,7 +51,7 @@ These instructions can be adapted to suit other architectural designs.
 
 ### Primary docker container: ifm3d-ros2 node
 
-1. Build and deploy the docker container image to the VPU (see [the documentation on how to deploy a container](../../../documentation/SoftwareInterfaces/Docker/deployVPU.md)):
+1. Build and deploy the docker container image to the VPU (see [the documentation on how to deploy a container](https://ifm3d.com/latest/SoftwareInterfaces/Docker/deployVPU.html)):
 ```bash
 $ docker save docker.io/library/ifm3d-ros:humble-arm64_v8 | ssh -C oem@192.168.0.69 docker load
 ```
