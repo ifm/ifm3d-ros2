@@ -1,5 +1,5 @@
 # ifm3d-ros2 overview
-*This documentation is formatted to be read on [www.ifm3d.com](https://ifm3d.com/ROS/ifm3d-ros2/README.html).*
+*This documentation is formatted to be read on [www.ros2.ifm3d.com](https://ros2.ifm3d.com/latest/).*
 
 :::{warning}
 The ifm3d-ros2 package has had major changes recently. Please be aware that this might cause problems on your system for building pipelines based on our old build instructions.
