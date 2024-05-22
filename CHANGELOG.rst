@@ -5,6 +5,12 @@ Changelog for package ifm3d-ros2
 1.1
 ===
 
+1.1.0 (unreleased preparations for FW 1.4 release)
+------------------
+* Update for compatibility with O3R FW 1.4.x and ifm3d >= 1.4.3
+  * Tested with FW 1.4.22 and ifm3d API 1.4.3
+  * Tested with FW 1.4.22 and ifm3d API 1.5.3
+
 1.1.0
 ------------------
 * Update for compatibility with O3R FW >= 1.0.14 and ifm3d >= 1.2.6

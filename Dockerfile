@@ -35,7 +35,8 @@ RUN apt-get update && apt-get install -y \
     libxmlrpc-c++8-dev \
     wget \
     && rm -rf /var/lib/apt/lists/*
-
+# Update libcurl4 library for the dependancy of ifm3dAPI 1.4.3 & requires libcurl4 version 16
+RUN apt-get update && apt-get upgrade libcurl4
 # Install ifm3d using the deb files
 RUN mkdir /home/ifm/ifm3d
 ADD https://github.com/ifm/ifm3d/releases/download/v${IFM3D_VERSION}/ifm3d-ubuntu-${UBUNTU_VERSION}-${ARCH}-debs_${IFM3D_VERSION}.tar /home/ifm/ifm3d
@@ -81,6 +82,9 @@ RUN apt-get update \
     locales \
     python3-rosdep \
     && rm -rf /var/lib/apt/lists/*
+
+# Update libcurl4 library for the dependancy of ifm3dAPI 1.4.3 & requires libcurl4 version 16
+RUN apt-get update && apt-get upgrade libcurl4
 
 # Install ifm3d
 RUN cd /home/ifm/ifm3d &&\
