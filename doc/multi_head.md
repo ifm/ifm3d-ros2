@@ -27,7 +27,7 @@ To launch this example, use the following command:
 ros2 launch ifm3d_ros2 camera.launch.py parameter_file_name:=o3r_3d.yaml
 ```
 
-## `o3r_3d.yaml`
+## `two_o3r_heads.yaml`
 This example configuration connects to two 3D (TOF) data stream **AND** two 2D (RGB) data stream of **two** O3R camera head connected to ports 0 - 3:
 
 The Ports on the VPU should be connected as follows:
