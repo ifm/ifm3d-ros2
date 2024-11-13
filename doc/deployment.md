@@ -4,11 +4,13 @@ Follow these steps to get our supplied Docker container to run on your system.
 :::{note}
 The instructions below apply to ROS2 Humble. Please change the commands to suit your ROS 2 distribution.
 :::
+
 ## Build the docker container
-We provide a Dockerfile and a build script to help you build a docker container with ifm3d and ifm3d-ros2. To use it, check out the `build_container.sh` script. Open it up and adjust the arguments to suit your target architecture (arm64v8 or amd64) and the targeted ifm3d and ifm3d-ros2 version. Then you can build the container:
+
+We provide a Dockerfile and a build script to help you build a docker container with `ifm3d` and `ifm3d-ros2`. To get started, check out the [`build_container.sh`](../build_container.sh) script. Open it up and adjust the arguments to suit your target architecture (arm64v8 or amd64) and the targeted `ifm3d` and `ifm3d-ros2` version. Then you can build the container:
 
 ```bash
-$ ./build_humble.sh
+$ ./build_container.sh
 [+] Building 675.3s (23/23) FINISHED
  => [internal] load build definition from Dockerfile                                                                                                                    0.0s
  => => transferring dockerfile: 2.92kB                                                                                                                                  0.0s
@@ -46,6 +48,7 @@ To deploy the container on to the VPU, or use the container locally to interact 
 Resources on the OVP8xx are limited and shared between all the running processes. We recommend assigning the Docker process to specific cores so as not to interfere with other applications. Refer to [the resource management documentation on ifm3d.com](https://ifm3d.com/latest/SoftwareInterfaces/Docker/cpu.html).
 
 ## Distributed setup
+
 It is possible to run a complete ROS system in a distributed way. In this section we provide instructions to run ifm3d-ros2 in a container deployed on the VPU (primary container), and the visualization locally on a laptop (secondary system).
 These instructions can be adapted to suit other architectural designs.
 
@@ -55,7 +58,9 @@ These instructions can be adapted to suit other architectural designs.
 ```bash
 $ docker save docker.io/library/ifm3d-ros:humble-arm64_v8 | ssh -C oem@192.168.0.69 docker load
 ```
+
 - SSH to the VPU and run the container:
+- 
 ```bash
 $ ssh oem@192.168.0.69 #Adapt to the IP address of your VPU
 o3r-vpu-c0$ docker run -ti --net=host ifm3d-ros:humble-arm64_v8
@@ -82,7 +87,7 @@ root@62b0c2e120bb:/home/ifm/$ ros2 launch ifm3d_ros2 camera.launch.py  parameter
 
 1. Source ROS2 on the secondary machine:
 ```bash
-$ source /opt/ros/galactic/setup.bash
+$ source /opt/ros/humble/setup.bash
 ```
 - Check that ROS topics are available (on `ROS_DOMAIN_ID=0`):
 ```bash

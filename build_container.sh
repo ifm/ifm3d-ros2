@@ -6,23 +6,23 @@ set -euo pipefail
 ##############
 ARCH="amd64"
 BASE_IMAGE="ros"
-TAG=ifm3d-ros:humble-amd64
+TAG=ifm3d-ros:jazzy-amd64
 
 ##############
 # For ARM64V8:
 ##############
-# ARCH="arm64"
-# BASE_IMAGE="arm64v8/ros"
-# TAG=ifm3d-ros:humble-arm64_v8
+#ARCH="arm64"
+#BASE_IMAGE="arm64v8/ros"
+#TAG=ifm3d-ros:jazzy-arm64_v8
 
 ##############
 # Arguments common for both architecture
 ##############
-BUILD_IMAGE_TAG="humble"
-FINAL_IMAGE_TAG="humble-ros-core"
-IFM3D_VERSION="1.2.6"
+BUILD_IMAGE_TAG="jazzy"
+FINAL_IMAGE_TAG="jazzy-ros-core"
+IFM3D_VERSION="1.5.3"
 IFM3D_ROS2_REPO="https://github.com/ifm/ifm3d-ros2.git"
-IFM3D_ROS2_BRANCH="lm_humble_tests"
+IFM3D_ROS2_BRANCH="v1.2.0"
 UBUNTU_VERSION="22.04"
 
 docker build -t $TAG \

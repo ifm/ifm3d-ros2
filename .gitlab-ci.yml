@@ -1,0 +1,72 @@
+# General concept is strongly inspired by the industrial_ci project https://github.com/ros-industrial/industrial_ci
+---
+variables:
+  GIT_STRATEGY: clone
+
+stages:
+- build
+
+.build_matrix:
+  parallel:
+    matrix:
+      - RUN_NAME: "22.04+1.4.3"  # No effect on CI, just for making the gitlab pipeline view easier to read
+        CI_IMAGE: ros:humble-ros-core-jammy
+        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.4.3/ifm3d-ubuntu-22.04-amd64-debs_1.4.3.tar
+        ROS_DISTRO: humble
+      - RUN_NAME: "22.04+1.5.0"
+        CI_IMAGE: ros:humble-ros-core-jammy
+        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.5.0/ifm3d-ubuntu-22.04-amd64-debs_1.5.0.tar
+        ROS_DISTRO: humble
+      - RUN_NAME: "22.04+1.5.1"
+        CI_IMAGE: ros:humble-ros-core-jammy
+        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.5.1/ifm3d-ubuntu-22.04-amd64-debs_1.5.1.tar
+        ROS_DISTRO: humble
+      - RUN_NAME: "22.04+1.5.2"
+        CI_IMAGE: ros:humble-ros-core-jammy
+        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.5.2/ifm3d-ubuntu-22.04-amd64-debs_1.5.2.tar
+        ROS_DISTRO: humble
+      - RUN_NAME: "22.04+1.5.3"
+        CI_IMAGE: ros:humble-ros-core-jammy
+        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.5.3/ifm3d-ubuntu-22.04-amd64-debs_1.5.3.tar
+        ROS_DISTRO: humble
+
+      - RUN_NAME: "24.04+1.5.3"
+        CI_IMAGE: ros:jazzy-ros-core-noble
+        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.5.3/ifm3d-ubuntu-22.04-amd64-debs_1.5.3.tar
+        ROS_DISTRO: jazzy
+
+
+build:  # very short job name to keep the pipeline preview readable on Gitlab
+  stage: build
+  image: $CI_IMAGE
+  parallel: !reference [.build_matrix,parallel]
+
+  before_script:
+  # Download the released version ofifm3d from github
+  - apt-get update
+  - apt-get install -y curl
+  - curl --location $IFM3D_PACKAGE_PATH | tar x
+  # Install dependencies
+  - apt-get install -y libboost-all-dev git libcurl4-openssl-dev libgtest-dev libgoogle-glog-dev
+    libxmlrpc-c++8-dev libopencv-dev libpcl-dev libproj-dev python3-dev python3-pip build-essential
+    coreutils findutils cmake locales ninja-build
+  # Install ifm3d packages
+  - dpkg -i ./ifm3d_*.deb
+  # Cleanup
+  - rm ifm3d_*.deb
+
+  script:
+  # Install some dependencies, update rosdep
+  - apt-get update
+  - apt-get install -y ros-dev-tools
+  - rosdep init || true  # init needed for 22.04 image but throws error on 24.04; error can be ignored
+  - rosdep update > /dev/null
+  # Create Workspace and copy sources
+  - mkdir -p /root/target_ws/src
+  - cp -r . /root/target_ws/src
+  - cd /root/target_ws/
+  # Install dependencies, build workspace and run tests
+  - source /opt/ros/$ROS_DISTRO/setup.bash
+  - rosdep install --from-paths /root/target_ws/src --ignore-src -y
+  - colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DENABLE_COVERAGE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+  - colcon test --event-handlers desktop_notification- status- terminal_title- console_cohesion+ --executor sequential --ctest-args -j1

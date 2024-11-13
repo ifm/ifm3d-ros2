@@ -1,0 +1,4 @@
+string filter
+---
+int32 status
+string msg

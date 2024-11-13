@@ -5,7 +5,6 @@
 /ifm3d/left_camera_2d:
   ros__parameters:
     buffer_id_list:
-      - DIAGNOSTIC
       - JPEG_IMAGE
       - RGB_INFO
     frame_latency_thresh: 1.0
@@ -15,6 +14,12 @@
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0
+    tf:
+      base_frame_name: "ifm_base_link"
+      mounting_frame_name: "left_camera_2d_mounting_link"
+      optical_frame_name: "left_camera_2d_optical_link"
+      publish_base_to_mounting: true
+      publish_mounting_to_optical: true
     use_sim_time: false
     xmlrpc_port: 80
 
@@ -22,10 +27,10 @@
   ros__parameters:
     buffer_id_list:
       - CONFIDENCE_IMAGE
-      - DIAGNOSTIC
       - EXTRINSIC_CALIB
       - NORM_AMPLITUDE_IMAGE
       - RADIAL_DISTANCE_IMAGE
+      - TOF_INFO
       - XYZ
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
@@ -34,13 +39,18 @@
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0
+    tf:
+      base_frame_name: "ifm_base_link"
+      mounting_frame_name: "left_camera_3d_mounting_link"
+      optical_frame_name: "left_camera_3d_optical_link"
+      publish_base_to_mounting: true
+      publish_mounting_to_optical: true    
     use_sim_time: false
     xmlrpc_port: 80
 
 /ifm3d/right_camera_2d:
   ros__parameters:
     buffer_id_list:
-      - DIAGNOSTIC
       - JPEG_IMAGE
       - RGB_INFO
     frame_latency_thresh: 1.0
@@ -50,6 +60,12 @@
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0
+    tf:
+      base_frame_name: "ifm_base_link"
+      mounting_frame_name: "right_camera_2d_mounting_link"
+      optical_frame_name: "right_camera_2d_optical_link"
+      publish_base_to_mounting: true
+      publish_mounting_to_optical: true    
     use_sim_time: false
     xmlrpc_port: 80
 
@@ -57,17 +73,23 @@
   ros__parameters:
     buffer_id_list:
       - CONFIDENCE_IMAGE
-      - DIAGNOSTIC
       - EXTRINSIC_CALIB
       - NORM_AMPLITUDE_IMAGE
       - RADIAL_DISTANCE_IMAGE
+      - TOF_INFO
       - XYZ
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""
-    pcic_port: 50013 # 3D stream of left camera connected to Port 3
+    pcic_port: 50013 # 3D stream of right camera connected to Port 3
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0
+    tf:
+      base_frame_name: "ifm_base_link"
+      mounting_frame_name: "right_camera_3d_mounting_link"
+      optical_frame_name: "right_camera_3d_optical_link"
+      publish_base_to_mounting: true
+      publish_mounting_to_optical: true       
     use_sim_time: false
     xmlrpc_port: 80

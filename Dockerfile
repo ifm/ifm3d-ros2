@@ -26,17 +26,12 @@ RUN apt-get update && apt-get install -y \
     coreutils \
     git \
     jq \
-    libcurl4-openssl-dev \
-    libboost-all-dev \
-    libgoogle-glog-dev \
-    libgoogle-glog0v5 \
-    libproj-dev \
     libssl-dev \
-    libxmlrpc-c++8-dev \
+    libxmlrpc-c++8v5 \
     wget \
     && rm -rf /var/lib/apt/lists/*
-# Update libcurl4 library for the dependancy of ifm3dAPI 1.4.3 & requires libcurl4 version 16
-RUN apt-get update && apt-get upgrade libcurl4
+# Update libcurl4 library for the dependancy of ifm3dAPI 1.5.3 & requires libcurl4 version 16
+RUN apt-get update && apt-get upgrade -y libcurl4
 # Install ifm3d using the deb files
 RUN mkdir /home/ifm/ifm3d
 ADD https://github.com/ifm/ifm3d/releases/download/v${IFM3D_VERSION}/ifm3d-ubuntu-${UBUNTU_VERSION}-${ARCH}-debs_${IFM3D_VERSION}.tar /home/ifm/ifm3d
@@ -51,10 +46,10 @@ RUN cd /home/ifm/colcon_ws && \
     rosdep install --from-path src -y --ignore-src -t build
 
 # OPTION 2: clone and build from git repo, i.e. download specific repo branch during build process
-# # Clone and build ifm3d-ros2 repo
-# RUN mkdir -p /home/ifm/colcon_ws/src && \
-#     cd /home/ifm/colcon_ws/src && \
-#     git clone ${IFM3D_ROS2_REPO} -b ${IFM3D_ROS2_BRANCH} --single-branch
+# Clone and build ifm3d-ros2 repo
+#RUN mkdir -p /home/ifm/colcon_ws/src && \
+#    cd /home/ifm/colcon_ws/src && \
+#    git clone ${IFM3D_ROS2_REPO} -b ${IFM3D_ROS2_BRANCH} --single-branch
 
 SHELL ["/bin/bash", "-c"]
 RUN cd /home/ifm/colcon_ws && \
@@ -75,16 +70,14 @@ WORKDIR /home/ifm
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-    libboost-all-dev \
-    libgoogle-glog0v5 \
     libssl-dev \
     libxmlrpc-c++8v5 \
     locales \
     python3-rosdep \
     && rm -rf /var/lib/apt/lists/*
 
-# Update libcurl4 library for the dependancy of ifm3dAPI 1.4.3 & requires libcurl4 version 16
-RUN apt-get update && apt-get upgrade libcurl4
+# Update libcurl4 library for the dependancy of ifm3dAPI 1.5.3 & requires libcurl4 version 16
+RUN apt-get update && apt-get upgrade -y libcurl4
 
 # Install ifm3d
 RUN cd /home/ifm/ifm3d &&\

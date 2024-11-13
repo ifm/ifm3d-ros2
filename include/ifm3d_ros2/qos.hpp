@@ -1,7 +1,7 @@
 // -*- c++ -*-
 /*
  * SPDX-License-Identifier: Apache-2.0
- * Copyright (C) 2019 ifm electronic, gmbh
+ * Copyright (C) 2024 ifm electronic, gmbh
  */
 
 #ifndef IFM3D_ROS2_QOS_HPP_

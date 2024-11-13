@@ -17,39 +17,38 @@
 #define IFM3D_ROS2__VISIBILITY_CONTROL_H_
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 // This logic was borrowed (then namespaced) from the examples on the gcc wiki:
 //     https://gcc.gnu.org/wiki/Visibility
 
 #if defined _WIN32 || defined __CYGWIN__
-  #ifdef __GNUC__
-    #define IFM3D_ROS2_EXPORT __attribute__ ((dllexport))
-    #define IFM3D_ROS2_IMPORT __attribute__ ((dllimport))
-  #else
-    #define IFM3D_ROS2_EXPORT __declspec(dllexport)
-    #define IFM3D_ROS2_IMPORT __declspec(dllimport)
-  #endif
-  #ifdef IFM3D_ROS2_BUILDING_DLL
-    #define IFM3D_ROS2_PUBLIC IFM3D_ROS2_EXPORT
-  #else
-    #define IFM3D_ROS2_PUBLIC IFM3D_ROS2_IMPORT
-  #endif
-  #define IFM3D_ROS2_PUBLIC_TYPE IFM3D_ROS2_PUBLIC
-  #define IFM3D_ROS2_LOCAL
+#ifdef __GNUC__
+#define IFM3D_ROS2_EXPORT __attribute__((dllexport))
+#define IFM3D_ROS2_IMPORT __attribute__((dllimport))
 #else
-  #define IFM3D_ROS2_EXPORT __attribute__ ((visibility("default")))
-  #define IFM3D_ROS2_IMPORT
-  #if __GNUC__ >= 4
-    #define IFM3D_ROS2_PUBLIC __attribute__ ((visibility("default")))
-    #define IFM3D_ROS2_LOCAL  __attribute__ ((visibility("hidden")))
-  #else
-    #define IFM3D_ROS2_PUBLIC
-    #define IFM3D_ROS2_LOCAL
-  #endif
-  #define IFM3D_ROS2_PUBLIC_TYPE
+#define IFM3D_ROS2_EXPORT __declspec(dllexport)
+#define IFM3D_ROS2_IMPORT __declspec(dllimport)
+#endif
+#ifdef IFM3D_ROS2_BUILDING_DLL
+#define IFM3D_ROS2_PUBLIC IFM3D_ROS2_EXPORT
+#else
+#define IFM3D_ROS2_PUBLIC IFM3D_ROS2_IMPORT
+#endif
+#define IFM3D_ROS2_PUBLIC_TYPE IFM3D_ROS2_PUBLIC
+#define IFM3D_ROS2_LOCAL
+#else
+#define IFM3D_ROS2_EXPORT __attribute__((visibility("default")))
+#define IFM3D_ROS2_IMPORT
+#if __GNUC__ >= 4
+#define IFM3D_ROS2_PUBLIC __attribute__((visibility("default")))
+#define IFM3D_ROS2_LOCAL __attribute__((visibility("hidden")))
+#else
+#define IFM3D_ROS2_PUBLIC
+#define IFM3D_ROS2_LOCAL
+#endif
+#define IFM3D_ROS2_PUBLIC_TYPE
 #endif
 
 #ifdef __cplusplus

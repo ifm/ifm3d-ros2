@@ -5,7 +5,6 @@
   ros__parameters:
     buffer_id_list:
       - CONFIDENCE_IMAGE
-      - DIAGNOSTIC
       - EXTRINSIC_CALIB
       - INTRINSIC_CALIB
       - INVERSE_INTRINSIC_CALIBRATION
@@ -18,14 +17,10 @@
     ip: 192.168.0.69
     pcic_port: 50010
     tf:
-      cloud_link:
-        frame_name: "camera_cloud_link"
-        publish_transform: true
-      mounting_link:
-        frame_name: "camera_mounting_link"
-      optical_link:
-        frame_name: "camera_optical_link"
-        publish_transform: true
-        transform: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      base_frame_name: "ifm_base_link"
+      mounting_frame_name: "camera_mounting_link"
+      optical_frame_name: "camera_optical_link"
+      publish_base_to_mounting: true
+      publish_mounting_to_optical: true
     use_sim_time: false
     xmlrpc_port: 80

@@ -1,0 +1,15 @@
+# Example configuration for an ODS application with two cameras.
+# Expected to be used with ods.launch.py.
+
+# By default, this file expects two cameras with 3D ports connected to 
+# ports 2 and 3, and one ods application, "app0".
+
+/ifm3d/ods:
+  ros__parameters:
+    config_file: "config/examples/o3r_ods.json"
+    ip: 192.168.0.69
+    pcic_port: 51010
+    ods:
+      frame_id: "ifm_base_link"
+      publish_occupancy_grid: true
+      publish_costmap: false
