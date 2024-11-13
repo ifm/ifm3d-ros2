@@ -2,14 +2,17 @@
 
 Launch the camera node (assuming you are in `~/colcon_ws/`):
 ```
-$ . install/setup.bash
+$ source install/setup.bash
 $ ros2 launch ifm3d_ros2 camera.launch.py
 ```
 
-This will launch a `/ifm3d/camera/` node with default arguments, i.e. utilize the defaults yml configuration `camera_default_parameters.yaml`.
+This will launch the `/ifm3d/camera/` node with default arguments, using the default YAML configuration file `camera_default_parameters.yaml`. Depending on the specified `pcic_port`, the node will initialize either a 3D camera (if the port corresponds to a 3D camera) or a 2D camera.
 
-The respective node information should look like this: `ros2 node info /ifm3d/camera`
+The respective node information should look like this: 
+
 ```
+$ ros2 node info /ifm3d/camera
+
 /ifm3d/camera
   Subscribers:
     /parameter_events: rcl_interfaces/msg/ParameterEvent
@@ -64,6 +67,6 @@ $ ros2 launch ifm3d_ros2 camera.launch.py visualization:=true
 ```
 
 
-![rviz1](figures/O3R_merged_point_cloud.png)
+![rviz1](./figures/O3R_merged_point_cloud.png)
 
 Congratulations! You can now have complete control over the O3R perception platform from inside ROS2.

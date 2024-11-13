@@ -1,6 +1,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (C) 2019 ifm electronic, gmbh
+# Copyright (C) 2024 ifm electronic, gmbh
 #
 
 from launch import LaunchDescription

@@ -14,6 +14,8 @@ set(IFM3D_ROS2_DEPS
   diagnostic_msgs
   geometry_msgs
   lifecycle_msgs
+  nav_msgs
+  nav2_msgs
   rclcpp
   rclcpp_components
   rclcpp_lifecycle
@@ -40,8 +42,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/InverseIntrinsics.msg"
   "msg/RGBInfo.msg"
   "msg/TOFInfo.msg"
+  "msg/Zones.msg"
   "srv/Dump.srv"
   "srv/Config.srv"
+  "srv/GetDiag.srv"
   "srv/Softoff.srv"
   "srv/Softon.srv"
   DEPENDENCIES builtin_interfaces std_msgs
@@ -53,11 +57,38 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 include_directories(include)
 
-#
+# Target for messages included in this package
+rosidl_get_typesupport_target(msgs_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+
+add_library(ifm3d_ros2_buffer_conversions SHARED
+  src/lib/buffer_conversions.cpp)
+target_link_libraries(ifm3d_ros2_buffer_conversions
+  "${msgs_typesupport_target}"
+  ifm3d::framegrabber)
+ament_target_dependencies(ifm3d_ros2_buffer_conversions ${IFM3D_ROS2_DEPS})
+
+add_library(ifm3d_ros2_buffer_id_utils SHARED
+  src/lib/buffer_id_utils.cpp)
+target_link_libraries(ifm3d_ros2_buffer_id_utils 
+  "${msgs_typesupport_target}"
+  ifm3d::framegrabber)
+ament_target_dependencies(ifm3d_ros2_buffer_id_utils ${IFM3D_ROS2_DEPS})
+
 # ifm3d camera "component" (.so) state machine ("lifecycle node")
 #
-add_library(ifm3d_ros2_camera_node SHARED src/lib/camera_node.cpp)
+add_library(ifm3d_ros2_camera_node SHARED
+  src/lib/camera_node.cpp
+  src/lib/diag_module.cpp
+  src/lib/function_module.cpp
+  src/lib/rgb_module.cpp
+  src/lib/camera_tf_publisher.cpp
+  src/lib/tof_module.cpp
+  src/lib/services.cpp)
 target_link_libraries(ifm3d_ros2_camera_node
+  "${msgs_typesupport_target}"
+  ifm3d_ros2_buffer_conversions
+  ifm3d_ros2_buffer_id_utils
   ifm3d::device
   ifm3d::framegrabber
   )
@@ -65,8 +96,26 @@ ament_target_dependencies(ifm3d_ros2_camera_node ${IFM3D_ROS2_DEPS})
 rclcpp_components_register_nodes(
   ifm3d_ros2_camera_node "ifm3d_ros2::CameraNode"
   )
-rosidl_target_interfaces(ifm3d_ros2_camera_node
-  ${PROJECT_NAME} "rosidl_typesupport_cpp"
+
+#
+# ifm3d ods node
+#
+add_library(ifm3d_ros2_ods_node SHARED
+  src/lib/ods_node.cpp
+  src/lib/function_module.cpp
+  src/lib/diag_module.cpp
+  src/lib/ods_module.cpp
+  src/lib/services.cpp)
+target_link_libraries(ifm3d_ros2_ods_node
+  "${msgs_typesupport_target}"
+  ifm3d_ros2_buffer_conversions
+  ifm3d_ros2_buffer_id_utils
+  ifm3d::device
+  ifm3d::framegrabber
+  )
+ament_target_dependencies(ifm3d_ros2_ods_node ${IFM3D_ROS2_DEPS})
+rclcpp_components_register_nodes(
+  ifm3d_ros2_ods_node "ifm3d_ros2::OdsNode"
   )
 
 #
@@ -75,34 +124,35 @@ rosidl_target_interfaces(ifm3d_ros2_camera_node
 # launch_ros).
 #
 ament_auto_add_executable(camera_standalone src/bin/camera_standalone.cpp)
-target_link_libraries(camera_standalone ifm3d_ros2_camera_node)
+target_link_libraries(camera_standalone
+  "${msgs_typesupport_target}"
+  ifm3d_ros2_camera_node)
 ament_target_dependencies(camera_standalone ${IFM3D_ROS2_DEPS})
-rosidl_target_interfaces(camera_standalone
-  ${PROJECT_NAME} "rosidl_typesupport_cpp"
-  )
-
-find_package(Boost 1.65.0 REQUIRED COMPONENTS system)
 target_link_libraries(ifm3d_ros2_camera_node ${Boost_LIBRARIES})
+
+
+ament_auto_add_executable(ods_standalone src/bin/ods_standalone.cpp)
+target_link_libraries(ods_standalone
+  "${msgs_typesupport_target}"
+  ifm3d_ros2_ods_node)
+ament_target_dependencies(ods_standalone ${IFM3D_ROS2_DEPS})
+target_link_libraries(ifm3d_ros2_ods_node ${Boost_LIBRARIES}) # TODO needed?
+
 
 ##############
 ## Install  ##
 ##############
 
 install(
-  TARGETS camera_standalone
+  TARGETS camera_standalone ods_standalone
   DESTINATION lib/${PROJECT_NAME}
   )
 
 install(
-  TARGETS ifm3d_ros2_camera_node
+  TARGETS ifm3d_ros2_camera_node ifm3d_ros2_ods_node ifm3d_ros2_buffer_conversions ifm3d_ros2_buffer_id_utils
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
-  )
-
-install(
-  PROGRAMS scripts/dump scripts/config
-  DESTINATION lib/${PROJECT_NAME}/
   )
 
 install(
@@ -113,15 +163,6 @@ install(
 install(
   DIRECTORY etc
   DESTINATION share/${PROJECT_NAME}/
-  )
-
-install(
-  DIRECTORY examples
-  DESTINATION share/${PROJECT_NAME}/
-  PATTERN "examples/*.py"
-  PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
-              GROUP_EXECUTE GROUP_READ
-              WORLD_EXECUTE WORLD_READ
   )
 
 install(

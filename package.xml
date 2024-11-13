@@ -12,41 +12,28 @@
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <buildtool_depend>ament_cmake_ros</buildtool_depend>
 
-  <build_depend>builtin_interfaces</build_depend>
-  <build_depend>diagnostic_msgs</build_depend>
+  <depend>builtin_interfaces</depend>
+  <depend>diagnostic_msgs</depend>
+  <depend>launch</depend>
+  <depend>launch_ros</depend>
+  <depend>lifecycle_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>nav2_msgs</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>rcl_interfaces</depend>
+  <depend>rclpy</depend>
+  <depend>rmw</depend>
+  <depend>ros2launch</depend>
+  <depend>rosidl_default_generators</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>tf2_ros</depend>
+  
   <build_depend>geometry_msgs</build_depend>
-  <build_depend>launch</build_depend>
-  <build_depend>launch_ros</build_depend>
-  <build_depend>lifecycle_msgs</build_depend>
-  <build_depend>rclcpp</build_depend>
-  <build_depend>rclcpp_components</build_depend>
-  <build_depend>rclcpp_lifecycle</build_depend>
-  <build_depend>rcl_interfaces</build_depend>
-  <build_depend>rclpy</build_depend>
-  <build_depend>rmw</build_depend>
-  <build_depend>ros2launch</build_depend>
-  <build_depend>rosidl_default_generators</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>tf2_ros</build_depend>
 
   <exec_depend>ament_index_python</exec_depend>
-  <exec_depend>builtin_interfaces</exec_depend>
-  <exec_depend>diagnostic_msgs</exec_depend>
-  <exec_depend>launch</exec_depend>
-  <exec_depend>launch_ros</exec_depend>
-  <exec_depend>lifecycle_msgs</exec_depend>
-  <exec_depend>rclcpp</exec_depend>
-  <exec_depend>rclcpp_components</exec_depend>
-  <exec_depend>rclcpp_lifecycle</exec_depend>
-  <exec_depend>rcl_interfaces</exec_depend>
-  <exec_depend>rclpy</exec_depend>
-  <exec_depend>rmw</exec_depend>
-  <exec_depend>ros2launch</exec_depend>
-  <exec_depend>rosidl_default_runtime</exec_depend>
-  <exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
 
   <test_depend>launch_testing_ament_cmake</test_depend>
   <test_depend>python3-opencv</test_depend>

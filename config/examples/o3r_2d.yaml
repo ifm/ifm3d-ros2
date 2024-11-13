@@ -4,7 +4,6 @@
 /ifm3d/camera_2d:
   ros__parameters:
     buffer_id_list:
-      - DIAGNOSTIC
       - JPEG_IMAGE
       - RGB_INFO
     frame_latency_thresh: 1.0
@@ -14,5 +13,11 @@
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0
+    tf:
+      base_frame_name: "ifm_base_link"
+      mounting_frame_name: "camera_2d_mounting_link"
+      optical_frame_name: "camera_2d_optical_link"
+      publish_base_to_mounting: true
+      publish_mounting_to_optical: true
     use_sim_time: false
     xmlrpc_port: 80

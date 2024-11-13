@@ -1,6 +1,33 @@
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Changelog for package ifm3d-ros2
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+1.2
+===
+
+1.2.0
+-----
+* Create an ODS node to publish ODS data:
+  * The launch file `ods.launch.py` can be used,
+  * Add two topics, `"~/ods_info"` and `"~/ods_occupancy_map_ros"`,
+  * An example launch configuration for ODS is provided `ods_default_parameters.yaml` and can be used with the launch file,
+  * It is expected that ODS is configured before the node is launched. Alternatively, one can use the new `config_file` parameter.
+* Remove the `diag_mode` parameter: diagnostic is always polled periodically and published to `"/diagnostic"`
+* Add the `GetDiag` service for polling filtered diagnostic data.
+* Camera info topic:
+  * Add a `"~/camera_info"` topic for RGB cameras. 
+  * The `"~/camera_info"` topic for the TOF cameras is published when the `TOF_INFO` buffer is requested, instead of the `INTRINSIC` buffer.
+* Add a `config_file` parameter. It should be formatted in JSON and will be used to configure the device when the `CONFIGURE` state is triggered.
+* Transforms:
+  * The `cloud_link` was renamed to `ifm_base_link`, and is used as the reference ifm calibrated coordinate system for all ifm data (RGB, 3D and ODS). 
+  * The transforms between the `cloud_link` (now `ifm_base_link`), and the `mounting_link` and `optical_link` are fixed. 
+  * The `mounting_link` to `optical_link` transform is read when the first `TOF_INFO` or `RGB_INFO` buffer is received, and remains constant.
+  * The `ifm_base_link` to `mounting_link` transform is published once when the first `TOF_INFO` or `RGB_INFO` buffer is received, and is only re-published subsequently if changed.
+  * The camera node parameters related to tf publication got reworked, the new parameters are:
+    * `tf.base_frame_name`: Name for ifm reference frame
+|   * `tf.mounting_frame_name`: Name for the mounting point frame
+|   * `tf.optical_frame_name`: Name for the optical frame
+|   * `tf.publish_base_to_mounting`: Whether the transform from the ifm base link to the camera mounting point should be published
+|   * `tf.publish_mounting_to_optical`: Whether the transform from the cameras mounting point to the optical center should be published
 
 1.1
 ===

@@ -3,12 +3,10 @@
     :maxdepth: 2
 Overview <README>
 Installation <doc/building>
-Launch <doc/launch>
+Camera node <doc/camera_node/index_camera_node>
+ODS node <doc/ods_node/index_ods_node>
 Visualization <doc/visualization>
-Topics <doc/topics>
 Services <doc/services>
-Parameters <doc/parameters>
-Multi-head <doc/multi_head>
-Diagnostic <doc/rpc_error_codes>
+Diagnostic <doc/diagnostic>
 Deployment <doc/deployment>
 :::
