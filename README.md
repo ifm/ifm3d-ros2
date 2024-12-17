@@ -18,7 +18,7 @@ As of version 1.2.0, `ifm3d_ros2` also supports the Obstacle Detection Solution 
 
 | `ifm3d_ros2` version | ifm3d version  | O3R firmware version | ROS 2 distribution | Comment                            |
 | -------------------- | -------------- | -------------------- | ------------------ | ---------------------------------- |
-| 1.2.0                | 1.4.3 to 1.5.3 | 1.4.30               | Jazzy, Humble      | Added support for ODS applications |
+| 1.2.0                | 1.4.3 and 1.5.3| 1.4.30 and 1.10.13   | Jazzy, Humble      | Added support for ODS applications |
 | 1.1.0                | 1.2.6          | 1.0.14               | Humble             |                                    |
 | 1.0.1                | 0.93.0         | 0.14.23              | Foxy               |                                    |
 
