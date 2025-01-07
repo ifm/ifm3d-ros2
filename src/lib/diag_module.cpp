@@ -75,30 +75,56 @@ DiagModule::DiagnosticArrayMsg DiagModule::create_diagnostic_message(const uint8
   {
     parsed_json = json::parse(json_msg);
   }
-  catch (...)
+  catch (const std::exception& e)
   {
-    RCLCPP_ERROR(logger_, "Invalid JSON received from callback with level %d", level);
+    RCLCPP_ERROR(logger_, "Invalid JSON received from callback with level %d: %s", level, e.what());
+    // use current time as timestamp because we cant parse the json message.
+    diag_msg.header.stamp = node_ptr_->now(); 
+    return diag_msg;
   }
+  ifm3d::json timestamp;
   try
   {
     // The diagnostic message is formatted differently depending on whether
     // we receive it through the asynchronous or synchronous method.
-    diag_msg.header.stamp = rclcpp::Time(parsed_json["timestamp"]);
+    // Try direct timestamp first.
+    timestamp = parsed_json["timestamp"];
+
   }
   catch (...)
   {
     try
     {
-      diag_msg.header.stamp = rclcpp::Time(parsed_json["stats"]["lastActivated"]["timestamp"]);
+      // Try nested timestamp
+      timestamp = parsed_json["stats"]["lastActivated"]["timestamp"];
     }
     catch (const std::exception& e)
     {
-      RCLCPP_ERROR(logger_, "Invalid timestamp received from callback with level %d", level);
+      RCLCPP_ERROR(logger_, "No timestamp received from callback with level %d: %s", level, e.what());
+    }
+  }
+
+  // Timestamp my be string but we need int64 for convertion to rclcpp::Time.
+  try
+  {
+    diag_msg.header.stamp = rclcpp::Time(std::stoll(timestamp.get<std::string>()));
+  }
+  catch (...)
+  {
+    try
+    {
+      diag_msg.header.stamp = rclcpp::Time(timestamp.get<int64_t>());
+    }
+    catch (const std::exception& e)
+    {
+      throw std::runtime_error("Timestamp is neither a valid integer nor a string.");
+      RCLCPP_ERROR(logger_, "Invalid timestamp received from callback with level %d. Using current time.", level);
+      diag_msg.header.stamp = node_ptr_->now();
     }
   }
 
   diag_msg.status.push_back(create_diagnostic_status(level, parsed_json));
-
+  
   return diag_msg;
 }
 
