@@ -71,6 +71,7 @@ DiagModule::DiagnosticArrayMsg DiagModule::create_diagnostic_message(const uint8
   ifm3d::json parsed_json;
   DiagnosticArrayMsg diag_msg;
 
+  // parse json message
   try
   {
     parsed_json = json::parse(json_msg);
@@ -82,26 +83,32 @@ DiagModule::DiagnosticArrayMsg DiagModule::create_diagnostic_message(const uint8
     diag_msg.header.stamp = node_ptr_->now(); 
     return diag_msg;
   }
+
+  // get timestamp
   ifm3d::json timestamp;
   try
   {
-    // The diagnostic message is formatted differently depending on whether
-    // we receive it through the asynchronous or synchronous method.
-    // Try direct timestamp first.
-    timestamp = parsed_json["timestamp"];
-
-  }
-  catch (...)
-  {
-    try
+    if (! parsed_json["timestamp"].is_null())
     {
-      // Try nested timestamp
+      // The diagnostic message is formatted differently depending on whether
+      // we receive it through the asynchronous or synchronous method.
+      timestamp = parsed_json["timestamp"];
+
+    }
+    else if (! parsed_json["stats"]["lastActivated"]["timestamp"].is_null())
+    {
       timestamp = parsed_json["stats"]["lastActivated"]["timestamp"];
     }
-    catch (const std::exception& e)
+    else 
     {
-      RCLCPP_ERROR(logger_, "No timestamp received from callback with level %d: %s", level, e.what());
+      RCLCPP_ERROR(logger_, "No timestamp received from callback with level %d. Using current timestamp as fallback.", level);
+      diag_msg.header.stamp = node_ptr_->now();
     }
+  }
+  catch (const std::exception& e)
+  {
+    RCLCPP_ERROR(logger_, "Invalid timestamp received from callback with level %d: %s. Using current timestamp as fallback.", level, e.what());
+    diag_msg.header.stamp = node_ptr_->now();
   }
 
   // Timestamp my be string but we need int64 for convertion to rclcpp::Time.
@@ -117,14 +124,12 @@ DiagModule::DiagnosticArrayMsg DiagModule::create_diagnostic_message(const uint8
     }
     catch (const std::exception& e)
     {
-      throw std::runtime_error("Timestamp is neither a valid integer nor a string.");
-      RCLCPP_ERROR(logger_, "Invalid timestamp received from callback with level %d. Using current time.", level);
+      RCLCPP_ERROR(logger_, "Invalid timestamp received from callback with level %d. Using current time. Error: %s", level, e.what());
       diag_msg.header.stamp = node_ptr_->now();
     }
   }
 
   diag_msg.status.push_back(create_diagnostic_status(level, parsed_json));
-  
   return diag_msg;
 }
 
