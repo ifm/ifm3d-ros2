@@ -107,7 +107,7 @@ TC_RETVAL OdsNode::on_configure(const rclcpp_lifecycle::State& prev_state)
     }
     std::stringstream buffer;
     buffer << file.rdbuf();
-    RCLCPP_INFO(this->logger_, "Setting configuration: %s",  buffer.str().c_str());
+    RCLCPP_DEBUG(this->logger_, "Setting configuration: %s",  buffer.str().c_str());
     ifm3d::json config_json = json::parse(buffer.str()) ;
     this->o3r_->Set(config_json);
   }

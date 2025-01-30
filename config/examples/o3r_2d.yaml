@@ -3,6 +3,7 @@
 
 /ifm3d/camera_2d:
   ros__parameters:
+    config_file: "/this/path/will/be/overridden/from/the/lauchfile/because/yaml/files/cant/resolve/find-pkg-share/command"
     buffer_id_list:
       - JPEG_IMAGE
       - RGB_INFO
