@@ -98,14 +98,20 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
 
   if (this->config_file_!=""){
     std::ifstream file(this->config_file_);
-    if (!file.is_open()) {
-      throw std::runtime_error("Could not open config file: " + this->config_file_);
+
+    if (!std::filesystem::is_regular_file(this->config_file_)) {
+      RCLCPP_WARN(this->logger_, "Config file path exists but is not a regular file: %s", this->config_file_.c_str());
     }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    RCLCPP_DEBUG(this->logger_, "Setting configuration: %s",  buffer.str().c_str());
-    ifm3d::json config_json = json::parse(buffer.str()) ;
-    this->o3r_->Set(config_json);
+    else {
+      if (!file.is_open()) {
+        throw std::runtime_error("Could not open config file: " + this->config_file_);
+      }
+      std::stringstream buffer;
+      buffer << file.rdbuf();
+      RCLCPP_DEBUG(this->logger_, "Setting configuration: %s",  buffer.str().c_str());
+      ifm3d::json config_json = json::parse(buffer.str()) ;
+      this->o3r_->Set(config_json);
+    }
   }
 
   // Get all the necessary info for the port.
