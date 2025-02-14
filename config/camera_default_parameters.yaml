@@ -3,7 +3,7 @@
 
 /ifm3d/camera:
   ros__parameters:
-    #config_file: "config/o3r_config/o3r_config.json" # ensure an absolute path here
+    config_file: "config/o3r_config/o3r_config.json" # ensure an absolute path here
     buffer_id_list:
       - CONFIDENCE_IMAGE
       - EXTRINSIC_CALIB
@@ -16,7 +16,7 @@
       - TOF_INFO
       - XYZ
     ip: 192.168.0.69
-    pcic_port: 50010
+    pcic_port: 50012
     tf:
       base_frame_name: "ifm_base_link"
       mounting_frame_name: "camera_mounting_link"
