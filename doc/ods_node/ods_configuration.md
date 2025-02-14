@@ -33,6 +33,10 @@ ifm3d_ros2.srv.Config_Response(status=0, msg='OK')
 
 ## Using the `config_file` parameter
 
-Additionally, it is possible to configure an application (or any other aspect of the system) using a configuration file, provided through the `config_file` parameter.
+Additionally, it is possible to configure an application (or any other aspect of the system) using a configuration file, provided through the `config_file` parameter in the `ods_default_parameters.yaml` file.
 This configuration file will be used to set the configuration in the `on_configuration` transition of the node.
 To re-configure a node using a new configuration file, the `on_configuration` transition has to be triggered again.
+
+:::{note}
+Ensure to provide the absolute path for the `config_file` parameter in the `ods_default_parameters.yaml` file. If a relative path is used, make sure to run the launch file from the directory corresponding to the relative path.
+:::

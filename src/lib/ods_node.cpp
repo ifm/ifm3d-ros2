@@ -107,7 +107,7 @@ TC_RETVAL OdsNode::on_configure(const rclcpp_lifecycle::State& prev_state)
     }
     std::stringstream buffer;
     buffer << file.rdbuf();
-    RCLCPP_INFO(this->logger_, "Setting configuration: %s",  buffer.str().c_str());
+    RCLCPP_DEBUG(this->logger_, "Setting configuration: %s",  buffer.str().c_str());
     ifm3d::json config_json = json::parse(buffer.str()) ;
     this->o3r_->Set(config_json);
   }
@@ -321,6 +321,11 @@ void OdsNode::init_params()  // TODO cleanup params
    *   - Define Descriptor
    *   - Declare Parameter
    */
+  rcl_interfaces::msg::ParameterDescriptor config_descriptor;
+  config_descriptor.name = "config_file";
+  config_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
+  config_descriptor.description = "Configuration file, in JSON format.";
+  this->declare_parameter("config_file", "", config_descriptor);
 
   rcl_interfaces::msg::ParameterDescriptor ip_descriptor;
   ip_descriptor.name = "ip";

@@ -6,7 +6,7 @@
 
 /ifm3d/ods:
   ros__parameters:
-    config_file: "config/examples/o3r_ods.json"
+    config_file: "config/o3r_config/ods_config.json" #ensure an absolute path here
     ip: 192.168.0.69
     pcic_port: 51010
     ods:

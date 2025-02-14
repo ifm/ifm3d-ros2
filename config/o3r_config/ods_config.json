@@ -1,0 +1,12 @@
+{
+    "applications": {
+        "instances": {
+            "app0": {
+                "ports": [
+                    "port2",
+                    "port6"
+                ]
+            }
+        }
+    }
+}

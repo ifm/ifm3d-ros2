@@ -66,6 +66,43 @@ To visualize the data with RViz, set the `visualization` argument of the launch 
 $ ros2 launch ifm3d_ros2 camera.launch.py visualization:=true
 ```
 
+# Configuration
+
+The camera parameters can be configured, wheter extrinsic calibration or acquisition parameters to filtering parameters.
+There are multiple ways to do that that we are describin in the following undersections
+
+## Using the Vision Assistant
+
+We typically recommend to use the ifm Vision Assistant, which is ifm's official GUI for interfacing with all the vision products.
+
+To get started with Vision Assistant, refer to [the Introduction to the ifmVisionAssistant](https://ifm3d.com/latest/SoftwareInterfaces/iVA/introduction_and_installation.html).
+And then to change parameters, refer to [changin parameters using ifm Vision Assistant](https://ifm3d.com/latest/SoftwareInterfaces/iVA/changing_parameters.html) After following these instructions, you will have set up and properly configured camera ports parameters.
+
+## Using the `Config` service
+
+It is also possible to configure an application directly using the `ifm3d-ros2` service `Config`.
+We recommend to use this method when re-configuring the application at runtime, for example to change the active ports.
+
+In this case, you can use the following command.
+This will switch the `activePort` parameter of the application `app0` to `"port3"`.
+```bash
+$ ros2 service call /ifm3d/camera/Config ifm3d_ros2/srv/Config "{json: '{\"ports\":{\"port2\":{\"processing\":{\"extrinsicHeadToUser\":{\""transZ"\":1}}}}}'}"
+requester: making request: ifm3d_ros2.srv.Config_Request(json='{"ports":{"port2":{"processing":{"extrinsicHeadToUser":{"transZ":1}}}}}')
+
+response:
+ifm3d_ros2.srv.Config_Response(status=0, msg='OK')
+
+```
+
+## Using the `config_file` parameter
+
+Additionally, it is possible to configure an application (or any other aspect of the system) using a configuration file, provided through the `config_file` parameter in the `ods_default_parameters.yaml` file.
+This configuration file will be used to set the configuration in the `on_configuration` transition of the node.
+To re-configure a node using a new configuration file, the `on_configuration` transition has to be triggered again.
+
+:::{note}
+Ensure to provide the absolute path for the `config_file` parameter in the `ods_default_parameters.yaml` file. If a relative path is used, make sure to run the launch file from the directory corresponding to the relative path.
+:::
 
 ![rviz1](./figures/O3R_merged_point_cloud.png)
 
