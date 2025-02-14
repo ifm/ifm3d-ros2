@@ -3,6 +3,7 @@
 
 /ifm3d/camera:
   ros__parameters:
+    #config_file: "config/o3r_config/o3r_config.json" # ensure an absolute path here
     buffer_id_list:
       - CONFIDENCE_IMAGE
       - EXTRINSIC_CALIB
