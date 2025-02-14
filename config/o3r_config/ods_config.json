@@ -1,0 +1,10 @@
+{
+    "applications": { 
+      "instances": {
+        "app0": { //check this if the app is app0 or not
+            "ports": ["port2","port6"]
+          
+          }
+        }
+      }
+}
