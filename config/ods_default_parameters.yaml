@@ -6,9 +6,10 @@
 
 /ifm3d/ods:
   ros__parameters:
-    config_file: "config/examples/o3r_ods.json"
+    config_file: "/this/path/will/be/overridden/from/the/lauchfile/because/yaml/files/cant/resolve/find-pkg-share/command"
     ip: 192.168.0.69
     pcic_port: 51010
+    xmlrpc_port: 80
     ods:
       frame_id: "ifm_base_link"
       publish_occupancy_grid: true

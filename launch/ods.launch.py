@@ -4,7 +4,7 @@
 #
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, EmitEvent, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, EmitEvent, RegisterEventHandler, LogInfo
 from launch.conditions import IfCondition
 from launch.events import matches_action
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -70,10 +70,52 @@ def generate_launch_description():
             description="YAML file with the camera configuration.",
         )
     )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "o3r_device_config_file_name",
+            default_value="deviceConfigO3R.o3rcfg",
+            description="IFM VPU device configuration file (can be downloaded via ifmVisionAssistant or `o3r.get()`).",
+        )
+    )
 
     # ------------------------------------------------------------
     # Nodes, using substitutions to fill in arguments
     # ------------------------------------------------------------
+
+    # Resolve the YAML parameter file path:
+    param_file_path = PathJoinSubstitution([
+        FindPackageShare(LaunchConfiguration("parameter_file_package")),
+        LaunchConfiguration("parameter_file_directory"),
+        LaunchConfiguration("parameter_file_name"),
+    ])
+    log_param_file_path = LogInfo(
+        msg=[
+            "Parameter file for ods_namespace=",
+            LaunchConfiguration('ods_namespace'),
+            ", ods_name=",
+            LaunchConfiguration('ods_name'),
+            ": ",
+            param_file_path
+        ]
+    )
+
+    # Resolve the O3R .o3rcfg file path:
+    o3r_device_cfg_path = PathJoinSubstitution([
+        FindPackageShare(LaunchConfiguration("parameter_file_package")),
+        LaunchConfiguration("parameter_file_directory"),
+        LaunchConfiguration("o3r_device_config_file_name"),
+    ])
+    log_o3r_device_cfg_file_path = LogInfo(
+        msg=[
+            "O3R device config file for ods_namespace=",
+            LaunchConfiguration('ods_namespace'),
+            ", ods_name=",
+            LaunchConfiguration('ods_name'),
+            ": ",
+            o3r_device_cfg_path
+        ]
+    )
+
     ods_node = LifecycleNode(
         package="ifm3d_ros2",
         executable="ods_standalone",
@@ -81,13 +123,9 @@ def generate_launch_description():
         name=LaunchConfiguration("ods_name"),
         output='screen',
         parameters=[
-            PathJoinSubstitution(
-                [
-                    FindPackageShare(LaunchConfiguration("parameter_file_package")),
-                    LaunchConfiguration("parameter_file_directory"),
-                    LaunchConfiguration("parameter_file_name"),
-                ]
-            )
+            param_file_path,
+            # override `config_file` parameter here because we can't resolve a path dynamically in the YAML parameter file
+            {"config_file": o3r_device_cfg_path},
         ],
         arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
         log_cmd=True,
@@ -144,5 +182,7 @@ def generate_launch_description():
     ld.add_action(rviz_node)
     ld.add_action(configure_ods)
     ld.add_action(activate_ods)
+    ld.add_action(log_param_file_path)
+    ld.add_action(log_o3r_device_cfg_file_path)
 
     return ld
