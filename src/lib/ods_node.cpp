@@ -322,6 +322,12 @@ void OdsNode::init_params()  // TODO cleanup params
    *   - Declare Parameter
    */
 
+  rcl_interfaces::msg::ParameterDescriptor config_file_descriptor;
+  config_file_descriptor.name = "config_file";
+  config_file_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
+  config_file_descriptor.description = "Path to the configuration file";
+  this->declare_parameter("config_file", "", config_file_descriptor);
+
   rcl_interfaces::msg::ParameterDescriptor ip_descriptor;
   ip_descriptor.name = "ip";
   ip_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
