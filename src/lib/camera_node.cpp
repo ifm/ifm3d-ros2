@@ -132,7 +132,8 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   {
     RCLCPP_INFO(logger_, "Data type is 2D");
     this->data_module_ =
-        std::make_shared<RgbModule>(this->get_logger(), shared_from_this(), o3r_, this->port_info_.port, width, height);
+        std::make_shared<RgbModule>(this->get_logger(), shared_from_this(), o3r_, this->port_info_.port, width, height,
+                                    this->use_timestamp_from_device_);
     this->buffer_list_.insert(this->buffer_list_.end(),
                               std::get<std::shared_ptr<RgbModule>>(this->data_module_)->buffer_id_list_.begin(),
                               std::get<std::shared_ptr<RgbModule>>(this->data_module_)->buffer_id_list_.end());
@@ -143,7 +144,8 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   {
     RCLCPP_INFO(logger_, "Data type is 3D");
     this->data_module_ =
-        std::make_shared<TofModule>(this->get_logger(), shared_from_this(), o3r_, this->port_info_.port, width, height);
+        std::make_shared<TofModule>(this->get_logger(), shared_from_this(), o3r_, this->port_info_.port, width, height,
+                                    this->use_timestamp_from_device_);
     this->buffer_list_.insert(this->buffer_list_.end(),
                               std::get<std::shared_ptr<TofModule>>(this->data_module_)->buffer_id_list_.begin(),
                               std::get<std::shared_ptr<TofModule>>(this->data_module_)->buffer_id_list_.end());
@@ -376,6 +378,13 @@ void CameraNode::init_params()
   xmlrpc_port_descriptor.integer_range.push_back(xmlrpc_port_range);
   this->declare_parameter("xmlrpc_port", ifm3d::DEFAULT_XMLRPC_PORT, xmlrpc_port_descriptor);
 
+  rcl_interfaces::msg::ParameterDescriptor use_timestamp_from_device_descriptor;
+  use_timestamp_from_device_descriptor.name = "use_timestamp_from_device";
+  use_timestamp_from_device_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  use_timestamp_from_device_descriptor.description =
+      "Uses timestamp from VPU for messages if true; uses ROS time if false; default is true";
+  this->declare_parameter("use_timestamp_from_device", true, use_timestamp_from_device_descriptor);
+
   // TODO: extend parameter description to include required params:
   // password: for lock / unlock of JSON configuration
 }
@@ -399,6 +408,9 @@ void CameraNode::parse_params()
 
   this->get_parameter("xmlrpc_port", this->xmlrpc_port_);
   RCLCPP_INFO(this->logger_, "xmlrpc_port: %u", this->xmlrpc_port_);
+
+  this->get_parameter("use_timestamp_from_device", this->use_timestamp_from_device_);
+  RCLCPP_INFO(this->logger_, "use_timestamp_from_device: %s", this->use_timestamp_from_device_ ? "true" : "false");
 }
 
 void CameraNode::set_parameter_event_callbacks()
@@ -431,6 +443,16 @@ void CameraNode::set_parameter_event_callbacks()
     RCLCPP_INFO(logger_, "New xmlrpc_port: %d", this->xmlrpc_port_);
   };
   registered_param_callbacks_["xmlrpc_port"] = param_subscriber_->add_parameter_callback("xmlrpc_port", xmlrpc_port_cb);
+
+  auto use_timestamp_from_device_cb = [this](const rclcpp::Parameter& p) {
+    this->use_timestamp_from_device_ = p.as_bool();
+    RCLCPP_WARN(logger_,
+                "This new timestamp behavior will be used after CONFIGURE transition was called: "
+                "use_timestamp_from_device=%s",
+                this->use_timestamp_from_device_ ? "true" : "false");
+  };
+  registered_param_callbacks_["use_timestamp_from_device"] =
+      param_subscriber_->add_parameter_callback("use_timestamp_from_device", use_timestamp_from_device_cb);
 }
 
 void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)

@@ -24,3 +24,4 @@
       publish_mounting_to_optical: true
     use_sim_time: false
     xmlrpc_port: 80
+    use_timestamp_from_device: true

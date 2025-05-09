@@ -13,6 +13,7 @@
 | `~/tf.publish_base_to_mounting`    | bool         | true                                                                                                                                                                                    | Whether the transform from the ifm base link to the camera mounting point should be published.   |
 | `~/tf.publish_mounting_to_optical` | bool         | true                                                                                                                                                                                    | Whether the transform from the cameras mounting point to the optical center should be published. |
 | `~/xmlrpc_port`                    | uint         | 50010                                                                                                                                                                                   | TCP port the on-camera xmlrpc server is listening on.                                            |
+| `~/use_timestamp_from_device       | bool         | true                                                                                                                                                                                    | Uses timestamp from VPU for messages if true; uses ROS time if false;                            |
 
 ## Details on the published transforms
 

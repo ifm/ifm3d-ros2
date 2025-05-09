@@ -33,7 +33,8 @@ class OdsModule : public FunctionModule, public std::enable_shared_from_this<Ods
   using ZonesPublisher = std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ZonesMsg>>;
 
 public:
-  OdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr);
+  OdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr,
+            bool use_timestamp_from_device = true);
   // Main functions that take care of deserializing
   // and publishing the ODS data
   void handle_frame(ifm3d::Frame::Ptr frame);
@@ -68,6 +69,7 @@ private:
   std::string frame_id_;
   bool publish_occupancy_grid_;
   bool publish_costmap_;
+  bool use_timestamp_from_device_;
   rcl_interfaces::msg::ParameterDescriptor frame_id_descriptor_;
   rcl_interfaces::msg::ParameterDescriptor publish_occupancy_grid_descriptor_;
   rcl_interfaces::msg::ParameterDescriptor publish_costmap_descriptor_;
