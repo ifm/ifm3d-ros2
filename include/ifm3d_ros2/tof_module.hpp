@@ -51,7 +51,7 @@ class TofModule : public FunctionModule, public std::enable_shared_from_this<Tof
 {
 public:
   TofModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr, ifm3d::O3R::Ptr o3r_ptr,
-            std::string port, uint32_t width, uint32_t height);
+            std::string port, uint32_t width, uint32_t height, bool use_timestamp_from_device = true);
   /**
    * @brief Unpacks data from the received frame, and publish
    * the topics corresponding to the requested image buffers.
@@ -92,6 +92,8 @@ private:
   // Values read from incoming image buffers
   uint32_t width_;
   uint32_t height_;
+
+  bool use_timestamp_from_device_;
 
   // Value used to only publish the static transform once
   bool first_;

@@ -13,3 +13,4 @@
       frame_id: "ifm_base_link"
       publish_occupancy_grid: true
       publish_costmap: false
+    use_timestamp_from_device: true

@@ -348,6 +348,13 @@ void OdsNode::init_params()  // TODO cleanup params
   xmlrpc_port_range.step = 1;
   xmlrpc_port_descriptor.integer_range.push_back(xmlrpc_port_range);
   this->declare_parameter("xmlrpc_port", ifm3d::DEFAULT_XMLRPC_PORT, xmlrpc_port_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor use_timestamp_from_device_descriptor;
+  use_timestamp_from_device_descriptor.name = "use_timestamp_from_device";
+  use_timestamp_from_device_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  use_timestamp_from_device_descriptor.description =
+      "Uses timestamp from VPU for messages if true; uses ROS time if false; default is true";
+  this->declare_parameter("use_timestamp_from_device", true, use_timestamp_from_device_descriptor);
 }
 
 void OdsNode::parse_params()
@@ -368,6 +375,9 @@ void OdsNode::parse_params()
 
   this->get_parameter("xmlrpc_port", this->xmlrpc_port_);
   RCLCPP_INFO(this->logger_, "xmlrpc_port: %u", this->xmlrpc_port_);
+
+  this->get_parameter("use_timestamp_from_device", this->use_timestamp_from_device_);
+  RCLCPP_INFO(this->logger_, "use_timestamp_from_device_: %s", this->use_timestamp_from_device_ ? "true" : "false");
 }
 
 void OdsNode::set_parameter_event_callbacks()
@@ -400,6 +410,16 @@ void OdsNode::set_parameter_event_callbacks()
     RCLCPP_INFO(logger_, "New xmlrpc_port: %d", this->xmlrpc_port_);
   };
   registered_param_callbacks_["xmlrpc_port"] = param_subscriber_->add_parameter_callback("xmlrpc_port", xmlrpc_port_cb);
+
+  auto use_timestamp_from_device_cb = [this](const rclcpp::Parameter& p) {
+    this->use_timestamp_from_device_ = p.as_bool();
+    RCLCPP_WARN(logger_,
+                "This new timestamp behavior will be used after CONFIGURE transition was called: "
+                "use_timestamp_from_device=%s",
+                this->use_timestamp_from_device_ ? "true" : "false");
+  };
+  registered_param_callbacks_["use_timestamp_from_device"] =
+      param_subscriber_->add_parameter_callback("use_timestamp_from_device", use_timestamp_from_device_cb);
 }
 
 void OdsNode::frame_callback(ifm3d::Frame::Ptr frame)

@@ -16,8 +16,12 @@
 
 namespace ifm3d_ros2
 {
-OdsModule::OdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr)
-  : FunctionModule(logger), node_ptr_(node_ptr), frame_id_("ifm_base_link")
+OdsModule::OdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr,
+                     bool use_timestamp_from_device)
+  : FunctionModule(logger)
+  , node_ptr_(node_ptr)
+  , frame_id_("ifm_base_link")
+  , use_timestamp_from_device_(use_timestamp_from_device)
 {
   RCLCPP_INFO(logger_, "OdsModule contructor called.");
 
@@ -78,7 +82,7 @@ ifm3d_ros2::msg::Zones OdsModule::extract_zones(ifm3d::Frame::Ptr frame)
   // Define the header
   zones_msg.header = std_msgs::msg::Header();
   zones_msg.header.frame_id = frame_id_;
-  zones_msg.header.stamp = rclcpp::Time(zones_data.timestamp_ns);
+  zones_msg.header.stamp = use_timestamp_from_device_ ? rclcpp::Time(zones_data.timestamp_ns) : node_ptr_->now();
 
   zones_msg.zone_config_id = zones_data.zone_config_id;
   zones_msg.zone_occupied = zones_data.zone_occupied;

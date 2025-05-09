@@ -202,6 +202,7 @@ private:
   std::string ip_{};
   std::uint16_t pcic_port_{};
   std::uint16_t xmlrpc_port_{};
+  bool use_timestamp_from_device_{};
 
   // For backward compatibility, we get the port name
   // from the provided pcic_port.
