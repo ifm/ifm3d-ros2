@@ -7,5 +7,6 @@ The `ifm3d-ros2` package provides a camera node, which is the main interface for
 Launch <launch>
 Topics <topics>
 Parameters <parameters>
+Transforms and Calibration <camera_transforms>
 Multi-camera applications <multi_head>
 :::

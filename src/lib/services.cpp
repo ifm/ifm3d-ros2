@@ -218,13 +218,13 @@ void BaseServices::Softon(const std::shared_ptr<rmw_request_id_t> /*unused*/, So
       if ((port_type == "2D") | (port_type == "3D"))
       {
         this->cam_->FromJSONStr(R"({"ports":{")" + this->port_info_.port + R"(":{"state":"RUN"}}})");
-        RCLCPP_INFO(this->logger_, "SoftOff request successful.");
+        RCLCPP_INFO(this->logger_, "SoftOn request successful.");
       }
       else if (port_type == "app")
       {
         this->cam_->FromJSONStr(R"({"applications":{"instances":{")" + this->port_info_.port +
                                 R"(":{"state":"RUN"}}}})");
-        RCLCPP_INFO(this->logger_, "SoftOff request successful.");
+        RCLCPP_INFO(this->logger_, "SoftOn request successful.");
       }
       else
       {

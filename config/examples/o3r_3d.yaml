@@ -8,6 +8,8 @@
       - EXTRINSIC_CALIB
       - NORM_AMPLITUDE_IMAGE
       - RADIAL_DISTANCE_IMAGE
+      - RADIAL_DISTANCE_NOISE
+      - REFLECTIVITY
       - TOF_INFO
       - XYZ
     frame_latency_thresh: 1.0
@@ -17,11 +19,11 @@
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0
-    use_sim_time: false
-    xmlrpc_port: 80
     tf:
       base_frame_name: "ifm_base_link"
       mounting_frame_name: "camera_3d_mounting_link"
       optical_frame_name: "camera_3d_optical_link"
       publish_base_to_mounting: true
       publish_mounting_to_optical: true
+    use_sim_time: false
+    xmlrpc_port: 80

@@ -44,6 +44,8 @@ enum message_type
   rgb_info,
   tof_info,
   zones,
+  polar_occupancy_grid,
+  extrinsics_calibration_correction,
   not_implemented,
 };
 

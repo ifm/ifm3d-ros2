@@ -18,6 +18,7 @@
 #include <ifm3d_ros2/msg/rgb_info.hpp>
 #include <ifm3d_ros2/msg/tof_info.hpp>
 #include <ifm3d_ros2/msg/zones.hpp>
+#include <ifm3d_ros2/msg/extrinsics_calibration_correction.hpp>
 #include <ifm3d_ros2/buffer_conversions.hpp>
 
 #include <rclcpp/rclcpp.hpp>
@@ -398,114 +399,65 @@ sensor_msgs::msg::CameraInfo ifm3d_to_camera_info(ifm3d::calibration::IntrinsicC
     {
       // Fill in the message with fish eye model params
       camera_info_msg.distortion_model = sensor_msgs::distortion_models::EQUIDISTANT;
-
       // Read data from buffer
       const float fx = intrinsic.model_parameters[0];
       const float fy = intrinsic.model_parameters[1];
+      // IFM O3R convention: the center of the upper-left pixel is at (0,0)
+      // OpenCV/ROS convention: the center of the upper-left pixel is at (0.5, 0.5)
+      // Therefore, we need to shift the principal point by 0.5 to convert to ROS/OpenCV convention
+      const float cx = intrinsic.model_parameters[2] - 0.5f;
+      const float cy = intrinsic.model_parameters[3] - 0.5f;
       
-      const float mx = intrinsic.model_parameters[2];
-      const float my = intrinsic.model_parameters[3];
       const float alpha = intrinsic.model_parameters[4];
       const float k1 = intrinsic.model_parameters[5];
       const float k2 = intrinsic.model_parameters[6];
       const float k3 = intrinsic.model_parameters[7];
       const float k4 = intrinsic.model_parameters[8];
-      const float theta_max = intrinsic.model_parameters[9];
+      const float k5 = intrinsic.model_parameters[9]; // theta_max is not used in OpenCV fisheye model
 
-      const float ix = width - 1;
-      const float iy = height - 1;
-      const float cy = (iy + 0.5 - my) / fy;
-      const float cx = (ix + 0.5 - mx) / fx - alpha * cy;
-      const float r2 = cx * cx + cy * cy;
-      const float h = 2 * cx * cy;
-      const float tx = k3 * h + k4 * (r2 + 2 * cx * cx);
-      const float ty = k3 * (r2 + 2 * cy * cy) + k4 * h;
-
-      // Distortion parameters
-      camera_info_msg.d.resize(5);
-      camera_info_msg.d[0] = k1;
-      camera_info_msg.d[1] = k2;
-      camera_info_msg.d[2] = tx;  // TODO t1 == tx ?
-      camera_info_msg.d[3] = ty;  // TODO t2 == ty ?
-      camera_info_msg.d[4] = k3;
-
-      // Intrinsic camera matrix, in row-major order
-      //     [ fx 0  cx]
-      // K = [ 0  fy cy]
-      //     [ 0  0  1 ]
-      camera_info_msg.k[0] = fx;
-      camera_info_msg.k[2] = cx;
-      camera_info_msg.k[4] = fy;
-      camera_info_msg.k[5] = cy;
-      camera_info_msg.k[8] = 1.0;  // fixed to 1.0
-
-      // Projection matrix, row-major
-      //     [fx' 0   cx' Tx]
-      // P = [ 0  fy' cy' Ty]
-      //     [ 0  0   1   0 ]
-      camera_info_msg.p[0] = fx;
-      camera_info_msg.p[5] = fy;
-      camera_info_msg.p[2] = cx;
-      camera_info_msg.p[6] = cy;
-      camera_info_msg.p[10] = 1.0;  // fixed to 1.0
-
+      // Distortion parameters (OpenCV fisheye expects exactly 4)
+      camera_info_msg.d.assign({k1, k2, k3, k4});
+      // Intrinsic camera matrix
+      camera_info_msg.k[0] = fx; camera_info_msg.k[1] = 0.0; camera_info_msg.k[2] = cx;
+      camera_info_msg.k[3] = 0.0; camera_info_msg.k[4] = fy; camera_info_msg.k[5] = cy;
+      camera_info_msg.k[6] = 0.0; camera_info_msg.k[7] = 0.0; camera_info_msg.k[8] = 1.0;
+      // R must be identity (was left zero -> produced black rectified output)
+      camera_info_msg.r[0] = 1.0; camera_info_msg.r[4] = 1.0; camera_info_msg.r[8] = 1.0;
+      // Projection matrix
+      camera_info_msg.p[0] = fx; camera_info_msg.p[1] = 0.0; camera_info_msg.p[2] = cx; camera_info_msg.p[3] = 0.0;
+      camera_info_msg.p[4] = 0.0; camera_info_msg.p[5] = fy; camera_info_msg.p[6] = cy; camera_info_msg.p[7] = 0.0;
+      camera_info_msg.p[8] = 0.0; camera_info_msg.p[9] = 0.0; camera_info_msg.p[10] = 1.0; camera_info_msg.p[11] = 0.0;
       RCLCPP_DEBUG_ONCE(logger,
-                        "Intrinsics:\nfx=%f \nfy=%f \nmx=%f \nmy=%f \nalpha=%f \nk1=%f \nk2=%f \nk3=%f \nk4=%f "
-                        "\nCalculated:\nix=%f \niy=%f \ncx=%f \ncy=%f \nr2=%f \nh=%f \ntx=%f \nty=%f",
-                        fx, fy, mx, my, alpha, k1, k2, k3, k4, ix, iy, cx, cy, r2, h, tx, ty);
+                        "Intrinsics(fisheye): fx=%f fy=%f cx=%f cy=%f alpha=%f k1=%f k2=%f k3=%f k4=%f k5=%f",
+                        fx, fy, cx, cy, alpha, k1, k2, k3, k4, k5);
     }
-    else if (intrinsic.model_id == 0) 
-    {    
+    else if (intrinsic.model_id == 0)
+    {
       camera_info_msg.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
-
-      // Read data from buffer
       const float fx = intrinsic.model_parameters[0];
       const float fy = intrinsic.model_parameters[1];
-
-      const float mx = intrinsic.model_parameters[2];
-      const float my = intrinsic.model_parameters[3];
+      // IFM O3R convention: the center of the upper-left pixel is at (0,0)
+      // OpenCV/ROS convention: the center of the upper-left pixel is at (0.5, 0.5)
+      // Therefore, we need to shift the principal point by 0.5 to convert to ROS/OpenCV convention
+      const float cx = intrinsic.model_parameters[2] - 0.5f;
+      const float cy = intrinsic.model_parameters[3] - 0.5f;
       const float alpha = intrinsic.model_parameters[4];
       const float k1 = intrinsic.model_parameters[5];
       const float k2 = intrinsic.model_parameters[6];
       const float k3 = intrinsic.model_parameters[7];
       const float k4 = intrinsic.model_parameters[8];
       const float k5 = intrinsic.model_parameters[9];
-
-      const float ix = width - 1;
-      const float iy = height - 1;
-      const float cy = (iy + 0.5 - my) / fy;
-      const float cx = (ix + 0.5 - mx) / fx - alpha * cy;
-      const float r2 = cx * cx + cy * cy;
-      const float h = 2 * cx * cy;
-      const float tx = k3 * h + k4 * (r2 + 2 * cx * cx);
-      const float ty = k3 * (r2 + 2 * cy * cy) + k4 * h;
-
-      // Distortion parameters
-      camera_info_msg.d.resize(5);
-      camera_info_msg.d[0] = k1;
-      camera_info_msg.d[1] = k2;
-      camera_info_msg.d[2] = tx;  // TODO t1 == tx ?
-      camera_info_msg.d[3] = ty;  // TODO t2 == ty ?
-      camera_info_msg.d[4] = k3;
-
-      // Intrinsic camera matrix
-      camera_info_msg.k[0] = fx;
-      camera_info_msg.k[4] = fy;
-      camera_info_msg.k[2] = cx;
-      camera_info_msg.k[5] = cy;
-      camera_info_msg.k[8] = 1.0;  // fixed to 1.0
-
-      // Projection matrix
-      camera_info_msg.p[0] = fx;
-      camera_info_msg.p[5] = fy;
-      camera_info_msg.p[2] = cx;
-      camera_info_msg.p[6] = cy;
-      camera_info_msg.p[10] = 1.0;  // fixed to 1.0
-
+      camera_info_msg.d.assign({k1, k2, k3, k4, k5});
+      camera_info_msg.k[0] = fx; camera_info_msg.k[1] = 0.0; camera_info_msg.k[2] = cx;
+      camera_info_msg.k[3] = 0.0; camera_info_msg.k[4] = fy; camera_info_msg.k[5] = cy;
+      camera_info_msg.k[6] = 0.0; camera_info_msg.k[7] = 0.0; camera_info_msg.k[8] = 1.0;
+      camera_info_msg.r[0] = 1.0; camera_info_msg.r[4] = 1.0; camera_info_msg.r[8] = 1.0;
+      camera_info_msg.p[0] = fx; camera_info_msg.p[1] = 0.0; camera_info_msg.p[2] = cx; camera_info_msg.p[3] = 0.0;
+      camera_info_msg.p[4] = 0.0; camera_info_msg.p[5] = fy; camera_info_msg.p[6] = cy; camera_info_msg.p[7] = 0.0;
+      camera_info_msg.p[8] = 0.0; camera_info_msg.p[9] = 0.0; camera_info_msg.p[10] = 1.0; camera_info_msg.p[11] = 0.0;
       RCLCPP_DEBUG_ONCE(logger,
-                        "Intrinsics:\nfx=%f \nfy=%f \nmx=%f \nmy=%f \nalpha=%f \nk1=%f \nk2=%f \nk3=%f \nk4=%f "
-                        "\nCalculated:\nix=%f \niy=%f \ncx=%f \ncy=%f \nr2=%f \nh=%f \ntx=%f \nty=%f",
-                        fx, fy, mx, my, alpha, k1, k2, k3, k4, ix, iy, cx, cy, r2, h, tx, ty);
+                        "Intrinsics(pinhole): fx=%f fy=%f cx=%f cy=%f alpha=%f k1=%f k2=%f k3=%f k4=%f",
+                        fx, fy, cx, cy, alpha, k1, k2, k3, k4);
     }
     else{
       RCLCPP_ERROR(logger, "Unknown intrinsic calibration model");
@@ -641,7 +593,9 @@ ifm3d_ros2::msg::TOFInfo ifm3d_to_tof_info(ifm3d::Buffer& buffer, const std_msgs
     tof_info_msg.amplitude_resolution = tof_info.amplitude_resolution;
     tof_info_msg.amp_normalization_factors = tof_info.amp_normalization_factors;
     tof_info_msg.exposure_timestamps_ns = tof_info.exposure_timestamps_ns;
-    tof_info_msg.exposure_times_s = tof_info.exposure_times_s;
+    for (size_t i = 0; i < tof_info.exposure_times_s.size(); ++i){
+      tof_info_msg.exposure_times_s[i] = static_cast<unsigned int>(tof_info.exposure_times_s[i]);
+    }
     tof_info_msg.illu_temperature = tof_info.illu_temperature;
     tof_info_msg.mode = std::string(std::begin(tof_info.mode), std::end(tof_info.mode));
     tof_info_msg.imager = std::string(std::begin(tof_info.imager), std::end(tof_info.imager));

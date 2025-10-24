@@ -1,0 +1,17 @@
+{
+  "ports": {
+    "port2": {
+      "processing": {
+        "extrinsicHeadToUser": {
+          "rotX": 0,
+          "rotY": 1.57,
+          "rotZ": -1.57,
+          "transX": 0,
+          "transY": 0,
+          "transZ": 0.35
+        }
+      },
+      "state": "RUN"
+    }
+  }
+}

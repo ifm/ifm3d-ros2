@@ -8,6 +8,10 @@
 #include <ifm3d/fg/frame.h>
 #include <ifm3d/deserialize/struct_o3r_ods_info_v1.hpp>
 #include <ifm3d/deserialize/struct_o3r_ods_occupancy_grid_v1.hpp>
+#include <ifm3d/deserialize/struct_o3r_ods_polar_occupancy_grid_v1.hpp>
+#include <ifm3d/deserialize/struct_o3r_ods_extrinsic_calibration_correction_v1.hpp>
+#include <cmath>
+#include <limits>
 
 #include <ifm3d_ros2/ods_module.hpp>
 #include <ifm3d_ros2/buffer_conversions.hpp>
@@ -31,6 +35,16 @@ OdsModule::OdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::Sha
   publish_occupancy_grid_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
   publish_occupancy_grid_descriptor_.description = "Set module to publish nav_msgs/OccupancyGrid (Default='True').";
   node_ptr_->declare_parameter(publish_occupancy_grid_descriptor_.name, true, publish_occupancy_grid_descriptor_);
+
+  publish_polar_occupancy_grid_descriptor_.name = "ods.publish_polar_occupancy_grid";
+  publish_polar_occupancy_grid_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  publish_polar_occupancy_grid_descriptor_.description = "Set module to publish sensor_msgs/LaserScan from polar distance data (Default='True').";
+  node_ptr_->declare_parameter(publish_polar_occupancy_grid_descriptor_.name, true, publish_polar_occupancy_grid_descriptor_);
+
+  publish_extrinsics_calibration_correction_descriptor_.name = "ods.publish_extrinsics_calibration_correction";
+  publish_extrinsics_calibration_correction_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  publish_extrinsics_calibration_correction_descriptor_.description = "Set module to publish Extrinsics calibration correction values (Default='True').";
+  node_ptr_->declare_parameter(publish_extrinsics_calibration_correction_descriptor_.name, true, publish_extrinsics_calibration_correction_descriptor_);
 
   publish_costmap_descriptor_.name = "ods.publish_costmap";
   publish_costmap_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
@@ -87,6 +101,100 @@ ifm3d_ros2::msg::Zones OdsModule::extract_zones(ifm3d::Frame::Ptr frame)
   return zones_msg;
 }
 
+sensor_msgs::msg::LaserScan OdsModule::extract_ros_polar_occupancy_grid(ifm3d::Frame::Ptr frame)
+{
+  RCLCPP_DEBUG(logger_, "Converting Polar Distance Data to LaserScan");
+  if (!frame->HasBuffer(ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID))
+  {
+    RCLCPP_INFO(logger_, "OdsModule: No polar distance data in frame for LaserScan");
+  }
+  
+  auto polarOccGrid_data = ifm3d::ODSPolarOccupancyGridV1::Deserialize(frame->GetBuffer(ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID));
+
+  sensor_msgs::msg::LaserScan laser_scan_msg;
+  
+  // Set header
+  laser_scan_msg.header = std_msgs::msg::Header();
+  laser_scan_msg.header.frame_id = frame_id_;
+  laser_scan_msg.header.stamp = rclcpp::Time(polarOccGrid_data.timestamp_ns);
+  
+  // LaserScan parameters for 675 polar elements
+  // Data starts at 0° and increases counter-clockwise (to the left)
+  // 675 elements covering 360° gives ~0.533° per increment
+  laser_scan_msg.angle_min = 0.0;  // 0 degrees (first data point)
+  laser_scan_msg.angle_max = 2.0 * M_PI * (674.0 / 675.0);  // Almost full circle
+  laser_scan_msg.angle_increment = (2.0 * M_PI) / 675.0;  // ~0.533° per step
+  laser_scan_msg.time_increment = 0.0;  // Not applicable for this use case
+  laser_scan_msg.scan_time = 0.1;  // Approximate scan time
+  laser_scan_msg.range_min = 0.0;
+  laser_scan_msg.range_max = 10.0;  // Maximum distance range
+  
+  // Convert polar distance data to laser scan ranges
+  laser_scan_msg.ranges.resize(675);
+  laser_scan_msg.intensities.resize(675);
+  
+  for (size_t i = 0; i < polarOccGrid_data.polarOccGrid.size() && i < 675; ++i)
+  {
+    uint16_t distance_mm = polarOccGrid_data.polarOccGrid[i];
+    
+    if (distance_mm == 65535)  // No detection/invalid reading
+    {
+      laser_scan_msg.ranges[i] = std::numeric_limits<float>::infinity();
+      laser_scan_msg.intensities[i] = 0.0;
+    }
+    else
+    {
+      // Convert from millimeters to meters
+      laser_scan_msg.ranges[i] = distance_mm / 1000.0f;
+      laser_scan_msg.intensities[i] = 1.0;  // Valid detection
+    }
+  }
+  
+  RCLCPP_DEBUG(logger_, "LaserScan conversion completed");
+  return laser_scan_msg;
+}
+
+ifm3d_ros2::msg::ExtrinsicsCalibrationCorrection OdsModule::extract_ros_extrinsics_calibration_correction(ifm3d::Frame::Ptr frame)
+{
+  RCLCPP_DEBUG(logger_, "Handling Polar Occupancy Grid");
+  if (!frame->HasBuffer(ifm3d::buffer_id::O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION))
+  {
+    RCLCPP_INFO(logger_, "OdsModule: No extrinsics calibration correction information in frame");
+  }
+  RCLCPP_DEBUG(logger_, "Deserializing extrinsics calibration correction data");
+  auto extrinsicsCalibrationCorrection_data = ifm3d::ODSExtrinsicCalibrationCorrectionV1::Deserialize(frame->GetBuffer(ifm3d::buffer_id::O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION));
+
+  RCLCPP_DEBUG(logger_, "Filling the ROS message with extrinsics calibration correction data");
+  ifm3d_ros2::msg::ExtrinsicsCalibrationCorrection extrinsicsCalibrationCorrection_msg;
+  // Define the header
+  extrinsicsCalibrationCorrection_msg.header = std_msgs::msg::Header();
+  extrinsicsCalibrationCorrection_msg.header.frame_id = frame_id_;
+  
+  // No timestamps in deserialized structs explicitly so we use frame timestamps
+  std::vector<ifm3d::TimePointT> timestamps = frame->TimeStamps();
+  if (!timestamps.empty())
+  {
+      auto ts = timestamps[0];  // Or whichever index is meaningful
+      auto ns_since_epoch = std::chrono::duration_cast<std::chrono::nanoseconds>(ts.time_since_epoch()).count();
+
+      // Construct from nanoseconds
+      extrinsicsCalibrationCorrection_msg.header.stamp = rclcpp::Time(ns_since_epoch);
+  }else
+  {
+      RCLCPP_WARN(logger_, "Frame timestamps are empty; header.stamp not set");
+  }
+
+  // Extrinsics calibration correction data
+  extrinsicsCalibrationCorrection_msg.version = extrinsicsCalibrationCorrection_data.version;
+  extrinsicsCalibrationCorrection_msg.completion_rate = extrinsicsCalibrationCorrection_data.completion_rate;
+  extrinsicsCalibrationCorrection_msg.rot_delta_value = extrinsicsCalibrationCorrection_data.rot_delta_value;
+  extrinsicsCalibrationCorrection_msg.rot_delta_valid = extrinsicsCalibrationCorrection_data.rot_delta_valid;
+  extrinsicsCalibrationCorrection_msg.rot_head_to_user = extrinsicsCalibrationCorrection_data.rot_head_to_user;
+
+  RCLCPP_DEBUG(logger_, "Extrinsics calibration correction ready");
+  return extrinsicsCalibrationCorrection_msg;
+}
+
 void OdsModule::handle_frame(ifm3d::Frame::Ptr frame)
 {
   RCLCPP_DEBUG(logger_, "Handle frame");
@@ -102,6 +210,22 @@ void OdsModule::handle_frame(ifm3d::Frame::Ptr frame)
     OccupancyGridMsg grid_msg;
     grid_msg = this->extract_ros_occupancy_grid(frame);
     ros_occupancy_grid_publisher_->publish(grid_msg);
+  }
+
+  if (publish_polar_occupancy_grid_)
+  {
+    RCLCPP_DEBUG(logger_, "Creating polar occupancy grid laser scan message.");
+    PolarOccupancyGridMsg polar_occ_grid_msg;
+    polar_occ_grid_msg = this->extract_ros_polar_occupancy_grid(frame);
+    ros_polar_occupancy_grid_publisher_->publish(polar_occ_grid_msg);
+  }
+
+  if (publish_extrinsics_calibration_correction_)
+  {
+    RCLCPP_DEBUG(logger_, "Creating extrinsic calibration correction message.");
+    ExtrinsicsCalibrationCorrectionMsg extrinsics_calibration_correction_msg;
+    extrinsics_calibration_correction_msg = this->extract_ros_extrinsics_calibration_correction(frame);
+    ros_extrinsics_calibration_correction_publisher_->publish(extrinsics_calibration_correction_msg);
   }
 
   if (publish_costmap_)
@@ -122,10 +246,16 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn OdsModule::on_configure(const rc
 
   node_ptr_->get_parameter(frame_id_descriptor_.name, frame_id_);
   node_ptr_->get_parameter(publish_occupancy_grid_descriptor_.name, publish_occupancy_grid_);
+  node_ptr_->get_parameter(publish_polar_occupancy_grid_descriptor_.name, publish_polar_occupancy_grid_);
+  node_ptr_->get_parameter(publish_extrinsics_calibration_correction_descriptor_.name, publish_extrinsics_calibration_correction_);
   node_ptr_->get_parameter(publish_costmap_descriptor_.name, publish_costmap_);
   RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'", frame_id_descriptor_.name.c_str(), frame_id_.c_str());
   RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'", publish_occupancy_grid_descriptor_.name.c_str(),
               publish_occupancy_grid_ ? "true" : "false");
+  RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'", publish_polar_occupancy_grid_descriptor_.name.c_str(),
+              publish_polar_occupancy_grid_ ? "true" : "false");
+  RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'", publish_extrinsics_calibration_correction_descriptor_.name.c_str(),
+              publish_extrinsics_calibration_correction_ ? "true" : "false");
   RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'", publish_costmap_descriptor_.name.c_str(),
               publish_costmap_ ? "true" : "false");
 
@@ -135,6 +265,16 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn OdsModule::on_configure(const rc
   {
     ros_occupancy_grid_publisher_ = node_ptr_->create_publisher<OccupancyGridMsg>(
         "~/" + buffer_id_utils::topic_name_map[ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID], qos);
+  }
+  if (publish_polar_occupancy_grid_)
+  {
+    ros_polar_occupancy_grid_publisher_ = node_ptr_->create_publisher<PolarOccupancyGridMsg>(
+        "~/" + buffer_id_utils::topic_name_map[ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID], qos);
+  }
+  if (publish_extrinsics_calibration_correction_)
+  {
+    ros_extrinsics_calibration_correction_publisher_ = node_ptr_->create_publisher<ExtrinsicsCalibrationCorrectionMsg>(
+        "~/" + buffer_id_utils::topic_name_map[ifm3d::buffer_id::O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION], qos);
   }
   if (publish_costmap_)
   {
@@ -153,6 +293,8 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn OdsModule::on_cleanup(const rclc
   (void)previous_state;
 
   ros_occupancy_grid_publisher_.reset();
+  ros_polar_occupancy_grid_publisher_.reset();
+  ros_extrinsics_calibration_correction_publisher_.reset();
   ros_costmap_publisher_.reset();
   zones_publisher_.reset();
 
@@ -175,6 +317,14 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn OdsModule::on_activate(const rcl
   {
     this->ros_occupancy_grid_publisher_->on_activate();
   }
+  if (publish_polar_occupancy_grid_)
+  {
+    this->ros_polar_occupancy_grid_publisher_->on_activate();
+  }
+  if (publish_extrinsics_calibration_correction_)
+  {
+    this->ros_extrinsics_calibration_correction_publisher_->on_activate();
+  }
   if (publish_costmap_)
   {
     this->ros_costmap_publisher_->on_activate();
@@ -191,6 +341,14 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn OdsModule::on_deactivate(const r
   if (publish_occupancy_grid_)
   {
     this->ros_occupancy_grid_publisher_->on_deactivate();
+  }
+  if (publish_polar_occupancy_grid_)
+  {
+    this->ros_polar_occupancy_grid_publisher_->on_deactivate();
+  }
+  if (publish_extrinsics_calibration_correction_)
+  {
+    this->ros_extrinsics_calibration_correction_publisher_->on_deactivate();
   }
   if (publish_costmap_)
   {

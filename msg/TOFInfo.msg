@@ -1,4 +1,5 @@
 std_msgs/Header header
+# https://api.ifm3d.com/latest/_autosummary/ifm3dpy.deserialize.TOFInfoV4.html#ifm3dpy.deserialize.TOFInfoV4
 
 uint32 measurement_block_index
 float32 measurement_range_min

@@ -9,7 +9,8 @@
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""
-    pcic_port: 50010 # 2D stream connected to port 0
+    pcic_port: 50010  # 2D stream connected to port 0
+    publish_uncompressed: true  # If true, launch will spawn a republish node to provide rgb_uncompressed image only for RGB
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0

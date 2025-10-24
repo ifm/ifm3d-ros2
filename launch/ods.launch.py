@@ -25,7 +25,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "log_level",
             default_value="info",
-            description="To change RCLCPP log level for the camera node. ['debug', 'info', 'warn', 'error']",
+            description="RCLCPP log level for the ODS node. ['debug', 'info', 'warn', 'error']",
         )
     )
     declared_arguments.append(
@@ -53,21 +53,21 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "parameter_file_package",
             default_value="ifm3d_ros2",
-            description="Package containing the camera's YAML configuration.",
+            description="Package containing the ODS YAML configuration.",
         )
     )
     declared_arguments.append(
         DeclareLaunchArgument(
             "parameter_file_directory",
             default_value="config",
-            description="Directory inside of parameter_file_package containing the camera's YAML configuration.",
+            description="Directory inside parameter_file_package containing the ODS YAML configuration.",
         )
     )
     declared_arguments.append(
         DeclareLaunchArgument(
             "parameter_file_name",
             default_value="ods_default_parameters.yaml",
-            description="YAML file with the camera configuration.",
+            description="YAML file with the ODS configuration.",
         )
     )
 
@@ -93,7 +93,7 @@ def generate_launch_description():
         log_cmd=True,
     )
 
-    # Launching RViz2 conditionally, depending on the "visualition" argument
+    # Launching RViz2 conditionally, depending on the "visualization" argument
     rviz_node = Node(
         executable="rviz2",
         package="rviz2",

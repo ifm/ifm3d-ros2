@@ -13,6 +13,7 @@
 #include <functional>
 #include <fstream>
 #include <exception>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -101,13 +102,27 @@ TC_RETVAL OdsNode::on_configure(const rclcpp_lifecycle::State& prev_state)
 
   // If a configuration file is provided, configure the device.
   if (this->config_file_!=""){
-    std::ifstream file(this->config_file_);
+    std::string config_file_path = this->config_file_;
+    
+    // If it's a relative path, resolve it relative to the package share directory
+    if (!config_file_path.empty() && config_file_path[0] != '/') {
+      // Try to find the package share directory using ament_index
+      try {
+        std::string package_share_directory = ament_index_cpp::get_package_share_directory("ifm3d_ros2");
+        config_file_path = package_share_directory + "/" + config_file_path;
+        RCLCPP_INFO(this->logger_, "Resolved relative config file path to: %s", config_file_path.c_str());
+      } catch (const std::exception& e) {
+        RCLCPP_WARN(this->logger_, "Could not resolve package directory, using relative path as-is: %s", e.what());
+      }
+    }
+    
+    std::ifstream file(config_file_path);
     if (!file.is_open()) {
-      throw std::runtime_error("Could not open config file: " + this->config_file_);
+      throw std::runtime_error("Could not open config file: " + config_file_path);
     }
     std::stringstream buffer;
     buffer << file.rdbuf();
-    RCLCPP_INFO(this->logger_, "Setting configuration: %s",  buffer.str().c_str());
+    RCLCPP_INFO(this->logger_, "Setting configuration from file '%s': %s", config_file_path.c_str(), buffer.str().c_str());
     ifm3d::json config_json = json::parse(buffer.str()) ;
     this->o3r_->Set(config_json);
   }
@@ -183,15 +198,14 @@ TC_RETVAL OdsNode::on_activate(const rclcpp_lifecycle::State& prev_state)
   ifm3d::FrameGrabber::BufferList buffer_list;
   buffer_list.push_back(ifm3d::buffer_id::O3R_ODS_INFO);
   buffer_list.push_back(ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID);
+  buffer_list.push_back(ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID);
+  buffer_list.push_back(ifm3d::buffer_id::O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION);
 
   // Start framegrabbers and wait for the returned future
   this->fg_->Start(buffer_list).wait();
   RCLCPP_DEBUG(this->logger_, "Data FrameGrabber started, frames should be streaming");
 
-  this->fg_diag_->Start({}).wait();
-  RCLCPP_INFO(this->logger_, "Diagnostic monitoring active.");
-
-  // Transition function modules
+  // Transition function modules BEFORE starting diagnostic monitoring
   for (auto& module : this->modules_)
   {
     auto retval = module->on_activate(prev_state);
@@ -202,6 +216,10 @@ TC_RETVAL OdsNode::on_activate(const rclcpp_lifecycle::State& prev_state)
       return retval;
     }
   }
+
+  this->fg_diag_->Start({}).wait();
+  RCLCPP_INFO(this->logger_, "Diagnostic monitoring active.");
+
   return TC_RETVAL::SUCCESS;
 }
 
@@ -321,6 +339,12 @@ void OdsNode::init_params()  // TODO cleanup params
    *   - Define Descriptor
    *   - Declare Parameter
    */
+
+  rcl_interfaces::msg::ParameterDescriptor config_descriptor;
+  config_descriptor.name = "config_file";
+  config_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
+  config_descriptor.description = "Configuration file, in JSON format.";
+  this->declare_parameter("config_file", "", config_descriptor);
 
   rcl_interfaces::msg::ParameterDescriptor ip_descriptor;
   ip_descriptor.name = "ip";

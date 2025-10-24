@@ -1,6 +1,6 @@
 # Diagnostic 
 
-Both the camera node and the ODS node publish diagnostic information to the `/diagnostic` topic. 
+Both the camera node and the ODS node publish diagnostic information to the `/diagnostics` topic. 
 The diagnostic message contains an error code and a message, referring directly to an error from ifm3d or from the embedded software. 
 
 Below is an example of a diagnostic message:
@@ -15,7 +15,7 @@ status:
 - level: "\x02"
   name: ''
   message: ''
-  hardware_id: /ifm3d/diag_module
+  hardware_id: /ifm3d/camera
   values:
   - key: bootid
     value: '"71fd8e7d-385a-4f86-8a88-bb59f5112c73"'
@@ -28,5 +28,5 @@ status:
 ---
 ```
 
-For more details on the error codes and potential troubleshooting strategies, refer to the [O3R diagnostic documentation](../../../documentation/SoftwareInterfaces/ifmDiagnostic/index_diagnostic.md).
+For more details on the error codes and potential troubleshooting strategies, refer to the [O3R diagnostic documentation](https://ifm3d.com/latest/SoftwareInterfaces/ifmDiagnostic/diagnostic.html).
 

@@ -1,4 +1,5 @@
 std_msgs/Header header
+# https://api.ifm3d.com/latest/_autosummary/ifm3dpy.deserialize.RGBInfoV1.html#ifm3dpy.deserialize.RGBInfoV1
 
 uint32 version
 uint32 frame_counter

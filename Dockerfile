@@ -30,29 +30,28 @@ RUN apt-get update && apt-get install -y \
     libxmlrpc-c++8v5 \
     wget \
     && rm -rf /var/lib/apt/lists/*
-# Update libcurl4 library for the dependancy of ifm3dAPI 1.5.3 & requires libcurl4 version 16
+# Update libcurl4 library for the dependancy of ifm3dAPI >= 1.5.3 & requires libcurl4 version 16
 RUN apt-get update && apt-get upgrade -y libcurl4
 # Install ifm3d using the deb files
 RUN mkdir /home/ifm/ifm3d
-ADD https://github.com/ifm/ifm3d/releases/download/v${IFM3D_VERSION}/ifm3d-ubuntu-${UBUNTU_VERSION}-${ARCH}-debs_${IFM3D_VERSION}.tar /home/ifm/ifm3d
+ADD https://github.com/ifm/ifm3d/releases/download/v${IFM3D_VERSION}/ifm3d-ubuntu-${UBUNTU_VERSION}-${ARCH}-${IFM3D_VERSION}.deb /home/ifm/ifm3d
 RUN cd /home/ifm/ifm3d &&\
-    tar -xf ifm3d-ubuntu-${UBUNTU_VERSION}-${ARCH}-debs_${IFM3D_VERSION}.tar &&  \
     dpkg -i *.deb
 
 # OPTION 1: build from local workspace, i.e. requires the git repo to be cloned to the local workspace
-ADD . /home/ifm/colcon_ws/src/ifm3d-ros2
-RUN cd /home/ifm/colcon_ws && \
+ADD . /home/ifm/ros2_ws/src/ifm3d-ros2
+RUN cd /home/ifm/ros2_ws && \
     rosdep update --rosdistro=${ROS_DISTRO} && \
     rosdep install --from-path src -y --ignore-src -t build
 
 # OPTION 2: clone and build from git repo, i.e. download specific repo branch during build process
 # Clone and build ifm3d-ros2 repo
-#RUN mkdir -p /home/ifm/colcon_ws/src && \
-#    cd /home/ifm/colcon_ws/src && \
+#RUN mkdir -p /home/ifm/ros2_ws/src && \
+#    cd /home/ifm/ros2_ws/src && \
 #    git clone ${IFM3D_ROS2_REPO} -b ${IFM3D_ROS2_BRANCH} --single-branch
 
 SHELL ["/bin/bash", "-c"]
-RUN cd /home/ifm/colcon_ws && \
+RUN cd /home/ifm/ros2_ws && \
     source /opt/ros/${ROS_DISTRO}/setup.bash && \
     colcon build --cmake-args -DBUILD_TESTING=OFF
 
@@ -62,7 +61,7 @@ ARG FINAL_IMAGE_TAG
 
 FROM ${BASE_IMAGE}:${FINAL_IMAGE_TAG}
 # Copy files built in previous stage
-COPY --from=build /home/ifm/colcon_ws /home/ifm/colcon_ws
+COPY --from=build /home/ifm/ros2_ws /home/ifm/ros2_ws
 COPY --from=build /home/ifm/ifm3d/*.deb /home/ifm/ifm3d/
 WORKDIR /home/ifm
 
@@ -83,7 +82,7 @@ RUN apt-get update && apt-get upgrade -y libcurl4
 RUN cd /home/ifm/ifm3d &&\
     dpkg -i *.deb
 
-RUN cd /home/ifm/colcon_ws && \
+RUN cd /home/ifm/ros2_ws && \
     apt-get update &&\
     rosdep init && \
     rosdep update --rosdistro=${ROS_DISTRO} && \

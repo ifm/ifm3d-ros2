@@ -21,7 +21,7 @@ DiagModule::DiagModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::S
   : FunctionModule(logger), o3r_(o3r), node_ptr_(node_ptr)
 {
   RCLCPP_DEBUG(logger_, "DiagModule contructor called.");
-  hardware_id_ = std::string(node_ptr_->get_namespace()) + "/" + std::string(get_name());
+  hardware_id_ = std::string(node_ptr_->get_namespace()) + "/" + std::string(node_ptr_->get_name());
   RCLCPP_INFO(logger_, "hardware_id: %s", hardware_id_.c_str());
 }
 
@@ -35,10 +35,29 @@ DiagModule::DiagnosticStatusMsg DiagModule::create_diagnostic_status(const uint8
     RCLCPP_WARN(logger_, "Empty JSON received from callback with level %d", level);
     return msg;
   }
+  
+  if (parsed_json.contains("severity"))
+  {
+    std::string severity = parsed_json["severity"];
+    if (severity == "info") {
+      msg.level = diagnostic_msgs::msg::DiagnosticStatus::OK;  // No issue
+    }
+    else if (severity == "minor") {
+      msg.level = diagnostic_msgs::msg::DiagnosticStatus::WARN; // Minor issue
+    }
+    else if (severity == "major") {
+      msg.level = diagnostic_msgs::msg::DiagnosticStatus::ERROR; // Major issue
+    }
+    else if (severity == "critical") {
+      msg.level = diagnostic_msgs::msg::DiagnosticStatus::ERROR; // Critical issue
+    }
+  }
+
   if (parsed_json.contains("source"))
   {
     msg.hardware_id = parsed_json["source"];
   }
+
   if (parsed_json.contains("name"))
   {
     msg.name = parsed_json["name"];
@@ -89,7 +108,19 @@ DiagModule::DiagnosticArrayMsg DiagModule::create_diagnostic_message(const uint8
   {
     try
     {
-      diag_msg.header.stamp = rclcpp::Time(parsed_json["stats"]["lastActivated"]["timestamp"]);
+      uint64_t ns_since_epoch = 0;
+
+      // Try top-level timestamp first
+      if (parsed_json.contains("timestamp") && parsed_json["timestamp"].is_string())
+      {
+        ns_since_epoch = std::stoull(parsed_json["timestamp"].get<std::string>());
+      }
+      else if (parsed_json.contains("timestamp") && parsed_json["timestamp"].is_number())
+      {
+        ns_since_epoch = parsed_json["timestamp"].get<uint64_t>();
+      }
+
+      diag_msg.header.stamp = rclcpp::Time(ns_since_epoch);
     }
     catch (const std::exception& e)
     {

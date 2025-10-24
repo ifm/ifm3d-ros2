@@ -28,8 +28,10 @@ TofModule::TofModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::Sha
     "EXTRINSIC_CALIB",        //
     "NORM_AMPLITUDE_IMAGE",   //
     "RADIAL_DISTANCE_IMAGE",  //
-    "TOF_INFO",
-    "XYZ",  //
+    "RADIAL_DISTANCE_NOISE",  //
+    "REFLECTIVITY",           //
+    "TOF_INFO",               //
+    "XYZ",                    //
   };
 
   buffer_id_list_descriptor_.name = "buffer_id_list";
