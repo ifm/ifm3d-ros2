@@ -9,30 +9,13 @@ stages:
 .build_matrix:
   parallel:
     matrix:
-      - RUN_NAME: "22.04+1.4.3"  # No effect on CI, just for making the gitlab pipeline view easier to read
+      - RUN_NAME: "22.04+1.6.8"
         CI_IMAGE: ros:humble-ros-core-jammy
-        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.4.3/ifm3d-ubuntu-22.04-amd64-debs_1.4.3.tar
+        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.6.12/ifm3d-ubuntu-22.04-amd64-1.6.12.deb
         ROS_DISTRO: humble
-      - RUN_NAME: "22.04+1.5.0"
-        CI_IMAGE: ros:humble-ros-core-jammy
-        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.5.0/ifm3d-ubuntu-22.04-amd64-debs_1.5.0.tar
-        ROS_DISTRO: humble
-      - RUN_NAME: "22.04+1.5.1"
-        CI_IMAGE: ros:humble-ros-core-jammy
-        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.5.1/ifm3d-ubuntu-22.04-amd64-debs_1.5.1.tar
-        ROS_DISTRO: humble
-      - RUN_NAME: "22.04+1.5.2"
-        CI_IMAGE: ros:humble-ros-core-jammy
-        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.5.2/ifm3d-ubuntu-22.04-amd64-debs_1.5.2.tar
-        ROS_DISTRO: humble
-      - RUN_NAME: "22.04+1.5.3"
-        CI_IMAGE: ros:humble-ros-core-jammy
-        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.5.3/ifm3d-ubuntu-22.04-amd64-debs_1.5.3.tar
-        ROS_DISTRO: humble
-
-      - RUN_NAME: "24.04+1.5.3"
+      - RUN_NAME: "24.04+1.6.8"
         CI_IMAGE: ros:jazzy-ros-core-noble
-        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.5.3/ifm3d-ubuntu-22.04-amd64-debs_1.5.3.tar
+        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.6.12/ifm3d-ubuntu-24.04-amd64-1.6.12.deb
         ROS_DISTRO: jazzy
 
 
@@ -42,18 +25,34 @@ build:  # very short job name to keep the pipeline preview readable on Gitlab
   parallel: !reference [.build_matrix,parallel]
 
   before_script:
-  # Download the released version ofifm3d from github
+  # Download the released version of ifm3d from github
   - apt-get update
-  - apt-get install -y curl
-  - curl --location $IFM3D_PACKAGE_PATH | tar x
-  # Install dependencies
-  - apt-get install -y libboost-all-dev git libcurl4-openssl-dev libgtest-dev libgoogle-glog-dev
-    libxmlrpc-c++8-dev libopencv-dev libpcl-dev libproj-dev python3-dev python3-pip build-essential
-    coreutils findutils cmake locales ninja-build
-  # Install ifm3d packages
-  - dpkg -i ./ifm3d_*.deb
+  - apt-get install -y curl file
+  # Download the released version of ifm3d from github
+  - curl --location "$IFM3D_PACKAGE_PATH" -o ifm3d_package
+
+  - EXTENSION="${IFM3D_PACKAGE_PATH##*.}"
+  - |
+    if [[ "$EXTENSION" == "tar" ]]; then
+      echo "Extracting tar file..."
+      mkdir -p extracted
+      tar -xvf ifm3d_package -C extracted
+      # Install .deb packages from extracted directory
+      dpkg -i extracted/*.deb
+    elif [[ "$EXTENSION" == "deb" ]]; then
+      echo "Installing .deb package..."
+      dpkg -i ifm3d_package
+    else
+      echo "Unsupported file type: $EXTENSION"
+      exit 1
+    fi
+  # - curl --location $IFM3D_PACKAGE_PATH | tar x
+
+  # # Install ifm3d packages
+  # - dpkg -i ./ifm3d_*.deb
   # Cleanup
-  - rm ifm3d_*.deb
+  - rm -f ifm3d_package
+  - rm -rf extracted
 
   script:
   # Install some dependencies, update rosdep

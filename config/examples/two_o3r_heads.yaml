@@ -10,7 +10,9 @@
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""
-    pcic_port: 50010 # 2D stream of left camera connected to port 0
+    pcic_port: 50010  # 2D stream of left camera connected to port 0
+    publish_uncompressed: true  # If true, launch will spawn a republish node to provide rgb_uncompressed image only for RGB
+
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0
@@ -30,12 +32,14 @@
       - EXTRINSIC_CALIB
       - NORM_AMPLITUDE_IMAGE
       - RADIAL_DISTANCE_IMAGE
+      - RADIAL_DISTANCE_NOISE
+      - REFLECTIVITY
       - TOF_INFO
       - XYZ
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""
-    pcic_port: 50012 # 3D stream of left camera connected to Port 2
+    pcic_port: 50012  # 3D stream of left camera connected to port 2
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0
@@ -44,7 +48,7 @@
       mounting_frame_name: "left_camera_3d_mounting_link"
       optical_frame_name: "left_camera_3d_optical_link"
       publish_base_to_mounting: true
-      publish_mounting_to_optical: true    
+      publish_mounting_to_optical: true
     use_sim_time: false
     xmlrpc_port: 80
 
@@ -56,7 +60,8 @@
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""
-    pcic_port: 50011 # 2D stream of left camera connected to port 1
+    pcic_port: 50011  # 2D stream of right camera connected to port 1
+    publish_uncompressed: true  # If true, launch will spawn a republish node to provide rgb_uncompressed image only for RGB
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0
@@ -65,7 +70,7 @@
       mounting_frame_name: "right_camera_2d_mounting_link"
       optical_frame_name: "right_camera_2d_optical_link"
       publish_base_to_mounting: true
-      publish_mounting_to_optical: true    
+      publish_mounting_to_optical: true
     use_sim_time: false
     xmlrpc_port: 80
 
@@ -76,12 +81,14 @@
       - EXTRINSIC_CALIB
       - NORM_AMPLITUDE_IMAGE
       - RADIAL_DISTANCE_IMAGE
+      - RADIAL_DISTANCE_NOISE
+      - REFLECTIVITY
       - TOF_INFO
       - XYZ
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""
-    pcic_port: 50013 # 3D stream of right camera connected to Port 3
+    pcic_port: 50013  # 3D stream of right camera connected to port 3
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0
@@ -90,6 +97,6 @@
       mounting_frame_name: "right_camera_3d_mounting_link"
       optical_frame_name: "right_camera_3d_optical_link"
       publish_base_to_mounting: true
-      publish_mounting_to_optical: true       
+      publish_mounting_to_optical: true
     use_sim_time: false
     xmlrpc_port: 80

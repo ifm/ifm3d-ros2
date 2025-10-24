@@ -1,6 +1,24 @@
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Changelog for package ifm3d-ros2
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+1.3
+===
+
+1.3.0
+-----
+* Update for compatibility with O3R FW >= 1.20.29 and ifm3d >= 1.6.12
+  * Tested with FW 1.20.29 and ifm3d API 1.6.12
+  * Tested with FW 1.21.6 and ifm3d API 1.6.12
+* Add support for diagnostics severity:
+  * The diagnostics message level will depend on the severity of the diagnostic message.
+* Add support for the extrinsic calibration correction buffer:
+  * The extrinsic calibration correction buffer is published on the `"~/ods_extrinsics_calibration_correction"` topic.
+* Add support for the polar occupancy grid buffer:
+  * The polar occupancy grid is published on the `"~/ods_polar_occupancy_grid"` topic.
+* Fixed an issue with the published intrinsic parameters to the `camera_info` topic.
+* Added an option to publish uncompressed images.
+* Added publication of reflectivity and distance noise
+
 1.2
 ===
 

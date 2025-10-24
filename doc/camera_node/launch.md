@@ -18,17 +18,17 @@ $ ros2 node info /ifm3d/camera
     /parameter_events: rcl_interfaces/msg/ParameterEvent
   Publishers:
     /diagnostics: diagnostic_msgs/msg/DiagnosticArray
-    /ifm3d/camera/INTRINSIC_CALIB: ifm3d_ros2/msg/Intrinsics
-    /ifm3d/camera/INVERSE_INTRINSIC_CALIBRATION: ifm3d_ros2/msg/InverseIntrinsics
-    /ifm3d/camera/RGB_INFO: ifm3d_ros2/msg/RGBInfo
-    /ifm3d/camera/TOF_INFO: ifm3d_ros2/msg/TOFInfo
     /ifm3d/camera/amplitude: sensor_msgs/msg/Image
     /ifm3d/camera/camera_info: sensor_msgs/msg/CameraInfo
     /ifm3d/camera/cloud: sensor_msgs/msg/PointCloud2
     /ifm3d/camera/confidence: sensor_msgs/msg/Image
     /ifm3d/camera/distance: sensor_msgs/msg/Image
+    /ifm3d/camera/distance_noise: sensor_msgs/msg/Image
     /ifm3d/camera/extrinsics: ifm3d_ros2/msg/Extrinsics
-    /ifm3d/camera/rgb: sensor_msgs/msg/CompressedImage
+    /ifm3d/camera/intrinsic_calib: ifm3d_ros2/msg/Intrinsics
+    /ifm3d/camera/inverse_intrinsic_calibration: ifm3d_ros2/msg/InverseIntrinsics
+    /ifm3d/camera/reflectivity: sensor_msgs/msg/Image
+    /ifm3d/camera/tof_info: ifm3d_ros2/msg/TOFInfo
     /ifm3d/camera/transition_event: lifecycle_msgs/msg/TransitionEvent
     /parameter_events: rcl_interfaces/msg/ParameterEvent
     /rosout: rcl_interfaces/msg/Log
@@ -36,6 +36,7 @@ $ ros2 node info /ifm3d/camera
   Service Servers:
     /ifm3d/camera/Config: ifm3d_ros2/srv/Config
     /ifm3d/camera/Dump: ifm3d_ros2/srv/Dump
+    /ifm3d/camera/GetDiag: ifm3d_ros2/srv/GetDiag
     /ifm3d/camera/Softoff: ifm3d_ros2/srv/Softoff
     /ifm3d/camera/Softon: ifm3d_ros2/srv/Softon
     /ifm3d/camera/change_state: lifecycle_msgs/srv/ChangeState
@@ -56,6 +57,10 @@ $ ros2 node info /ifm3d/camera
   Action Clients:
 
 ```
+
+## Optional uncompressed RGB topic
+
+For visualization purposes, the camera launch file can optionally provide uncompressed RGB images. For detailed information on configuring and using uncompressed RGB topics, see the [Visualization documentation](../visualization.md#automatic-uncompressed-image-publishing).
 
 :::{note}
 We also provide a helper launch file to start multiple camera nodes. See the documentation [here](multi_head.md).

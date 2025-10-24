@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(ifm3d_ros2)
 
+set(USE_SCOPED_HEADER_INSTALL_DIR ON)
+
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
@@ -10,6 +12,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 set(IFM3D_ROS2_DEPS
+  ament_index_cpp
   builtin_interfaces
   diagnostic_msgs
   geometry_msgs
@@ -27,10 +30,20 @@ set(IFM3D_ROS2_DEPS
   tf2_ros
   )
 
-find_package(ifm3d 1.2.6 CONFIG REQUIRED COMPONENTS
-  device
-  framegrabber
-  )
+# find_package(ifm3d 1.2.6 CONFIG REQUIRED COMPONENTS
+#   device
+#   framegrabber
+#   )
+
+# Find ifm3d dependencies
+find_package(ifm3d REQUIRED CONFIG)
+if(ifm3d_VERSION VERSION_GREATER_EQUAL "1.6.12")
+  set(IFM3D_LIBS ifm3d::ifm3d)
+else()
+  find_package(ifm3d REQUIRED CONFIG COMPONENTS device framegrabber deserialize swupdater)
+  set(IFM3D_LIBS ifm3d::device ifm3d::framegrabber ifm3d::deserialize ifm3d::swupdater)
+endif()
+
 find_package(ament_cmake_auto REQUIRED)
 find_package(ament_cmake_ros REQUIRED)
 
@@ -43,6 +56,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/RGBInfo.msg"
   "msg/TOFInfo.msg"
   "msg/Zones.msg"
+  "msg/ExtrinsicsCalibrationCorrection.msg"
   "srv/Dump.srv"
   "srv/Config.srv"
   "srv/GetDiag.srv"
@@ -65,14 +79,14 @@ add_library(ifm3d_ros2_buffer_conversions SHARED
   src/lib/buffer_conversions.cpp)
 target_link_libraries(ifm3d_ros2_buffer_conversions
   "${msgs_typesupport_target}"
-  ifm3d::framegrabber)
+  ${IFM3D_LIBS})
 ament_target_dependencies(ifm3d_ros2_buffer_conversions ${IFM3D_ROS2_DEPS})
 
 add_library(ifm3d_ros2_buffer_id_utils SHARED
   src/lib/buffer_id_utils.cpp)
 target_link_libraries(ifm3d_ros2_buffer_id_utils 
   "${msgs_typesupport_target}"
-  ifm3d::framegrabber)
+  ${IFM3D_LIBS})
 ament_target_dependencies(ifm3d_ros2_buffer_id_utils ${IFM3D_ROS2_DEPS})
 
 # ifm3d camera "component" (.so) state machine ("lifecycle node")
@@ -89,8 +103,7 @@ target_link_libraries(ifm3d_ros2_camera_node
   "${msgs_typesupport_target}"
   ifm3d_ros2_buffer_conversions
   ifm3d_ros2_buffer_id_utils
-  ifm3d::device
-  ifm3d::framegrabber
+  ${IFM3D_LIBS}
   )
 ament_target_dependencies(ifm3d_ros2_camera_node ${IFM3D_ROS2_DEPS})
 rclcpp_components_register_nodes(
@@ -110,8 +123,7 @@ target_link_libraries(ifm3d_ros2_ods_node
   "${msgs_typesupport_target}"
   ifm3d_ros2_buffer_conversions
   ifm3d_ros2_buffer_id_utils
-  ifm3d::device
-  ifm3d::framegrabber
+  ${IFM3D_LIBS}
   )
 ament_target_dependencies(ifm3d_ros2_ods_node ${IFM3D_ROS2_DEPS})
 rclcpp_components_register_nodes(

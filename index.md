@@ -1,4 +1,9 @@
 # ifm3d-ros2
+
+```{include} README.md
+:start-after: # ifm3d-ros2 overview
+```
+
 :::{toctree}
     :maxdepth: 2
 Overview <README>

@@ -28,7 +28,7 @@ file ~/colcon_ws/install/ifm3d_ros2/share/ifm3d_ros2/config/ods_default_paramete
 [ods_standalone-1] [INFO] [1728931868.040638930] [ifm3d.ods]: OdsModule created.
 [ods_standalone-1] [INFO] [1728931868.040644930] [ifm3d.ods]: Creating DiagModule...
 [ods_standalone-1] [INFO] [1728931868.040675690] [ifm3d.ods]: FunctionModule contructor called.
-[ods_standalone-1] [INFO] [1728931868.040736808] [ifm3d.ods]: hardware_id: /ifm3d/diag_module
+[ods_standalone-1] [INFO] [1728931868.040736808] [ifm3d.ods]: hardware_id: /ifm3d/ods
 [ods_standalone-1] [INFO] [1728931868.040756934] [ifm3d.ods]: DiagModule created.
 [ods_standalone-1] [INFO] [1728931868.040803035] [ifm3d.ods]: OdsModule: on_configure called
 [ods_standalone-1] [INFO] [1728931868.055527902] [ifm3d.ods]: Parameter ods.frame_id set to 'ods_frame'

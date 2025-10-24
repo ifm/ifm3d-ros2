@@ -31,7 +31,7 @@ ifm3d_ros2.srv.Dump_Response(status=0, config='{"device":{"clock":{"currentTime"
 Below you can see an example on how to configure your camera via a ROS service call. The JSON string can be a partial JSON string. It only needs to follow basic JSON syntax. Please wrap the JSON string in a YAML syntax and use the field `"json"`.
 
 ```bash
-$ ros2 service call /ifm3d/camera/Config ifm3d_ros2/srv/Config "{json: '{\"ports\":{\"port0\":{\"mode\":\"standard_range4m\"}}}'}"
+$ ros2 service call /ifm3d/camera/Config ifm3d_ros2/srv/Config "{json: '{\"ports\":{\"port2\":{\"mode\":\"standard_range4m\"}}}'}"
 requester: making request: ifm3d_ros2.srv.Config_Request(json='{"ports":{"port2":{"mode":"standard_range4m"}}}')
 
 response:

@@ -3,6 +3,7 @@
 
 /ifm3d/camera:
   ros__parameters:
+    config_file: "" #"config/o3r_configs/o3r_one_head_calibration_only.json"  # Optional: path to JSON configuration file
     buffer_id_list:
       - CONFIDENCE_IMAGE
       - EXTRINSIC_CALIB
@@ -11,11 +12,14 @@
       - JPEG_IMAGE
       - NORM_AMPLITUDE_IMAGE
       - RADIAL_DISTANCE_IMAGE
+      - RADIAL_DISTANCE_NOISE
+      - REFLECTIVITY
       - RGB_INFO
       - TOF_INFO
       - XYZ
     ip: 192.168.0.69
-    pcic_port: 50010
+    pcic_port: 50012  # port2 of the VPU
+    publish_uncompressed: true  # If true, launch will spawn a republish node to provide rgb_uncompressed image only for RGB
     tf:
       base_frame_name: "ifm_base_link"
       mounting_frame_name: "camera_mounting_link"

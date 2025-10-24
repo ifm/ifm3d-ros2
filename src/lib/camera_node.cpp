@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <limits>
 #include <sstream>
 #include <string>
@@ -92,18 +93,31 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   this->o3r_ = std::make_shared<ifm3d::O3R>(this->ip_, this->xmlrpc_port_);
   RCLCPP_INFO(this->logger_, "Initializing FrameGrabber");
   this->fg_ = std::make_shared<ifm3d::FrameGrabber>(this->o3r_, this->pcic_port_);
-  // We do not use the asynchronous diagnostic right now, so no need to declare
-  // the diagnostic framegrabber
-  // this->fg_diag_ = std::make_shared<ifm3d::FrameGrabber>(this->o3r_, 50009);
+  RCLCPP_DEBUG(this->logger_, "Initializing FrameGrabber for diagnostics");
+  this->fg_diag_ = std::make_shared<ifm3d::FrameGrabber>(this->o3r_, this->o3r_->Port("diagnostics").pcic_port);
 
   if (this->config_file_!=""){
-    std::ifstream file(this->config_file_);
+    std::string config_file_path = this->config_file_;
+    
+    // If it's a relative path, resolve it relative to the package share directory
+    if (!config_file_path.empty() && config_file_path[0] != '/') {
+      // Try to find the package share directory using ament_index
+      try {
+        std::string package_share_directory = ament_index_cpp::get_package_share_directory("ifm3d_ros2");
+        config_file_path = package_share_directory + "/" + config_file_path;
+        RCLCPP_INFO(this->logger_, "Resolved relative config file path to: %s", config_file_path.c_str());
+      } catch (const std::exception& e) {
+        RCLCPP_WARN(this->logger_, "Could not resolve package directory, using relative path as-is: %s", e.what());
+      }
+    }
+    
+    std::ifstream file(config_file_path);
     if (!file.is_open()) {
-      throw std::runtime_error("Could not open config file: " + this->config_file_);
+      throw std::runtime_error("Could not open config file: " + config_file_path);
     }
     std::stringstream buffer;
     buffer << file.rdbuf();
-    RCLCPP_INFO(this->logger_, "Setting configuration: %s",  buffer.str().c_str());
+    RCLCPP_INFO(this->logger_, "Setting configuration from file '%s': %s", config_file_path.c_str(), buffer.str().c_str());
     ifm3d::json config_json = json::parse(buffer.str()) ;
     this->o3r_->Set(config_json);
   }
@@ -161,12 +175,13 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   //
   RCLCPP_DEBUG(this->logger_, "Creating DiagModule...");
   this->diag_module_ = std::make_shared<DiagModule>(this->get_logger(), shared_from_this(), this->o3r_);
-  RCLCPP_DEBUG(this->logger_, "DiagModule created.");
+  RCLCPP_INFO(this->logger_, "DiagModule created successfully.");
 
   //
   // Create a list of all the modules to reduce duplicate code
   //
   this->modules_.push_back(this->diag_module_);
+  RCLCPP_INFO(this->logger_, "DiagModule added to modules list. Total modules: %zu", this->modules_.size());
 
   // Transition function modules
   for (auto module : this->modules_)
@@ -195,28 +210,12 @@ TC_RETVAL CameraNode::on_activate(const rclcpp_lifecycle::State& prev_state)
   RCLCPP_INFO(this->logger_, "on_activate(): %s -> %s", prev_state.label().c_str(),
               this->get_current_state().label().c_str());
 
-  // Register Callbacks to handle new frames and print errors
-  this->fg_->OnNewFrame(std::bind(&CameraNode::frame_callback, this, std::placeholders::_1));
-  this->fg_->OnError(std::bind(&CameraNode::error_callback, this, std::placeholders::_1));
-
-  // Registering the error and notification callbacks is currently not necessary,
-  // as currently we only use the periodic diagnostic poll.
-  // this->fg_diag_->OnAsyncError(
-  //     std::bind(&CameraNode::async_error_callback, this, std::placeholders::_1, std::placeholders::_2));
-  // this->fg_diag_->OnAsyncNotification(
-  //     std::bind(&CameraNode::async_notification_callback, this, std::placeholders::_1, std::placeholders::_2));
-
-  // Start the Framegrabber, needs a BufferList (a vector of std::variant)
-  RCLCPP_INFO(this->logger_, "Starting the Framegrabber...");
-  this->fg_->Start(this->buffer_list_).wait();
-  // Currently, the diagnostic framegrabber is not used as we are only using the
-  // periodic diagnostic
-  // this->fg_diag_->Start({}).wait();
-  RCLCPP_INFO(this->logger_, "Framegrabber started.");
-
-  // Transition function modules
+  // Transition function modules first (including DiagModule)
+  // This ensures diagnostic publishers are active before FrameGrabber starts
+  RCLCPP_INFO(this->logger_, "Activating %zu modules...", this->modules_.size());
   for (auto module : this->modules_)
   {
+    RCLCPP_INFO(this->logger_, "Activating module: %s", module->get_name().c_str());
     auto retval = module->on_activate(prev_state);
     if (retval != TC_RETVAL::SUCCESS)
     {
@@ -224,7 +223,24 @@ TC_RETVAL CameraNode::on_activate(const rclcpp_lifecycle::State& prev_state)
       // TODO de-transition previous modules
       return retval;
     }
+    RCLCPP_INFO(this->logger_, "Module %s activated successfully.", module->get_name().c_str());
   }
+
+  // Register Callbacks to handle new frames and print errors
+  this->fg_->OnNewFrame(std::bind(&CameraNode::frame_callback, this, std::placeholders::_1));
+  this->fg_->OnError(std::bind(&CameraNode::error_callback, this, std::placeholders::_1));
+
+  // Register async error and notification callbacks for diagnostic monitoring
+  this->fg_diag_->OnAsyncError(
+      std::bind(&CameraNode::async_error_callback, this, std::placeholders::_1, std::placeholders::_2));
+  this->fg_diag_->OnAsyncNotification(
+      std::bind(&CameraNode::async_notification_callback, this, std::placeholders::_1, std::placeholders::_2));
+
+  // Start the Framegrabber, needs a BufferList (a vector of std::variant)
+  RCLCPP_INFO(this->logger_, "Starting the Framegrabber...");
+  this->fg_->Start(this->buffer_list_).wait();
+  this->fg_diag_->Start({}).wait();
+  RCLCPP_INFO(this->logger_, "Framegrabber and diagnostic monitoring started.");
 
   return TC_RETVAL::SUCCESS;
 }
@@ -236,6 +252,7 @@ TC_RETVAL CameraNode::on_deactivate(const rclcpp_lifecycle::State& prev_state)
 
   RCLCPP_INFO(logger_, "Stopping FrameGrabber...");
   this->fg_->Stop().wait();
+  this->fg_diag_->Stop();
 
   // Transition function modules
   for (auto module : this->modules_)
