@@ -1,0 +1,53 @@
+.publish_template:
+  stage: publish
+  image:
+    name: nexus.dev.ifm:20443/tools/kaniko:$KANIKO_VERSION
+    entrypoint: [""]
+  parallel: !reference [.build_matrix, parallel]
+  rules: !reference [.publish_rules, rules]
+  before_script:
+    - export IFM3D_ROS2_BRANCH=$(git ls-remote --tags https://github.com/ifm/ifm3d-ros2.git | awk -F'/' '{print $3}' | grep "v.*" | sort -V | tail -n1)
+    - mkdir -p /kaniko/.docker $CI_PROJECT_DIR/.kaniko-cache
+    - echo "{\"auths\":{\"ghcr.io\":{\"auth\":\"$(echo -n "$GHCR_USERNAME:$GHCR_TOKEN" | base64)\"}}}" > /kaniko/.docker/config.json
+    - |
+      if [[ "$CI_PIPELINE_SOURCE" == "merge_request_event" ]]; then
+        export DOCKER_TAG="dev-${BUILD_IMAGE_TAG}-${ARCH}"
+      else
+        export DOCKER_TAG="${IFM3D_VERSION}-${IFM3D_ROS2_BRANCH}-${BUILD_IMAGE_TAG}-${ARCH}"
+      fi
+  script:
+    - |
+      echo "[INFO] Building and pushing: $IMAGE_REGISTRY/$IMAGE_NAME:$DOCKER_TAG"
+
+      /kaniko/executor \
+        --context "$CI_PROJECT_DIR" \
+        --dockerfile "$CI_PROJECT_DIR/Dockerfile" \
+        --destination "$IMAGE_REGISTRY/$IMAGE_NAME:$DOCKER_TAG" \
+        --cache=true \
+        --cache-copy-layers=true \
+        --cache-ttl=24h \
+        --cache-dir "$CI_PROJECT_DIR/.kaniko-cache" \
+        --build-arg ARCH=$ARCH \
+        --build-arg BASE_IMAGE=$BASE_IMAGE \
+        --build-arg BUILD_IMAGE_TAG=$BUILD_IMAGE_TAG \
+        --build-arg FINAL_IMAGE_TAG=$FINAL_IMAGE_TAG \
+        --build-arg IFM3D_VERSION=$IFM3D_VERSION \
+        --build-arg UBUNTU_VERSION=$UBUNTU_VERSION \
+        --build-arg ROS_DISTRO=$BUILD_IMAGE_TAG \
+        --build-arg IFM3D_ROS2_REPO=https://github.com/ifm/ifm3d-ros2.git \
+        --build-arg IFM3D_ROS2_BRANCH=$IFM3D_ROS2_BRANCH
+  cache:                      
+    paths:                  
+      - .kaniko-cache
+
+publish:amd64:
+  extends: .publish_template
+  tags: [shared-docker]
+  rules:
+    - if: '$ARCH == "amd64"'
+
+publish:arm64:
+  extends: .publish_template
+  tags: [shared-docker-aarch64]
+  rules:
+    - if: '$ARCH == "arm64"'

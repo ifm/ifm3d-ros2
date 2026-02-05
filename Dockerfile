@@ -9,10 +9,10 @@ ARG FINAL_IMAGE_TAG
 
 FROM ${BASE_IMAGE}:${BUILD_IMAGE_TAG} AS build
 ARG ARCH
-ARG IFM3D_ROS2_BRANCH
 ARG IFM3D_ROS2_REPO
 ARG IFM3D_VERSION
 ARG UBUNTU_VERSION
+ARG ROS_DISTRO
 
 # Create the ifm user
 RUN id ifm 2>/dev/null || useradd --uid 30000 --create-home -s /bin/bash -U ifm
@@ -41,11 +41,15 @@ RUN cd /home/ifm/ifm3d &&\
 # OPTION 1: build from local workspace, i.e. requires the git repo to be cloned to the local workspace
 ADD . /home/ifm/ros2_ws/src/ifm3d-ros2
 RUN cd /home/ifm/ros2_ws && \
+    apt-get update && \
     rosdep update --rosdistro=${ROS_DISTRO} && \
     rosdep install --from-path src -y --ignore-src -t build
 
-# OPTION 2: clone and build from git repo, i.e. download specific repo branch during build process
-# Clone and build ifm3d-ros2 repo
+# OPTION 2: PIPELINE FAILS IF UNCOMMENTED
+# UNCOMMENT ONLY FOR LOCAL USAGE TO CLONE AND BUILD FROM SPECIFIC BRANCH
+# PASS BUILD ARG DURING BUILD
+
+# ARG IFM3D_ROS2_BRANCH
 #RUN mkdir -p /home/ifm/ros2_ws/src && \
 #    cd /home/ifm/ros2_ws/src && \
 #    git clone ${IFM3D_ROS2_REPO} -b ${IFM3D_ROS2_BRANCH} --single-branch
@@ -60,6 +64,7 @@ ARG BASE_IMAGE
 ARG FINAL_IMAGE_TAG
 
 FROM ${BASE_IMAGE}:${FINAL_IMAGE_TAG}
+ARG ROS_DISTRO
 # Copy files built in previous stage
 COPY --from=build /home/ifm/ros2_ws /home/ifm/ros2_ws
 COPY --from=build /home/ifm/ifm3d/*.deb /home/ifm/ifm3d/
@@ -83,11 +88,10 @@ RUN cd /home/ifm/ifm3d &&\
     dpkg -i *.deb
 
 RUN cd /home/ifm/ros2_ws && \
-    apt-get update &&\
-    rosdep init && \
+    apt-get update && \
+    (rosdep init || true) && \
     rosdep update --rosdistro=${ROS_DISTRO} && \
     rosdep install --from-path src -y --ignore-src -t exec
-
 
 # Setup localisation
 RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \

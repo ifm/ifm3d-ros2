@@ -1,0 +1,32 @@
+#############################################
+# Build matrix template for ifm3d-ros2
+# Dynamic IFM3D_VERSION via input
+#############################################
+
+.build_matrix:
+  parallel:
+    matrix:
+      - ARCH: amd64
+        RUNNER_TAG: shared-docker
+        UBUNTU_VERSION: "22.04"
+        BASE_OS: jammy
+        BUILD_IMAGE_TAG: humble
+        FINAL_IMAGE_TAG: humble-ros-core
+      - ARCH: amd64
+        RUNNER_TAG: shared-docker
+        UBUNTU_VERSION: "24.04"
+        BASE_OS: noble
+        BUILD_IMAGE_TAG: jazzy
+        FINAL_IMAGE_TAG: jazzy-ros-core
+      - ARCH: arm64
+        RUNNER_TAG: shared-docker-aarch64
+        UBUNTU_VERSION: "22.04"
+        BASE_OS: jammy
+        BUILD_IMAGE_TAG: humble
+        FINAL_IMAGE_TAG: humble-ros-core
+      - ARCH: arm64
+        RUNNER_TAG: shared-docker-aarch64
+        UBUNTU_VERSION: "24.04"
+        BASE_OS: noble
+        BUILD_IMAGE_TAG: jazzy
+        FINAL_IMAGE_TAG: jazzy-ros-core

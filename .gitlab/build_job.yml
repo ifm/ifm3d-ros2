@@ -1,0 +1,55 @@
+#############################################
+# Build job for ifm3d-ros2
+# Uses matrix from .build_matrix
+#############################################
+
+.build_template:
+  stage: build
+  image: $BASE_IMAGE:$FINAL_IMAGE_TAG-$BASE_OS
+  parallel: !reference [.build_matrix, parallel]
+  before_script:
+  # Download the released version of ifm3d from github
+  - apt-get update
+  - apt-get install -y curl file
+  # Download the released version of ifm3d from github
+  - |
+    if ! curl --location "https://github.com/ifm/ifm3d/releases/download/v${IFM3D_VERSION}/ifm3d-ubuntu-${UBUNTU_VERSION}-${ARCH}-${IFM3D_VERSION}.deb" -o ifm3d_package; then
+      echo "ERROR: Failed to download ifm3d package"
+      exit 1
+    fi
+  - |
+    echo "Installing .deb package..."
+    if ! dpkg -i ifm3d_package; then
+      echo "ERROR: Failed to install .deb package"
+      exit 1
+    fi
+    echo "Successfully installed .deb package"
+  - rm -f ifm3d_package
+
+  script:
+  # Install some dependencies, update rosdep
+  - apt-get update
+  - apt-get install -y ros-dev-tools
+  - rosdep init || true  # init needed for 22.04 image but throws error on 24.04; error can be ignored
+  - rosdep update > /dev/null
+  # Create Workspace and copy sources
+  - mkdir -p /root/target_ws/src
+  - cp -r . /root/target_ws/src
+  - cd /root/target_ws/
+  # Install dependencies, build workspace and run tests
+  - source /opt/ros/$BUILD_IMAGE_TAG/setup.bash
+  - rosdep install --from-paths /root/target_ws/src --ignore-src -y
+  - colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DENABLE_COVERAGE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+  - colcon test --event-handlers desktop_notification- status- terminal_title- console_cohesion+ --executor sequential --ctest-args -j1
+
+build:amd64:
+  extends: .build_template
+  tags: [shared-docker]
+  rules:
+    - if: '$ARCH == "amd64"'
+
+build:arm64:
+  extends: .build_template
+  tags: [shared-docker-aarch64]
+  rules:
+    - if: '$ARCH == "arm64"'

@@ -1,71 +1,23 @@
-# General concept is strongly inspired by the industrial_ci project https://github.com/ros-industrial/industrial_ci
----
+#############################################
+# GitLab CI for ifm3d-ros2
+# Multi-arch build + publish + cosign + GHCR
+# Fully dynamic: IFM3D_VERSION, ARCH, ROS2_DISTRO
+#############################################
+
 variables:
-  GIT_STRATEGY: clone
+  KANIKO_VERSION: "1.25.6"  # Keep up-to-date with latest Kaniko release
+  BASE_IMAGE: ros
+  IFM3D_VERSION: "1.6.12"
+  IMAGE_REGISTRY: ghcr.io/ifm
+  IMAGE_NAME: ifm3d-ros2
+  GHCR_TOKEN: $GHCR_TOKEN
 
 stages:
-- build
+  - build
+  - publish
 
-.build_matrix:
-  parallel:
-    matrix:
-      - RUN_NAME: "22.04+1.6.8"
-        CI_IMAGE: ros:humble-ros-core-jammy
-        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.6.12/ifm3d-ubuntu-22.04-amd64-1.6.12.deb
-        ROS_DISTRO: humble
-      - RUN_NAME: "24.04+1.6.8"
-        CI_IMAGE: ros:jazzy-ros-core-noble
-        IFM3D_PACKAGE_PATH: https://github.com/ifm/ifm3d/releases/download/v1.6.12/ifm3d-ubuntu-24.04-amd64-1.6.12.deb
-        ROS_DISTRO: jazzy
-
-
-build:  # very short job name to keep the pipeline preview readable on Gitlab
-  stage: build
-  image: $CI_IMAGE
-  parallel: !reference [.build_matrix,parallel]
-
-  before_script:
-  # Download the released version of ifm3d from github
-  - apt-get update
-  - apt-get install -y curl file
-  # Download the released version of ifm3d from github
-  - curl --location "$IFM3D_PACKAGE_PATH" -o ifm3d_package
-
-  - EXTENSION="${IFM3D_PACKAGE_PATH##*.}"
-  - |
-    if [[ "$EXTENSION" == "tar" ]]; then
-      echo "Extracting tar file..."
-      mkdir -p extracted
-      tar -xvf ifm3d_package -C extracted
-      # Install .deb packages from extracted directory
-      dpkg -i extracted/*.deb
-    elif [[ "$EXTENSION" == "deb" ]]; then
-      echo "Installing .deb package..."
-      dpkg -i ifm3d_package
-    else
-      echo "Unsupported file type: $EXTENSION"
-      exit 1
-    fi
-  # - curl --location $IFM3D_PACKAGE_PATH | tar x
-
-  # # Install ifm3d packages
-  # - dpkg -i ./ifm3d_*.deb
-  # Cleanup
-  - rm -f ifm3d_package
-  - rm -rf extracted
-
-  script:
-  # Install some dependencies, update rosdep
-  - apt-get update
-  - apt-get install -y ros-dev-tools
-  - rosdep init || true  # init needed for 22.04 image but throws error on 24.04; error can be ignored
-  - rosdep update > /dev/null
-  # Create Workspace and copy sources
-  - mkdir -p /root/target_ws/src
-  - cp -r . /root/target_ws/src
-  - cd /root/target_ws/
-  # Install dependencies, build workspace and run tests
-  - source /opt/ros/$ROS_DISTRO/setup.bash
-  - rosdep install --from-paths /root/target_ws/src --ignore-src -y
-  - colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DENABLE_COVERAGE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-  - colcon test --event-handlers desktop_notification- status- terminal_title- console_cohesion+ --executor sequential --ctest-args -j1
+include:
+  - local: .gitlab/build_matrix.yml
+  - local: .gitlab/build_job.yml
+  - local: .gitlab/rules.yml
+  - local: .gitlab/publish_docker.yml
