@@ -9,7 +9,7 @@ def generate_launch_description():
             package="image_proc",
             executable="image_proc",
             name="undistort_image",
-            namespace="/ifm3d/forward_camera_2d", # please change this to your camera namespace
+            namespace="/ifm3d/camera_2d", # please change this to your camera namespace
             remappings=[
                 ("image", "rgb_uncompressed"),         # input image topic relative to namespace (3d or rgb uncompressed image)
                 ("camera_info", "camera_info")         # camera info topic relative to namespace

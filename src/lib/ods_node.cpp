@@ -8,9 +8,12 @@
 
 #include <ifm3d_ros2/ods_node.hpp>
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
+
 #include <algorithm>
 #include <chrono>
 #include <functional>
+#include <filesystem>
 #include <fstream>
 #include <exception>
 #include <ament_index_cpp/get_package_share_directory.hpp>
@@ -32,6 +35,22 @@ namespace ifm3d_ros2
 {
 namespace
 {
+std::string ResolveConfigPath(const std::string& config_file)
+{
+  if (config_file.empty())
+  {
+    return config_file;
+  }
+
+  const std::filesystem::path p(config_file);
+  if (p.is_absolute())
+  {
+    return config_file;
+  }
+
+  const std::filesystem::path share_dir(ament_index_cpp::get_package_share_directory("ifm3d_ros2"));
+  return (share_dir / p).string();
+}
 }  // namespace
 
 OdsNode::OdsNode(const rclcpp::NodeOptions& opts) : OdsNode::OdsNode("ods_node", opts)
@@ -88,6 +107,33 @@ TC_RETVAL OdsNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   // We need a global lock on all the ifm3d core data structures
   //
   std::lock_guard<std::mutex> lock(*this->gil_);
+
+  //
+  // Try to read config file if one is given, transition back to unconfigured on parsing error
+  //
+  ifm3d::json config_json;
+  if (this->config_file_ != "")
+  {
+    const auto resolved_config_path = ResolveConfigPath(this->config_file_);
+    std::ifstream file(resolved_config_path);
+    if (!file.is_open())
+    {
+      throw std::runtime_error("Could not open config file: " + resolved_config_path);
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    RCLCPP_INFO(this->logger_, "Setting configuration: %s", buffer.str().c_str());
+
+    try
+    {
+      config_json = json::parse(buffer.str());
+    }
+    catch (json::parse_error& ex)
+    {
+      RCLCPP_ERROR(this->logger_, "Could not parse config file %s", this->config_file_.c_str());
+      return TC_RETVAL::FAILURE;
+    }
+  }
 
   //
   // Initialize the camera interface
@@ -270,7 +316,9 @@ TC_RETVAL OdsNode::on_cleanup(const rclcpp_lifecycle::State& prev_state)
     }
     module.reset();
   }
-  // this->modules_.reset();
+
+  // Clear list, as all modules are re-created in on_configure
+  modules_.clear();
 
   RCLCPP_INFO(this->logger_, "Node cleanup complete.");
 
@@ -454,5 +502,4 @@ void OdsNode::async_notification_callback(const std::string& s1, const std::stri
 }  // namespace ifm3d_ros2
 
 #include <rclcpp_components/register_node_macro.hpp>
-
-// RCLCPP_COMPONENTS_REGISTER_NODE(ifm3d_ros2::OdsNode)
+RCLCPP_COMPONENTS_REGISTER_NODE(ifm3d_ros2::OdsNode)

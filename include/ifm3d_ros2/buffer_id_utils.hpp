@@ -27,6 +27,7 @@ enum data_stream_type
   rgb_2d,
   tof_3d,
   ods,
+  imu,
 };
 
 /**
@@ -36,6 +37,7 @@ enum message_type
 {
   compressed_image,
   extrinsics,
+  imu_msg,
   intrinsics,
   inverse_intrinsics,
   occupancy_grid,

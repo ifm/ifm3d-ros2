@@ -18,6 +18,13 @@ This is useful to save bandwidth, but cannot be visualized as-is with RViz.
 
 The ifm3d_ros2 package now automatically handles uncompressed image publishing through the `publish_uncompressed` parameter. When this parameter is set to `true` in your camera configuration, the launch file will automatically spawn a republish node to provide the uncompressed RGB image.
 
+**Prerequisite:**
+- The republish helper requires the compressed image transport plugin. Install it before using `publish_uncompressed` (and before running undistortion pipelines that consume `rgb_uncompressed`):
+
+```bash
+sudo apt install ros-humble-compressed-image-transport
+```
+
 **Configuration options:**
 
 1. **YAML configuration** (set under the camera's `ros__parameters`):

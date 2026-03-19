@@ -9,6 +9,15 @@ For more details on ODS, refer to [the ODS documentation on ifm3d.com](https://i
 
 There are multiple ways to configure ODS parameters, which are described in the following subsections.
 
+## Camera head calibration
+
+ODS requires the camera heads to be extrinsically calibrated before use.
+The default configuration file (`config/o3r_configs/o3r_ods.json`) does **not** include camera calibration — it only sets up the ODS application and its ports.
+
+Calibration can be provided in one of the following ways:
+- **Using the ifm Vision Assistant**: calibrate the camera heads before launching the node. See [the iVA documentation](https://ifm3d.com/latest/SoftwareInterfaces/iVA/iVA_with_linux.html).
+- **Including calibration in the config file**: add the `extrinsicHeadToUser` parameters for the relevant ports in the JSON configuration. See `config/o3r_configs/o3r_ods_presets_calibration.json` for an example that combines calibration, application setup, and presets in a single file.
+
 ## Using the Vision Assistant
 
 We typically recommend to use the ifm Vision Assistant, which is ifm's official GUI for interfacing with all the vision products.
@@ -32,6 +41,31 @@ response:
 ifm3d_ros2.srv.Config_Response(status=0, msg='OK')
 ```
 
+### Switching ODS presets at runtime
+
+It is also possible to load an ODS preset directly via the same `Config` service.
+This is equivalent to calling `o3r->Set(...)` with a partial JSON payload in C++.
+
+For example, to load preset `2` for application `app0`:
+
+```bash
+$ ros2 service call /ifm3d/ods/Config ifm3d_ros2/srv/Config "{json: '{\"applications\":{\"instances\":{\"app0\":{\"presets\":{\"load\":{\"identifier\":2},\"command\":\"load\"}}}}}'}"
+requester: making request: ifm3d_ros2.srv.Config_Request(json='{"applications":{"instances":{"app0":{"presets":{"load":{"identifier":2},"command":"load"}}}}}')
+
+response:
+ifm3d_ros2.srv.Config_Response(status=0, msg='OK')
+```
+
+You can switch to another preset by changing only `identifier`, for example `1`:
+
+```bash
+$ ros2 service call /ifm3d/ods/Config ifm3d_ros2/srv/Config "{json: '{\"applications\":{\"instances\":{\"app0\":{\"presets\":{\"load\":{\"identifier\":1},\"command\":\"load\"}}}}}'}"
+```
+
+:::{note}
+The target node must be in lifecycle state `ACTIVE` for `Config` calls to succeed.
+:::
+
 ## Using the `config_file` parameter
 
 Additionally, it is possible to configure an application (or any other aspect of the system) using a configuration file, provided through the `config_file` parameter in the `ods_default_parameters.yaml` file.
@@ -49,57 +83,32 @@ The default ODS parameters include a sample configuration:
     # ... other parameters
 ```
 
-The referenced JSON file (`config/o3r_configs/o3r_ods.json`) contains:
+The referenced JSON file (`config/o3r_configs/o3r_ods.json`) sets up an ODS application on port2 and port3 **without** calibration:
 
 ```json
 {
-  "ports": {
-    "port2": {
-      "processing": {
-        "extrinsicHeadToUser": {
-          "rotX": 0,
-          "rotY": 1.57,
-          "rotZ": -1.57,
-          "transX": 0,
-          "transY": 0,
-          "transZ": 0.35
-        }
-      }
-    }
-  },
   "applications": {
     "instances": {
       "app0": {
         "class": "ods",
-        "name": "Standard ODS app",
-        "ports": ["port2", "port6"],
-        "state": "CONF",
+        "name": "ODS application",
+        "ports": [
+          "port2",
+          "port3",
+          "port6"
+        ],
+        "state": "RUN",
         "configuration": {
+          "maxNumSimultaneousCameras": 2,
           "vo": {
-            "voPorts": ["port2"]
-          },
-          "activePorts": ["port2"],
-          "zones": {
-            "zoneCoordinates": [
-              [
-                [0, 1],
-                [1, 1],
-                [1, -1],
-                [0, -1]
-              ],
-              [
-                [1, 1],
-                [2, 1],
-                [2, -1],
-                [1, -1]
-              ],
-              [
-                [2, 1],
-                [3, 1],
-                [3, -1],
-                [2, -1]
-              ]
+            "voPorts": [
+              "port2",
+              "port3"
             ]
+          },
+          "grid": {
+            "maxHeight": 2.2,
+            "rangeOfInterest": 5.0
           }
         }
       }
@@ -107,6 +116,8 @@ The referenced JSON file (`config/o3r_configs/o3r_ods.json`) contains:
   }
 }
 ```
+
+For an example that also includes camera head calibration and ODS presets, see `config/o3r_configs/o3r_ods_presets_calibration.json`.
 
 ### Path Resolution
 

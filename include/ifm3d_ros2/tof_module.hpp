@@ -110,11 +110,6 @@ private:
 
   // Parameters
   rcl_interfaces::msg::ParameterDescriptor buffer_id_list_descriptor_;
-  rcl_interfaces::msg::ParameterDescriptor tf_base_frame_name_descriptor_;
-  rcl_interfaces::msg::ParameterDescriptor tf_mounting_frame_name_descriptor_;
-  rcl_interfaces::msg::ParameterDescriptor tf_optical_frame_name_descriptor_;
-  rcl_interfaces::msg::ParameterDescriptor tf_publish_mounting_to_optical_descriptor_;
-  rcl_interfaces::msg::ParameterDescriptor tf_publish_base_to_mounting_descriptor_;
 
   /// Subscription to parameter changes
   std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;

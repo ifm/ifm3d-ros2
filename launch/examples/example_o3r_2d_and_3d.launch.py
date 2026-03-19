@@ -15,7 +15,7 @@ The nodes are named camera_2d and camera_3d.
 
 The Ports on the VPU should be connected as follows:
 * Camera 2D: Port 0
-* Camera 3D: Port 2
+* Camera 3D: Port 4
 
 The configuration for the nodes is read from a two different files:
 o3r_2d.yaml and o3r_3d.yaml

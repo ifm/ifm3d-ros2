@@ -10,6 +10,7 @@
 #include <ifm3d/deserialize/struct_o3r_ods_occupancy_grid_v1.hpp>
 #include <ifm3d/deserialize/struct_o3r_ods_polar_occupancy_grid_v1.hpp>
 #include <ifm3d/deserialize/struct_o3r_ods_extrinsic_calibration_correction_v1.hpp>
+
 #include <cmath>
 #include <limits>
 
@@ -29,27 +30,44 @@ OdsModule::OdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::Sha
   frame_id_descriptor_.name = "ods.frame_id";
   frame_id_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
   frame_id_descriptor_.description = "Frame_id field used for grid and zones messages (Default='ifm_base_link').";
-  node_ptr_->declare_parameter(frame_id_descriptor_.name, frame_id_, frame_id_descriptor_);
+  if (!node_ptr_->has_parameter(frame_id_descriptor_.name))
+  {
+    node_ptr_->declare_parameter(frame_id_descriptor_.name, frame_id_, frame_id_descriptor_);
+  }
 
   publish_occupancy_grid_descriptor_.name = "ods.publish_occupancy_grid";
   publish_occupancy_grid_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
   publish_occupancy_grid_descriptor_.description = "Set module to publish nav_msgs/OccupancyGrid (Default='True').";
-  node_ptr_->declare_parameter(publish_occupancy_grid_descriptor_.name, true, publish_occupancy_grid_descriptor_);
+  if (!node_ptr_->has_parameter(publish_occupancy_grid_descriptor_.name))
+  {
+    node_ptr_->declare_parameter(publish_occupancy_grid_descriptor_.name, true, publish_occupancy_grid_descriptor_);
+  }
 
   publish_polar_occupancy_grid_descriptor_.name = "ods.publish_polar_occupancy_grid";
   publish_polar_occupancy_grid_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
   publish_polar_occupancy_grid_descriptor_.description = "Set module to publish sensor_msgs/LaserScan from polar distance data (Default='True').";
-  node_ptr_->declare_parameter(publish_polar_occupancy_grid_descriptor_.name, true, publish_polar_occupancy_grid_descriptor_);
+  if (!node_ptr_->has_parameter(publish_polar_occupancy_grid_descriptor_.name))
+  {
+    node_ptr_->declare_parameter(publish_polar_occupancy_grid_descriptor_.name, true,
+                                 publish_polar_occupancy_grid_descriptor_);
+  }
 
   publish_extrinsics_calibration_correction_descriptor_.name = "ods.publish_extrinsics_calibration_correction";
   publish_extrinsics_calibration_correction_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
   publish_extrinsics_calibration_correction_descriptor_.description = "Set module to publish Extrinsics calibration correction values (Default='True').";
-  node_ptr_->declare_parameter(publish_extrinsics_calibration_correction_descriptor_.name, true, publish_extrinsics_calibration_correction_descriptor_);
+  if (!node_ptr_->has_parameter(publish_extrinsics_calibration_correction_descriptor_.name))
+  {
+    node_ptr_->declare_parameter(publish_extrinsics_calibration_correction_descriptor_.name, true,
+                                 publish_extrinsics_calibration_correction_descriptor_);
+  }
 
   publish_costmap_descriptor_.name = "ods.publish_costmap";
   publish_costmap_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
   publish_costmap_descriptor_.description = "Set module to publish nav3_msgs/Costmap (Default='False').";
-  node_ptr_->declare_parameter(publish_costmap_descriptor_.name, false, publish_costmap_descriptor_);
+  if (!node_ptr_->has_parameter(publish_costmap_descriptor_.name))
+  {
+    node_ptr_->declare_parameter(publish_costmap_descriptor_.name, false, publish_costmap_descriptor_);
+  }
 }
 
 nav_msgs::msg::OccupancyGrid OdsModule::extract_ros_occupancy_grid(ifm3d::Frame::Ptr frame)
@@ -103,53 +121,55 @@ ifm3d_ros2::msg::Zones OdsModule::extract_zones(ifm3d::Frame::Ptr frame)
 
 sensor_msgs::msg::LaserScan OdsModule::extract_ros_polar_occupancy_grid(ifm3d::Frame::Ptr frame)
 {
-  RCLCPP_DEBUG(logger_, "Converting Polar Distance Data to LaserScan");
+  RCLCPP_DEBUG(logger_, "Converting polar distance data to LaserScan");
   if (!frame->HasBuffer(ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID))
   {
     RCLCPP_INFO(logger_, "OdsModule: No polar distance data in frame for LaserScan");
   }
-  
+  RCLCPP_DEBUG(logger_, "Deserializing polar distance data");
   auto polarOccGrid_data = ifm3d::ODSPolarOccupancyGridV1::Deserialize(frame->GetBuffer(ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID));
 
   sensor_msgs::msg::LaserScan laser_scan_msg;
-  
-  // Set header
+
   laser_scan_msg.header = std_msgs::msg::Header();
   laser_scan_msg.header.frame_id = frame_id_;
   laser_scan_msg.header.stamp = rclcpp::Time(polarOccGrid_data.timestamp_ns);
-  
-  // LaserScan parameters for 675 polar elements
-  // Data starts at 0° and increases counter-clockwise (to the left)
-  // 675 elements covering 360° gives ~0.533° per increment
-  laser_scan_msg.angle_min = 0.0;  // 0 degrees (first data point)
-  laser_scan_msg.angle_max = 2.0 * M_PI * (674.0 / 675.0);  // Almost full circle
-  laser_scan_msg.angle_increment = (2.0 * M_PI) / 675.0;  // ~0.533° per step
-  laser_scan_msg.time_increment = 0.0;  // Not applicable for this use case
-  laser_scan_msg.scan_time = 0.1;  // Approximate scan time
+
+  const auto n = polarOccGrid_data.polarOccGrid.size();
+  const double two_pi = 2.0 * std::acos(-1.0);
+  const double angle_increment = (n > 0) ? (two_pi / static_cast<double>(n)) : 0.0;
+
+  // Convention: first element is 0° and increases counter-clockwise.
+  laser_scan_msg.angle_min = 0.0;
+  laser_scan_msg.angle_increment = angle_increment;
+  laser_scan_msg.angle_max = (n > 0) ? (laser_scan_msg.angle_min + (static_cast<double>(n) - 1.0) * angle_increment) : 0.0;
+
+  laser_scan_msg.time_increment = 0.0;
+  laser_scan_msg.scan_time = 0.0;
+
   laser_scan_msg.range_min = 0.0;
-  laser_scan_msg.range_max = 10.0;  // Maximum distance range
-  
-  // Convert polar distance data to laser scan ranges
-  laser_scan_msg.ranges.resize(675);
-  laser_scan_msg.intensities.resize(675);
-  
-  for (size_t i = 0; i < polarOccGrid_data.polarOccGrid.size() && i < 675; ++i)
+  // 65535 mm is reserved as "no object" => max valid is 65534 mm.
+  laser_scan_msg.range_max = 65.534;
+
+  laser_scan_msg.ranges.resize(n);
+  laser_scan_msg.intensities.resize(n);
+
+  for (size_t i = 0; i < n; ++i)
   {
-    uint16_t distance_mm = polarOccGrid_data.polarOccGrid[i];
-    
-    if (distance_mm == 65535)  // No detection/invalid reading
+    const uint16_t distance_mm = polarOccGrid_data.polarOccGrid[i];
+
+    if (distance_mm == 65535)
     {
       laser_scan_msg.ranges[i] = std::numeric_limits<float>::infinity();
-      laser_scan_msg.intensities[i] = 0.0;
+      laser_scan_msg.intensities[i] = 0.0f;
     }
     else
     {
-      // Convert from millimeters to meters
-      laser_scan_msg.ranges[i] = distance_mm / 1000.0f;
-      laser_scan_msg.intensities[i] = 1.0;  // Valid detection
+      laser_scan_msg.ranges[i] = static_cast<float>(distance_mm) / 1000.0f;
+      laser_scan_msg.intensities[i] = 1.0f;
     }
   }
-  
+
   RCLCPP_DEBUG(logger_, "LaserScan conversion completed");
   return laser_scan_msg;
 }
@@ -214,7 +234,7 @@ void OdsModule::handle_frame(ifm3d::Frame::Ptr frame)
 
   if (publish_polar_occupancy_grid_)
   {
-    RCLCPP_DEBUG(logger_, "Creating polar occupancy grid laser scan message.");
+    RCLCPP_DEBUG(logger_, "Creating polar occupancy grid message.");
     PolarOccupancyGridMsg polar_occ_grid_msg;
     polar_occ_grid_msg = this->extract_ros_polar_occupancy_grid(frame);
     ros_polar_occupancy_grid_publisher_->publish(polar_occ_grid_msg);

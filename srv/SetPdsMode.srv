@@ -1,0 +1,19 @@
+# SetPdsMode.service
+
+# Node operating mode, switch between only providing actions (mode=0) or
+# continuous publication of getPallet, getRack, or volCheck to their topics
+uint8 mode
+
+uint8 ACTION_ONLY=0
+uint8 GET_PALLET_CONTINUOUS=1
+uint8 GET_RACK_CONTINUOUS=2
+uint8 VOLUME_CHECK_CONTINUOUS=3
+
+# Requests for continuous operation (mode!=0)
+# only request relevant for selected mode needs to be set
+ifm3d_ros2/GetPalletRequest get_pallet_request
+ifm3d_ros2/GetRackRequest get_rack_request
+ifm3d_ros2/BoundingBox volume_check_request
+---
+# Mode switch might not be successful if in mode 0 and currently resolving a goal
+bool success

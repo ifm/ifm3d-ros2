@@ -62,6 +62,42 @@ $ ros2 node info /ifm3d/camera
 
 For visualization purposes, the camera launch file can optionally provide uncompressed RGB images. For detailed information on configuring and using uncompressed RGB topics, see the [Visualization documentation](../visualization.md#automatic-uncompressed-image-publishing).
 
+By default the camera node publishes an RGB stream only as a `sensor_msgs/CompressedImage` on:
+
+```text
+/<camera_namespace>/<camera_name>/rgb
+```
+
+If you enable the optional republish step, a `sensor_msgs/Image` is provided as:
+
+```text
+/<camera_namespace>/<camera_name>/rgb_uncompressed
+```
+
+Enable it via either:
+
+1. YAML (set under the camera's `ros__parameters`):
+
+```yaml
+/ifm3d/camera:
+  ros__parameters:
+    publish_uncompressed: true
+```
+
+1. Launch argument override (takes precedence over YAML):
+
+```bash
+ros2 launch ifm3d_ros2 camera.launch.py publish_uncompressed:=true
+```
+
+Precedence and defaults:
+
+* Launch arg empty (default "")  -> defer to YAML.
+* Launch arg explicit true/false  -> overrides YAML.
+* Neither provided -> feature disabled.
+
+When active, an `image_transport republish compressed raw` helper process is started; the core node still only publishes compressed, keeping CPU use low when the raw topic is not needed.
+
 :::{note}
 We also provide a helper launch file to start multiple camera nodes. See the documentation [here](multi_head.md).
 :::

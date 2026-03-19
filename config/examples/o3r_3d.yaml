@@ -15,7 +15,7 @@
     frame_latency_thresh: 1.0
     ip: 192.168.0.69
     password: ""
-    pcic_port: 50012 # 3D stream connected to Port 2
+    pcic_port: 50014 # 3D stream connected to port 4
     sync_clocks: false
     timeout_millis: 500
     timeout_tolerance_secs: 5.0

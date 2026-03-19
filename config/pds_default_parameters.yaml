@@ -1,0 +1,11 @@
+# Example configuration for an PDS application.
+# Expected to be used with pds.launch.py.
+
+/ifm3d/pds:
+  ros__parameters:
+    config_file: "config/o3r_configs/o3r_pds.json"
+    ip: 192.168.0.69
+    pcic_port: 51011
+    app_instance: "app1"
+    pds:
+      frame_id: "ifm_pds_link"

@@ -161,13 +161,14 @@ def generate_launch_description():
             name=f"{cam_name}_rviz2",
             arguments=[
                 '-d',
-                PathJoinSubstitution([FindPackageShare("ifm3d_ros2"), "etc", "ifm3d.rviz"]),
+                PathJoinSubstitution(
+                    [FindPackageShare("ifm3d_ros2"), "config", "ifm3d.rviz"]
+                ),
             ],
             condition=IfCondition(LaunchConfiguration("visualization")),
             log_cmd=True,
         )
 
-        # Lifecycle management: configure and activate camera node
         configure_camera = EmitEvent(
             event=ChangeState(
                 lifecycle_node_matcher=matches_action(camera_node),
@@ -191,25 +192,20 @@ def generate_launch_description():
             )
         )
 
-        # --- Add all entities to launch description ---
         entities = [camera_node, rviz_node, configure_camera, activate_camera]
         if effective:
-            # If publish_uncompressed is enabled and JPEG_IMAGE is present, launch republish node
             republish_node = Node(
                 package="image_transport",
                 executable="republish",
-                namespace=ns,
-                name="ifm3d_rgb_republish",
+                name=f"{cam_name}_rgb_republish",
                 arguments=["compressed", "raw"],
                 remappings=[
-                    ("in/compressed", f"{cam_name}/rgb"),
-                    ("out", f"{cam_name}/rgb_uncompressed"),
+                    ("/in/compressed", f"/{ns}/{cam_name}/rgb"),
+                    ("/out", f"/{ns}/{cam_name}/rgb_uncompressed"),
                 ],
                 condition=IfCondition("true"),
             )
             entities.append(republish_node)
-
-        print(f"[ifm3d_ros2][launch] publish_uncompressed effective={effective} (cli='{cli_value}', yaml={yaml_publish_uncompressed})")
         return entities
 
     # ============================================================

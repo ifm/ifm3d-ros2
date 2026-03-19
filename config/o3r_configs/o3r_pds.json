@@ -1,0 +1,23 @@
+{
+  "applications": {
+    "instances": {
+      "app1": {
+        "class": "pds",
+        "name": "PDS application",
+        "ports": [
+          "port5"
+        ],
+        "configuration": {
+          "customization": {
+            "getPallet": {
+              "palletIndex": 0,
+              "depthHint": 0,
+              "palletOrder": "zDescending"
+            }
+          }
+        },
+        "state": "IDLE"
+      }
+    }
+  }
+}

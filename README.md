@@ -12,11 +12,16 @@ As of version 1.2.0, `ifm3d_ros2` also supports the Obstacle Detection Solution 
 
 ![rviz](doc/camera_node/figures/O3R_merged_point_cloud.png)
 
+## Getting Started
+
+For hardware setup instructions, the default port configuration, and how to run the provided launch files out of the box, see the [Getting Started guide](doc/getting_started.md).
+
 ## Software Compatibility Matrix
 
 
 | `ifm3d_ros2` version | ifm3d version   | O3R firmware version | ROS 2 distribution | Comment                                                                      |
 | -------------------- | --------------- | -------------------- | ------------------ | ---------------------------------------------------------------------------- |
+| 1.4.0                | >1.6.12          | 1.21.16      | Jazzy, Humble      | Adds PDS modes/actions, standalone IMU node, diagnostics severity semantic fix, and config/docs updates |
 | 1.3.0                | 1.6.12          | 1.20.29, 1.21.6      | Jazzy, Humble      | Enhanced diagnostics, ODS polar grid, uncompressed images, additional image types |
 | 1.2.0                | 1.4.3 and 1.5.3 | 1.4.30 and 1.10.13   | Jazzy, Humble      | Added support for ODS applications                                           |
 

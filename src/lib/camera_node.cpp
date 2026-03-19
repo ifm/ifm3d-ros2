@@ -87,6 +87,32 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   std::lock_guard<std::mutex> lock(*this->gil_);
 
   //
+  // Try to read config file if one is given, transition back to unconfigured on parsing error
+  //
+  ifm3d::json config_json;
+  if (this->config_file_ != "")
+  {
+    std::ifstream file(this->config_file_);
+    if (!file.is_open())
+    {
+      throw std::runtime_error("Could not open config file: " + this->config_file_);
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+
+    RCLCPP_INFO(this->logger_, "Setting configuration: %s", buffer.str().c_str());
+    try
+    {
+      config_json = json::parse(buffer.str());
+    }
+    catch (json::parse_error& ex)
+    {
+      RCLCPP_ERROR(this->logger_, "Could not parse config file %s", this->config_file_.c_str());
+      return TC_RETVAL::FAILURE;
+    }
+  }
+
+  //
   // Initialize the camera interface
   //
   RCLCPP_INFO(this->logger_, "Initializing camera...");
@@ -292,6 +318,9 @@ TC_RETVAL CameraNode::on_cleanup(const rclcpp_lifecycle::State& prev_state)
       return retval;
     }
   }
+
+  // Clear list, as all modules are re-created in on_configure
+  modules_.clear();
 
   RCLCPP_INFO(this->logger_, "Node cleanup complete.");
 
@@ -509,5 +538,4 @@ void CameraNode::async_notification_callback(const std::string& s1, const std::s
 }  // namespace ifm3d_ros2
 
 #include <rclcpp_components/register_node_macro.hpp>
-
-// RCLCPP_COMPONENTS_REGISTER_NODE(ifm3d_ros2::CameraNode)
+RCLCPP_COMPONENTS_REGISTER_NODE(ifm3d_ros2::CameraNode)
