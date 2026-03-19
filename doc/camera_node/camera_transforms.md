@@ -31,6 +31,18 @@ When performing calibration:
 - Scale drawings for exact mounting dimensions can be found on [ifm.com](https://www.ifm.com) in the download section for your specific camera model
 - The **optical frame** is automatically calculated from factory intrinsic parameters
 
+### Frame Reference Behavior
+
+**ifm_base_link positioning:**
+- The `ifm_base_link` is defined by the extrinsic parameters set in the JSON configuration (`extrinsicHeadToUser`)
+- Generally, the ifm base frame is configured to have its origin at the center of the robot coordinate system, but this is **not required**
+- **When no extrinsic parameters are set**, the `ifm_base_link` and the `mounting_link` are the same
+
+**Intrinsic parameters:**
+- Each set of intrinsic parameters is **unique to a specific camera head** and set in production
+- These parameters are **not expected to change over time**
+- They define the relationship between `mounting_link` and `optical_link`
+
 ### Additional Calibration Resources
 
 For comprehensive information about O3R calibration routines and best practices:
@@ -51,34 +63,37 @@ The ifm Vision Assistant provides a graphical interface for camera calibration:
 3. Use the built-in calibration tools to set extrinsic parameters
 4. The calibration defines the transform from `mounting_link` to `ifm_base_link`
 
-For detailed instructions, refer to [changing parameters using ifm Vision Assistant](https://ifm3d.com/latest/SoftwareInterfaces/iVA/changing_parameters.html).
+For detailed instructions, refer to [manual calibration using ifm Vision Assistant](https://ifm3d.com/latest/SoftwareInterfaces/iVA/manual_calibration.html).
 
 #### Method 2: JSON Configuration File
 
-You can also calibrate via JSON configuration files. See the configuration documentation:
+The calibration values can be applied via JSON configuration files. See the configuration documentation:
 
 - For camera nodes: [Camera Parameters](parameters.md) (see `config_file` parameter)
 - For ODS applications: [ODS Configuration](../ods_node/ods_configuration.md)
 
-Example extrinsic calibration in JSON:
+A ready-to-use example for a single camera head is provided in `config/o3r_configs/o3r_one_head_calibration_only.json`:
 ```json
 {
   "ports": {
-    "port0": {
+    "port4": {
       "processing": {
         "extrinsicHeadToUser": {
-          "rotX": 0.0,
-          "rotY": 0.0, 
-          "rotZ": 1.57,
-          "transX": 0.5,
-          "transY": 0.0,
-          "transZ": 1.2
+          "rotX": 0,
+          "rotY": 1.57,
+          "rotZ": -1.57,
+          "transX": 0,
+          "transY": 0,
+          "transZ": 0.35
         }
-      }
+      },
+      "state": "RUN"
     }
   }
 }
 ```
+
+For ODS, see `config/o3r_configs/o3r_ods_presets_calibration.json` for an example combining calibration with application setup and presets.
 
 :::{note}
 **Independent Calibration Values**: The rotation and translation values in the JSON configuration are applied **independently**, not sequentially. Each parameter contributes directly to the final transform matrix.
@@ -86,7 +101,7 @@ Example extrinsic calibration in JSON:
 
 ## Published Transforms
 
-After calibration, the ifm3d-ros2 node publishes the following transforms:
+The `ifm3d-ros2` node can publish two transforms:
 
 ### 1. Base to Mounting Transform
 - **From**: `ifm_base_link` 
@@ -100,7 +115,10 @@ After calibration, the ifm3d-ros2 node publishes the following transforms:
 - **Source**: Factory intrinsic calibration parameters
 - **Purpose**: Provides the optical center for image and point cloud data
 
-Both transforms can be enabled/disabled via ROS parameters. See [Camera Parameters](parameters.md) for configuration options.
+**Transform Control:**
+- Both transforms can be enabled/disabled via ROS parameters
+- The names for all three frames can be changed via node parameters  
+- See [Camera Parameters](parameters.md) for detailed parameter descriptions
 
 ## Point Cloud Reference Frame
 
@@ -109,18 +127,6 @@ After calibration, all point cloud data is published with `ifm_base_link` as the
 - Point cloud coordinates are relative to your calibrated reference system
 - The calibration establishes the relationship between camera data and your robot/world coordinate system
 - Visualization tools like RViz will display the point cloud in the `ifm_base_link` frame
-
-## Transform Configuration Parameters
-
-The transform publishing behavior can be controlled via ROS parameters:
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `~/tf.base_frame_name` | string | `ifm_base_link` | Name for the ifm reference frame |
-| `~/tf.mounting_frame_name` | string | `camera_mounting_link` | Name for the camera mounting frame |
-| `~/tf.optical_frame_name` | string | `camera_optical_link` | Name for the optical frame |
-| `~/tf.publish_base_to_mounting` | bool | `true` | Publish base→mounting transform |
-| `~/tf.publish_mounting_to_optical` | bool | `true` | Publish mounting→optical transform |
 
 ## Integration with ROS Navigation Stack
 

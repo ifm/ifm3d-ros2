@@ -1,8 +1,8 @@
 # Example configuration for an ODS application with two cameras.
 # Expected to be used with ods.launch.py.
 
-# By default, this file expects two cameras with 3D ports connected to 
-# ports 2 and 3, and one ods application, "app0".
+# By default, this file expects two 3D camera heads connected to
+# port2 and port3, and one ODS application, "app0".
 
 /ifm3d/ods:
   ros__parameters:

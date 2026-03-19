@@ -1,0 +1,11 @@
+# VolumeCheck.action
+
+# Bounding box of VOI
+ifm3d_ros2/BoundingBox volume
+bool switch_to_continuous_mode false
+---
+# Result
+ifm3d_ros2/VolumeCheck volume_check
+
+---
+# No Feedback

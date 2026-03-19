@@ -1,0 +1,11 @@
+# GetPallet.action
+
+# Goal
+ifm3d_ros2/GetPalletRequest request
+bool switch_to_continuous_mode false
+---
+# Result
+ifm3d_ros2/PalletDetectionArray pallet_detections
+
+---
+# No Feedback

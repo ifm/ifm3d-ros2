@@ -8,6 +8,7 @@
 | `GetDiag` | <a href="srv/GetDiag.srv">ifm3d_ros2/srv/GetDiag</a> | Get all the diagnostic messages corresponding to a JSON filter. <br>The filter can be left blank to get all active and dormant error messages: `ros2 service call /ifm3d/camera/GetDiag ifm3d_ros2/srv/GetDiag "{filter: '{}'}"`.|
 | `Softon`  | <a href="srv/Softon.srv">ifm3d_ros2/srv/Softon</a> | Provides a means to quickly change the camera state from IDLE to RUN.                                                     |
 | `Softoff` | <a href="srv/Softoff.srv">ifm3d_ros2/srv/Softoff</a> | Provides a means to quickly change the camera state from RUN to IDLE.                                                     |
+| `SetPdsMode` | <a href="srv/SetPdsMode.srv">ifm3d_ros2/srv/SetPdsMode</a> | Sets PDS operation mode (`ACTION_ONLY`, `GET_PALLET_CONTINUOUS`, `GET_RACK_CONTINUOUS`, `VOLUME_CHECK_CONTINUOUS`) and optional mode-specific request payload. |
 
 ## Dump and Config
 
@@ -37,6 +38,14 @@ requester: making request: ifm3d_ros2.srv.Config_Request(json='{"ports":{"port2"
 response:
 ifm3d_ros2.srv.Config_Response(status=0, msg='OK')
 ```
+
+The same `Config` service can be used to switch ODS application presets at runtime, for example:
+
+```bash
+$ ros2 service call /ifm3d/ods/Config ifm3d_ros2/srv/Config "{json: '{\"applications\":{\"instances\":{\"app0\":{\"presets\":{\"load\":{\"identifier\":2},\"command\":\"load\"}}}}}'}"
+```
+
+For a complete ODS-focused guide and additional examples, see [ODS configuration](ods_node/ods_configuration.md#switching-ods-presets-at-runtime).
 
 ## Diagnostic
 

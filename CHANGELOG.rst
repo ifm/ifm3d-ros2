@@ -1,6 +1,31 @@
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Changelog for package ifm3d-ros2
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+1.4
+===
+
+1.4.0
+-----
+
+* Add support for PDS operation modes and functionalities:
+  * PDS node supports all three core functions: `getPallet`, `getRack`, and `volCheck`.
+  * Added/updated action and service interfaces for PDS operation, including continuous mode switching.
+* Add IMU data node support:
+  * Added IMU node support for publishing IMU data streams.
+* Fix diagnostics severity handling to match ifm severity semantics consistently:
+  * `info` -> `OK`, `minor` -> `WARN`, `major`/`critical` -> `ERROR`.
+  * Added diagnostic metadata fields to distinguish operator handling of `major` vs `critical` while keeping both at `ERROR` level.
+* Improve configuration defaults and examples:
+  * Move default ODS/PDS/IMU `config_file` references to `config/o3r_configs/*`.
+  * Add/update ODS preset-oriented example configurations.
+* Improve documentation:
+  * Add dedicated documentation sections for IMU and PDS nodes, including launch, parameters, and topics.
+  * Extend ODS and services documentation with runtime preset switching examples.
+  * Update visualization documentation with guidance for uncompressed image transport and undistortion pipeline usage.
+* Add launch/runtime tooling improvements:
+  * Add standalone launch support for IMU and PDS nodes.
+  * Add an image undistortion launch example (`launch/examples/undistort_image.launch.py`).
+
 1.3
 ===
 

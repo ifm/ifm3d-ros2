@@ -100,7 +100,9 @@ def generate_launch_description():
         name=[LaunchConfiguration("ods_name"), "_rviz2"],
         arguments=[
             '-d',
-            PathJoinSubstitution([FindPackageShare("ifm3d_ros2"), "etc", "ifm3d.rviz"]),
+            PathJoinSubstitution(
+                [FindPackageShare("ifm3d_ros2"), "config", "ifm3d.rviz"]
+            ),
         ],
         condition=IfCondition(LaunchConfiguration("visualization")),
         log_cmd=True,

@@ -1,0 +1,17 @@
+# Example configuration to publish OVP imu data.
+# Expected to be used with imu.launch.py.
+
+/ifm3d/imu:
+  ros__parameters:
+    config_file: "config/o3r_configs/imu.json"
+    ip: 192.168.0.69
+    pcic_port: 50016
+    imu:
+      publish_averaged_data: false
+      publish_bulk_data: true
+    tf:
+      base_frame_name: ifm_base_link
+      mounting_frame_name: vpu_mounting_link
+      imu_frame_name: imu_link
+      publish_base_to_mounting: true
+      publish_mounting_to_imu: true

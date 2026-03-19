@@ -1,0 +1,124 @@
+{
+  "ports": {
+    "port2": {
+      "processing": {
+        "extrinsicHeadToUser": {
+          "rotX": 0,
+          "rotY": 1.57,
+          "rotZ": -1.57,
+          "transX": 0,
+          "transY": 0,
+          "transZ": 0.35
+        }
+      }
+    }
+  },
+   "applications": {
+    "instances": {
+      "app0": {
+        "class": "ods",
+        "name": "ODS app with presets",
+        "ports": ["port2", "port3", "port6"],
+        "state": "RUN",
+        "configuration": {
+          "maxNumSimultaneousCameras": 2,
+          "vo": {
+            "voPorts": ["port2", "port3"]
+          },
+          "grid": {
+            "maxHeight": 1.7,
+            "rangeOfInterest": 5.0
+          }
+        },
+        "presets": {
+          "definitions": {
+            "0": {
+              "description": "Forward preset with three zones, one active camera",
+              "preset": {
+                "activePorts": ["port2"],
+                "zones": {
+                  "zoneConfigID": 0,
+                  "zoneType": "polygon",
+                  "zoneCoordinates": [
+                    [
+                      [0, 0.5],
+                      [1.5, 0.5],
+                      [1.5, -0.5],
+                      [0, -0.5]
+                    ],
+                    [
+                      [1.5, 0.5],
+                      [3, 0.5],
+                      [3, -0.5],
+                      [1.5, -0.5]
+                    ],
+                    [
+                      [3, 0.5],
+                      [4.5, 0.5],
+                      [4.5, -0.5],
+                      [3, -0.5]
+                    ]
+                  ]
+                }
+              }
+            },
+            "1": {
+              "description": "Backward preset with two zones, one active camera",
+              "preset": {
+                "activePorts": ["port3"],
+                "zones": {
+                  "zoneConfigID": 1,
+                  "zoneType": "polygon",
+                  "zoneCoordinates": [
+                    [
+                      [-0.5, -0.5],
+                      [-3.0, -0.5],
+                      [-3.0, 0.5],
+                      [-0.5, 0.5]
+                    ],
+                    [
+                      [-3.0, -0.5],
+                      [-4.0, -0.5],
+                      [-4.0, 0.5],
+                      [-3.0, 0.5]
+                    ]
+                  ]
+                }
+              }
+            },
+            "2": {
+              "description": "forward and backward driving with three zones, two active cameras",
+              "preset": {
+                "activePorts": ["port2", "port3"],
+                "zones": {
+                  "zoneConfigID": 2,
+                  "zoneType": "polygon",
+                  "zoneCoordinates": [
+                    [
+                      [-2, -1.5],
+                      [2, -1.5],
+                      [2, 1.5],
+                      [-2, 1.5]
+                    ],
+                    [
+                      [2, -1.5],
+                      [4.5, -1.5],
+                      [4.5, 1.5],
+                      [2, 1.5]
+                    ],
+                    [
+                      [-4.5, -1.5],
+                      [-2, -1.5],
+                      [-2, 1.5],
+                      [-4.5, 1.5]
+                    ]
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

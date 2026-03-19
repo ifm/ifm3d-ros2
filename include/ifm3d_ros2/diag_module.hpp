@@ -34,8 +34,8 @@ public:
   void handle_error(int i, const std::string& s);
   /**
    * @brief Main function that handles notifications.
-   * When a notification is received, it is directly published to the /diagnostic topic
-   * with the level OK.
+   * Only diagnostic-related notifications are forwarded to the /diagnostics topic.
+   * Non-diagnostic notifications are logged for operator visibility.
    *
    * @param s1 Notification id
    * @param s2 Notification description in JSON
@@ -48,6 +48,33 @@ public:
    *
    */
   void periodic_diag_callback();
+
+  /**
+   * @brief Determines if a notification should be published to the diagnostics topic
+   * based on its content.
+   *
+   * @param json_msg The JSON notification message to analyze
+   * @return true if it's diagnostic-related, false if it's operational noise
+   */
+  bool is_diagnostic_notification(const std::string& json_msg);
+
+  /**
+   * @brief Creates diagnostic status messages for the groups section (ports and apps)
+   * from the periodic diagnostic data.
+   *
+   * @param groups_json The groups section from the diagnostic JSON
+   * @return Vector of diagnostic status messages for each group
+   */
+  std::vector<DiagnosticStatusMsg> create_group_diagnostics(const ifm3d::json& groups_json);
+
+  /**
+   * @brief Checks if a severity level should be reported based on configured threshold.
+   *
+   * @param severity The severity level to check ("critical", "major", "minor", "info")
+   * @param threshold The minimum severity threshold to report
+   * @return true if severity should be reported, false otherwise
+   */
+  bool should_report_severity(const std::string& severity, const std::string& threshold = "minor");
 
   /**
    * Utility functions to creates a DiagnosticStatusMsg and a DiagnosticArrayMsg
@@ -86,6 +113,10 @@ private:
   DiagnosticArrayPublisher diagnostic_publisher_;
   /// A unique identifier for the diagnostic messages.
   std::string hardware_id_;
+  /// Minimum severity level to report (critical, major, minor, info)
+  std::string severity_threshold_;
+  /// Severity level mapping for filtering
+  static const std::vector<std::string> severity_levels_;
 };
 
 }  // namespace ifm3d_ros2

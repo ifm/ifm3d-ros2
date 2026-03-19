@@ -47,6 +47,7 @@ std::map<std::string, ifm3d::buffer_id> buffer_id_map = {
   { "O3R_ODS_POLAR_OCC_GRID", ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID},
   { "O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION", ifm3d::buffer_id::O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION},
   { "O3R_ODS_INFO", ifm3d::buffer_id::O3R_ODS_INFO },
+  { "O3R_RESULT_IMU", ifm3d::buffer_id::O3R_RESULT_IMU },
   { "XYZ", ifm3d::buffer_id::XYZ },
   { "EXPOSURE_TIME", ifm3d::buffer_id::EXPOSURE_TIME },
   { "ILLUMINATION_TEMP", ifm3d::buffer_id::ILLUMINATION_TEMP }
@@ -83,6 +84,7 @@ std::multimap<ifm3d::buffer_id, ifm3d_ros2::buffer_id_utils::data_stream_type> d
   { ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID, ifm3d_ros2::buffer_id_utils::data_stream_type::ods},
   { ifm3d::buffer_id::O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION, ifm3d_ros2::buffer_id_utils::data_stream_type::ods},
   { ifm3d::buffer_id::O3R_ODS_INFO, ifm3d_ros2::buffer_id_utils::data_stream_type::ods },
+  { ifm3d::buffer_id::O3R_RESULT_IMU, ifm3d_ros2::buffer_id_utils::data_stream_type::imu },
   { ifm3d::buffer_id::XYZ, ifm3d_ros2::buffer_id_utils::data_stream_type::tof_3d },
   { ifm3d::buffer_id::EXPOSURE_TIME, ifm3d_ros2::buffer_id_utils::data_stream_type::tof_3d },
   { ifm3d::buffer_id::ILLUMINATION_TEMP, ifm3d_ros2::buffer_id_utils::data_stream_type::tof_3d }
@@ -117,6 +119,7 @@ std::map<ifm3d::buffer_id, ifm3d_ros2::buffer_id_utils::message_type> message_ty
   { ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID, ifm3d_ros2::buffer_id_utils::message_type::polar_occupancy_grid },
   { ifm3d::buffer_id::O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION, ifm3d_ros2::buffer_id_utils::message_type::extrinsics_calibration_correction },
   { ifm3d::buffer_id::O3R_ODS_INFO, ifm3d_ros2::buffer_id_utils::message_type::zones },
+  { ifm3d::buffer_id::O3R_RESULT_IMU, ifm3d_ros2::buffer_id_utils::message_type::imu_msg },
   { ifm3d::buffer_id::XYZ, ifm3d_ros2::buffer_id_utils::message_type::pointcloud },
   { ifm3d::buffer_id::EXPOSURE_TIME, ifm3d_ros2::buffer_id_utils::message_type::not_implemented },
   { ifm3d::buffer_id::ILLUMINATION_TEMP, ifm3d_ros2::buffer_id_utils::message_type::not_implemented }
@@ -151,6 +154,7 @@ std::map<ifm3d::buffer_id, std::string> topic_name_map = {
   { ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID, "ods_polar_occupancy_grid" },
   { ifm3d::buffer_id::O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION, "ods_extrinsics_calibration_correction" },
   { ifm3d::buffer_id::O3R_ODS_INFO, "ods_info" },
+  { ifm3d::buffer_id::O3R_RESULT_IMU, "imu" },
   { ifm3d::buffer_id::XYZ, "cloud" },
   { ifm3d::buffer_id::EXPOSURE_TIME, "EXPOSURE_TIME" },
   { ifm3d::buffer_id::ILLUMINATION_TEMP, "ILLUMINATION_TEMP" }

@@ -1,0 +1,65 @@
+{
+  "applications": {
+    "instances": {
+      "app0": {
+        "class": "pds",
+        "name": "app1",
+        "ports": ["port5"],
+        "configuration": {
+          "customization": {
+            "getPallet": {
+              "palletIndex": 6,
+              "depthHint": 1.5,
+              "palletOrder": "zDescending"
+            }
+          },
+          "parameter": {
+            "getPallet": {
+              "6": {
+                "detectionPipeline": "findPockets",
+                "name": "Test Pallet",
+                "depthEstimation": {
+                  "fallbackDepthHint": 1.5,
+                  "minNumPixels": 10,
+                  "voi": {
+                    "xMax": 3.0,
+                    "xMin": 0.5,
+                    "yMax": 0.5,
+                    "yMin": -0.5,
+                    "zMax": 0.4,
+                    "zMin": -0.1
+                  }
+                },
+                "localizePallets": {
+                  "allowPitchEstimation": false,
+                  "yawTol": 0.4
+                },
+                "orthoProjection": {
+                  "voi": {
+                    "xMax": 0.3,
+                    "xMin": -0.3,
+                    "yMax": 1.0,
+                    "yMin": -1.0,
+                    "zMax": 0.6,
+                    "zMin": -0.6
+                  }
+                },
+                "pocket": {
+                  "maxHeight": 0.15,
+                  "maxWidth": 0.44,
+                  "minHeight": 0.05,
+                  "minWidth": 0.24
+                },
+                "stringer": {
+                  "maxWidthCenter": 0.4,
+                  "minWidthCenter": 0.05
+                }
+              }
+            }
+          }
+        },
+        "state": "CONF"
+      }
+    }
+  }
+}

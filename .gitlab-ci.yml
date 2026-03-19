@@ -19,5 +19,4 @@ stages:
 include:
   - local: .gitlab/build_matrix.yml
   - local: .gitlab/build_job.yml
-  - local: .gitlab/rules.yml
   - local: .gitlab/publish_docker.yml

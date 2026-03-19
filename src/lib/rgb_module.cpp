@@ -30,42 +30,14 @@ RgbModule::RgbModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::Sha
   buffer_id_list_descriptor_.name = "buffer_id_list";
   buffer_id_list_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING_ARRAY;
   buffer_id_list_descriptor_.description = "List of buffer_id strings denoting the wanted buffers.";
-  this->node_ptr_->declare_parameter(buffer_id_list_descriptor_.name, default_buffer_id_list,
-                                     buffer_id_list_descriptor_);
+  if (!node_ptr_->has_parameter(buffer_id_list_descriptor_.name))
+  {
+    this->node_ptr_->declare_parameter(buffer_id_list_descriptor_.name, default_buffer_id_list,
+                                       buffer_id_list_descriptor_);
+  }
 
-  tf_base_frame_name_descriptor_.name = "tf.base_frame_name";
-  tf_base_frame_name_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
-  tf_base_frame_name_descriptor_.description = "Name for the ifm base frame, defaults to ifm_base_link.";
-  this->node_ptr_->declare_parameter(tf_base_frame_name_descriptor_.name, "ifm_base_link",
-                                     tf_base_frame_name_descriptor_);
+  tf_publisher_.declare_parameters("optical");
 
-  tf_mounting_frame_name_descriptor_.name = "tf.mounting_frame_name";
-  tf_mounting_frame_name_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
-  tf_mounting_frame_name_descriptor_.description =
-      "Name for the mounting point frame, defaults to <node_name>_mounting_link.";
-  this->node_ptr_->declare_parameter(tf_mounting_frame_name_descriptor_.name, node_name + "_mounting_link",
-                                     tf_mounting_frame_name_descriptor_);
-
-  tf_optical_frame_name_descriptor_.name = "tf.optical_frame_name";
-  tf_optical_frame_name_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
-  tf_optical_frame_name_descriptor_.description =
-      "Name for the point optical frame, defaults to <node_name>_optical_link.";
-  this->node_ptr_->declare_parameter(tf_optical_frame_name_descriptor_.name, node_name + "_optical_link",
-                                     tf_optical_frame_name_descriptor_);
-
-  tf_publish_base_to_mounting_descriptor_.name = "tf.publish_base_to_mounting";
-  tf_publish_base_to_mounting_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
-  tf_publish_base_to_mounting_descriptor_.description =
-      "Whether the transform from the ifm base link to the mounting point should be published.";
-  this->node_ptr_->declare_parameter(tf_publish_base_to_mounting_descriptor_.name, true,
-                                     tf_publish_base_to_mounting_descriptor_);
-
-  tf_publish_mounting_to_optical_descriptor_.name = "tf.publish_mounting_to_optical";
-  tf_publish_mounting_to_optical_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
-  tf_publish_mounting_to_optical_descriptor_.description =
-      "Whether the transform from the mounting point to the optical frame should be published.";
-  this->node_ptr_->declare_parameter(tf_publish_mounting_to_optical_descriptor_.name, true,
-                                     tf_publish_mounting_to_optical_descriptor_);
   RCLCPP_DEBUG(this->logger_, "After the parameters declaration");
 
   this->first_ = true;
@@ -84,7 +56,7 @@ void RgbModule::handle_frame(ifm3d::Frame::Ptr frame)
   RCLCPP_DEBUG(logger_, "Frame timestamp: %f", frame_ts.seconds());
 
   auto optical_header = std_msgs::msg::Header();
-  optical_header.frame_id = tf_publisher_.tf_optical_link_frame_name_;
+  optical_header.frame_id = tf_publisher_.tf_sensor_link_frame_name_;
   optical_header.stamp = frame_ts;
 
   RCLCPP_DEBUG(logger_, "RGB message headers created");
@@ -127,11 +99,11 @@ void RgbModule::handle_frame(ifm3d::Frame::Ptr frame)
         RGBInfoMsg rgb_info_msg = ifm3d_ros2::ifm3d_to_rgb_info(buffer, optical_header, logger_);
         rgb_info_publisher_->publish(rgb_info_msg);
 
-        if (tf_publisher_.tf_publish_mounting_to_optical_ || tf_publisher_.tf_publish_base_to_mounting_)
+        if (tf_publisher_.tf_publish_mounting_to_sensor_ || tf_publisher_.tf_publish_base_to_mounting_)
         {
           geometry_msgs::msg::TransformStamped tf_base_to_optical;
           if (ifm3d_ros2::ifm3d_rgb_info_to_optical_mount_link(buffer, tf_publisher_.tf_base_link_frame_name_,
-                                                               tf_publisher_.tf_optical_link_frame_name_, logger_,
+                                                               tf_publisher_.tf_sensor_link_frame_name_, logger_,
                                                                tf_base_to_optical))
           {
             tf_publisher_.update_and_publish_tf_if_changed(tf_base_to_optical);
@@ -255,9 +227,18 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn RgbModule::on_activate(const rcl
   RCLCPP_INFO(logger_, "RgbModule: on_activate called");
   (void)previous_state;
 
-  this->rgb_publisher_->on_activate();
-  this->rgb_info_publisher_->on_activate();
-  this->camera_info_publisher_->on_activate();
+  if (this->rgb_publisher_)
+  {
+    this->rgb_publisher_->on_activate();
+  }
+  if (this->rgb_info_publisher_)
+  {
+    this->rgb_info_publisher_->on_activate();
+  }
+  if (this->camera_info_publisher_)
+  {
+    this->camera_info_publisher_->on_activate();
+  }
 
   return rclcpp_lifecycle::LifecycleNode::CallbackReturn::SUCCESS;
 }
@@ -267,9 +248,18 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn RgbModule::on_deactivate(const r
   RCLCPP_INFO(logger_, "RgbModule: on_deactivate called");
   (void)previous_state;
 
-  this->rgb_publisher_->on_deactivate();
-  this->rgb_info_publisher_->on_deactivate();
-  this->camera_info_publisher_->on_deactivate();
+  if (this->rgb_publisher_)
+  {
+    this->rgb_publisher_->on_deactivate();
+  }
+  if (this->rgb_info_publisher_)
+  {
+    this->rgb_info_publisher_->on_deactivate();
+  }
+  if (this->camera_info_publisher_)
+  {
+    this->camera_info_publisher_->on_deactivate();
+  }
 
   return rclcpp_lifecycle::LifecycleNode::CallbackReturn::SUCCESS;
 }
@@ -305,23 +295,7 @@ void RgbModule::parse_params()
   RCLCPP_INFO(this->logger_, "Parsed %ld buffer_ids: %s", this->buffer_id_list_.size(),
               buffer_id_utils::vector_to_string(this->buffer_id_list_).c_str());
 
-  this->node_ptr_->get_parameter(tf_base_frame_name_descriptor_.name, tf_publisher_.tf_base_link_frame_name_);
-  RCLCPP_INFO(this->logger_, "tf.base_link.frame_name: %s", tf_publisher_.tf_base_link_frame_name_.c_str());
-
-  this->node_ptr_->get_parameter(tf_mounting_frame_name_descriptor_.name, tf_publisher_.tf_mounting_link_frame_name_);
-  RCLCPP_INFO(this->logger_, "tf.mounting_link.frame_name: %s", tf_publisher_.tf_mounting_link_frame_name_.c_str());
-
-  this->node_ptr_->get_parameter(tf_optical_frame_name_descriptor_.name, tf_publisher_.tf_optical_link_frame_name_);
-  RCLCPP_INFO(this->logger_, "tf.optical_link.frame_name: %s", tf_publisher_.tf_optical_link_frame_name_.c_str());
-
-  this->node_ptr_->get_parameter(tf_publish_base_to_mounting_descriptor_.name,
-                                 tf_publisher_.tf_publish_base_to_mounting_);
-
-  this->node_ptr_->get_parameter(tf_publish_mounting_to_optical_descriptor_.name,
-                                 tf_publisher_.tf_publish_mounting_to_optical_);
-
-  RCLCPP_INFO(this->logger_, "tf.optical_link.publish_transform: %s",
-              tf_publisher_.tf_publish_mounting_to_optical_ ? "true" : "false");
+  tf_publisher_.parse_parameters();
 }
 
 void RgbModule::set_parameter_event_callbacks()
@@ -338,26 +312,30 @@ void RgbModule::set_parameter_event_callbacks()
 
   auto tf_mounting_link_frame_name_cb = [this](const rclcpp::Parameter& p) {
     tf_publisher_.tf_mounting_link_frame_name_ = p.as_string();
-    RCLCPP_INFO(logger_, "New tf.mounting_link.frame_name: '%s'", tf_publisher_.tf_mounting_link_frame_name_.c_str());
+    RCLCPP_INFO(logger_, "New %s: '%s'", tf_publisher_.tf_mounting_frame_name_descriptor_.name.c_str(),
+                tf_publisher_.tf_mounting_link_frame_name_.c_str());
   };
-  registered_param_callbacks_[tf_mounting_frame_name_descriptor_.name] = param_subscriber_->add_parameter_callback(
-      tf_mounting_frame_name_descriptor_.name, tf_mounting_link_frame_name_cb);
+  registered_param_callbacks_[tf_publisher_.tf_mounting_frame_name_descriptor_.name] =
+      param_subscriber_->add_parameter_callback(tf_publisher_.tf_mounting_frame_name_descriptor_.name,
+                                                tf_mounting_link_frame_name_cb);
 
-  auto tf_optical_link_frame_name_cb = [this](const rclcpp::Parameter& p) {
-    tf_publisher_.tf_optical_link_frame_name_ = p.as_string();
-    RCLCPP_INFO(logger_, "New tf.optical_link.frame_name: '%s'", tf_publisher_.tf_optical_link_frame_name_.c_str());
+  auto tf_sensor_link_frame_name_cb = [this](const rclcpp::Parameter& p) {
+    tf_publisher_.tf_sensor_link_frame_name_ = p.as_string();
+    RCLCPP_INFO(logger_, "New %s: '%s'", tf_publisher_.tf_sensor_frame_name_descriptor_.name.c_str(),
+                tf_publisher_.tf_sensor_link_frame_name_.c_str());
   };
-  registered_param_callbacks_[tf_optical_frame_name_descriptor_.name] =
-      param_subscriber_->add_parameter_callback(tf_optical_frame_name_descriptor_.name, tf_optical_link_frame_name_cb);
+  registered_param_callbacks_[tf_publisher_.tf_sensor_frame_name_descriptor_.name] =
+      param_subscriber_->add_parameter_callback(tf_publisher_.tf_sensor_frame_name_descriptor_.name,
+                                                tf_sensor_link_frame_name_cb);
 
-  auto tf_optical_link_publish_transform_cb = [this](const rclcpp::Parameter& p) {
-    tf_publisher_.tf_publish_mounting_to_optical_ = p.as_bool();
-    RCLCPP_INFO(logger_, "New tf.optical_link.publish_transform: %s",
-                tf_publisher_.tf_publish_mounting_to_optical_ ? "true" : "false");
+  auto tf_sensor_link_publish_transform_cb = [this](const rclcpp::Parameter& p) {
+    tf_publisher_.tf_publish_mounting_to_sensor_ = p.as_bool();
+    RCLCPP_INFO(logger_, "New %s: %s", tf_publisher_.tf_publish_mounting_to_sensor_descriptor_.name.c_str(),
+                tf_publisher_.tf_publish_mounting_to_sensor_ ? "true" : "false");
   };
-  registered_param_callbacks_[tf_publish_mounting_to_optical_descriptor_.name] =
-      param_subscriber_->add_parameter_callback(tf_publish_mounting_to_optical_descriptor_.name,
-                                                tf_optical_link_publish_transform_cb);
+  registered_param_callbacks_[tf_publisher_.tf_publish_mounting_to_sensor_descriptor_.name] =
+      param_subscriber_->add_parameter_callback(tf_publisher_.tf_publish_mounting_to_sensor_descriptor_.name,
+                                                tf_sensor_link_publish_transform_cb);
 }
 
 }  // namespace ifm3d_ros2

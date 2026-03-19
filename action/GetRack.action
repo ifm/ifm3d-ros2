@@ -1,0 +1,11 @@
+# GetRack.action
+
+# Goal
+ifm3d_ros2/GetRackRequest request
+bool switch_to_continuous_mode false
+---
+# Result
+ifm3d_ros2/RackDetection rack_detection
+
+---
+# No Feedback

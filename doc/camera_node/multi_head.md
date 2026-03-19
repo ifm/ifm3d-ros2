@@ -17,10 +17,10 @@ ros2 launch ifm3d_ros2 camera.launch.py camera_name:=camera_2d parameter_file_na
 > **Note:** Don’t forget to specify the `camera_name` parameter if it differs from the default value, "camera", and the `camera_namespace` if it differs from the default, "ifm3d".
 
 ## `o3r_3d.yaml`
-This example configuration connects to the 3D data stream of one O3R camera head connected to port 2:
+This example configuration connects to the 3D data stream of one O3R camera head connected to port 4:
 
 The ports on the VPU should be connected as follows:
-* Camera 3D: physical port 2 - corresponds to `pcic_port=50012`
+* Camera 3D: physical port 4 - corresponds to `pcic_port=50014`
 
 To launch this example, use the following command:
 ```bash
@@ -29,10 +29,10 @@ ros2 launch ifm3d_ros2 camera.launch.py camera_name:=camera_3d parameter_file_na
 > **Note:** Don’t forget to specify the `camera_name` parameter if it differs from the default value, "camera", and the `camera_namespace` if it differs from the default, "ifm3d".
 
 ## Launching a 2D and a 3D node simultaneously
-This example configuration connects to one 3D data stream **AND** one 2D (RGB) data stream connected to ports 0 and 2:
+This example configuration connects to one 3D data stream **AND** one 2D (RGB) data stream connected to ports 0 and 4:
 
 - Camera 2D: physical port 0 - corresponds to `pcic_port=50010`
-- Camera 3D: physical port 2 - corresponds to `pcic_port=50012`
+- Camera 3D: physical port 4 - corresponds to `pcic_port=50014`
 
 To launch this example, use the following command:
 ```bash
