@@ -4,6 +4,20 @@ Changelog for package ifm3d-ros2
 1.4
 ===
 
+1.4.1
+-----
+
+* Add runtime and transport configuration improvements:
+  * Added `publish_best_effort` parameter to all nodes.
+  * Added `use_timestamp_from_device` parameter to select between device timestamps and current ROS time for message stamping.
+  * Enabled intra-process communication for all standalone nodes.
+* Improve configuration handling:
+  * Added advanced `config_file` path parsing with support for absolute paths and `package://`-style package-relative paths.
+* Update examples and documentation:
+  * Updated example configs and launch scripts for combined 2D/3D, two-head, and undistortion setups.
+  * Unified example port assignments to consistently use port0 for 2D and port4 for 3D where applicable.
+  * Updated parameter documentation tables formatting.
+
 1.4.0
 -----
 

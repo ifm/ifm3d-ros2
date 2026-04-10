@@ -33,9 +33,11 @@ PdsVisNode::PdsVisNode(const std::string& node_name, const rclcpp::NodeOptions& 
   RCLCPP_INFO(this->logger_, "middleware: %s", rmw_get_implementation_identifier());
 
   pds_result_subcriber_ = create_subscription<ifm3d_ros2::msg::PdsFullResult>(
-      "~/pds_full_result", LowLatencyQoS(), std::bind(&PdsVisNode::pds_result_callback, this, std::placeholders::_1));
+      "~/pds_full_result", BestEffortLowLatencyQoS(),
+      std::bind(&PdsVisNode::pds_result_callback, this, std::placeholders::_1));
 
-  marker_publisher_ = create_publisher<visualization_msgs::msg::MarkerArray>("~/pds_vis_marker", LowLatencyQoS());
+  marker_publisher_ =
+      create_publisher<visualization_msgs::msg::MarkerArray>("~/pds_vis_marker", ReliableLowLatencyQoS());
 
   RCLCPP_INFO(this->logger_, "node created, waiting for `configure()`...");
 }

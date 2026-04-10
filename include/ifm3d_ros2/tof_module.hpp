@@ -51,7 +51,7 @@ class TofModule : public FunctionModule, public std::enable_shared_from_this<Tof
 {
 public:
   TofModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr, ifm3d::O3R::Ptr o3r_ptr,
-            std::string port, uint32_t width, uint32_t height);
+            std::string port, uint32_t width, uint32_t height, bool publish_best_effort = false, bool use_timestamp_from_device = true);
   /**
    * @brief Unpacks data from the received frame, and publish
    * the topics corresponding to the requested image buffers.
@@ -110,6 +110,8 @@ private:
 
   // Parameters
   rcl_interfaces::msg::ParameterDescriptor buffer_id_list_descriptor_;
+  bool publish_best_effort_;
+  bool use_timestamp_from_device_;
 
   /// Subscription to parameter changes
   std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;

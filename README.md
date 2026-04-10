@@ -1,5 +1,7 @@
 # ifm3d-ros2 overview
 
+<!-- sphinx-index-start -->
+
 *This documentation is formatted to be read on [www.ros2.ifm3d.com](https://ros2.ifm3d.com/latest/).*
 
 :::{note}
@@ -8,7 +10,7 @@ This release is intended to be used with the O3R camera platform ONLY. For other
 
 `ifm3d-ros2` is a wrapper around [ifm3d](https://github.com/ifm/ifm3d) enabling the usage of ifm O3R camera platform from within [ROS 2](https://index.ros.org/doc/ros2/) software systems.
 
-As of version 1.2.0, `ifm3d_ros2` also supports the Obstacle Detection Solution (ODS). Refer to [the ODS documentation](https://ifm3d.com/latest/ODS/index_ods.html) for more details on this application.
+`ifm3d_ros2` supports O3R camera, IMU, ODS, and PDS integration in ROS 2. Refer to the dedicated documentation sections for details on each component.
 
 ![rviz](doc/camera_node/figures/O3R_merged_point_cloud.png)
 
@@ -21,9 +23,11 @@ For hardware setup instructions, the default port configuration, and how to run 
 
 | `ifm3d_ros2` version | ifm3d version   | O3R firmware version | ROS 2 distribution | Comment                                                                      |
 | -------------------- | --------------- | -------------------- | ------------------ | ---------------------------------------------------------------------------- |
+| 1.4.1                | >1.6.12         | 1.21.16              | Jazzy, Humble      | Adds `publish_best_effort`, `use_timestamp_from_device`, advanced config path parsing, updated examples, and documentation refinements |
 | 1.4.0                | >1.6.12          | 1.21.16      | Jazzy, Humble      | Adds PDS modes/actions, standalone IMU node, diagnostics severity semantic fix, and config/docs updates |
 | 1.3.0                | 1.6.12          | 1.20.29, 1.21.6      | Jazzy, Humble      | Enhanced diagnostics, ODS polar grid, uncompressed images, additional image types |
 | 1.2.0                | 1.4.3 and 1.5.3 | 1.4.30 and 1.10.13   | Jazzy, Humble      | Added support for ODS applications                                           |
+
 
 > Note: The version numbers listed above for the ifm3d API or the O3R firmware versions are the ones explicitly tested. Any other version might work but is not officially supported.
 

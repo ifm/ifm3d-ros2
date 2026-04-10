@@ -21,8 +21,13 @@
 
 namespace ifm3d_ros2
 {
-OdsModule::OdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr)
-  : FunctionModule(logger), node_ptr_(node_ptr), frame_id_("ifm_base_link")
+OdsModule::OdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr,
+                     bool publish_best_effort, bool use_timestamp_from_device)
+  : FunctionModule(logger)
+  , node_ptr_(node_ptr)
+  , frame_id_("ifm_base_link")
+  , publish_best_effort_(publish_best_effort)
+  , use_timestamp_from_device_(use_timestamp_from_device)
 {
   RCLCPP_INFO(logger_, "OdsModule contructor called.");
 
@@ -45,7 +50,8 @@ OdsModule::OdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::Sha
 
   publish_polar_occupancy_grid_descriptor_.name = "ods.publish_polar_occupancy_grid";
   publish_polar_occupancy_grid_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
-  publish_polar_occupancy_grid_descriptor_.description = "Set module to publish sensor_msgs/LaserScan from polar distance data (Default='True').";
+  publish_polar_occupancy_grid_descriptor_.description =
+      "Set module to publish sensor_msgs/LaserScan from polar distance data (Default='True').";
   if (!node_ptr_->has_parameter(publish_polar_occupancy_grid_descriptor_.name))
   {
     node_ptr_->declare_parameter(publish_polar_occupancy_grid_descriptor_.name, true,
@@ -54,7 +60,8 @@ OdsModule::OdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::Sha
 
   publish_extrinsics_calibration_correction_descriptor_.name = "ods.publish_extrinsics_calibration_correction";
   publish_extrinsics_calibration_correction_descriptor_.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
-  publish_extrinsics_calibration_correction_descriptor_.description = "Set module to publish Extrinsics calibration correction values (Default='True').";
+  publish_extrinsics_calibration_correction_descriptor_.description =
+      "Set module to publish Extrinsics calibration correction values (Default='True').";
   if (!node_ptr_->has_parameter(publish_extrinsics_calibration_correction_descriptor_.name))
   {
     node_ptr_->declare_parameter(publish_extrinsics_calibration_correction_descriptor_.name, true,
@@ -79,8 +86,15 @@ nav_msgs::msg::OccupancyGrid OdsModule::extract_ros_occupancy_grid(ifm3d::Frame:
   }
   auto header = std_msgs::msg::Header();
   header.frame_id = frame_id_;
-  return ifm3d_ros2::ifm3d_to_ros_occupancy_grid(frame->GetBuffer(ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID), header,
-                                                 logger_);
+  auto out_msg = ifm3d_ros2::ifm3d_to_ros_occupancy_grid(frame->GetBuffer(ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID),
+                                                         header, logger_);
+
+  if (!use_timestamp_from_device_)
+  {
+    out_msg.header.stamp = frame_received_stamp_;
+  }
+
+  return out_msg;
 }
 
 nav2_msgs::msg::Costmap OdsModule::extract_ros_costmap(ifm3d::Frame::Ptr frame)
@@ -92,7 +106,15 @@ nav2_msgs::msg::Costmap OdsModule::extract_ros_costmap(ifm3d::Frame::Ptr frame)
   }
   auto header = std_msgs::msg::Header();
   header.frame_id = frame_id_;
-  return ifm3d_ros2::ifm3d_to_ros_costmap(frame->GetBuffer(ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID), header, logger_);
+  auto out_msg =
+      ifm3d_ros2::ifm3d_to_ros_costmap(frame->GetBuffer(ifm3d::buffer_id::O3R_ODS_OCCUPANCY_GRID), header, logger_);
+
+  if (!use_timestamp_from_device_)
+  {
+    out_msg.header.stamp = frame_received_stamp_;
+  }
+
+  return out_msg;
 }
 
 ifm3d_ros2::msg::Zones OdsModule::extract_zones(ifm3d::Frame::Ptr frame)
@@ -110,7 +132,7 @@ ifm3d_ros2::msg::Zones OdsModule::extract_zones(ifm3d::Frame::Ptr frame)
   // Define the header
   zones_msg.header = std_msgs::msg::Header();
   zones_msg.header.frame_id = frame_id_;
-  zones_msg.header.stamp = rclcpp::Time(zones_data.timestamp_ns);
+  zones_msg.header.stamp = use_timestamp_from_device_ ? rclcpp::Time(zones_data.timestamp_ns) : frame_received_stamp_;
 
   zones_msg.zone_config_id = zones_data.zone_config_id;
   zones_msg.zone_occupied = zones_data.zone_occupied;
@@ -127,13 +149,15 @@ sensor_msgs::msg::LaserScan OdsModule::extract_ros_polar_occupancy_grid(ifm3d::F
     RCLCPP_INFO(logger_, "OdsModule: No polar distance data in frame for LaserScan");
   }
   RCLCPP_DEBUG(logger_, "Deserializing polar distance data");
-  auto polarOccGrid_data = ifm3d::ODSPolarOccupancyGridV1::Deserialize(frame->GetBuffer(ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID));
+  auto polarOccGrid_data =
+      ifm3d::ODSPolarOccupancyGridV1::Deserialize(frame->GetBuffer(ifm3d::buffer_id::O3R_ODS_POLAR_OCC_GRID));
 
   sensor_msgs::msg::LaserScan laser_scan_msg;
 
   laser_scan_msg.header = std_msgs::msg::Header();
   laser_scan_msg.header.frame_id = frame_id_;
-  laser_scan_msg.header.stamp = rclcpp::Time(polarOccGrid_data.timestamp_ns);
+  laser_scan_msg.header.stamp =
+      use_timestamp_from_device_ ? rclcpp::Time(polarOccGrid_data.timestamp_ns) : frame_received_stamp_;
 
   const auto n = polarOccGrid_data.polarOccGrid.size();
   const double two_pi = 2.0 * std::acos(-1.0);
@@ -142,7 +166,8 @@ sensor_msgs::msg::LaserScan OdsModule::extract_ros_polar_occupancy_grid(ifm3d::F
   // Convention: first element is 0° and increases counter-clockwise.
   laser_scan_msg.angle_min = 0.0;
   laser_scan_msg.angle_increment = angle_increment;
-  laser_scan_msg.angle_max = (n > 0) ? (laser_scan_msg.angle_min + (static_cast<double>(n) - 1.0) * angle_increment) : 0.0;
+  laser_scan_msg.angle_max =
+      (n > 0) ? (laser_scan_msg.angle_min + (static_cast<double>(n) - 1.0) * angle_increment) : 0.0;
 
   laser_scan_msg.time_increment = 0.0;
   laser_scan_msg.scan_time = 0.0;
@@ -174,7 +199,8 @@ sensor_msgs::msg::LaserScan OdsModule::extract_ros_polar_occupancy_grid(ifm3d::F
   return laser_scan_msg;
 }
 
-ifm3d_ros2::msg::ExtrinsicsCalibrationCorrection OdsModule::extract_ros_extrinsics_calibration_correction(ifm3d::Frame::Ptr frame)
+ifm3d_ros2::msg::ExtrinsicsCalibrationCorrection
+OdsModule::extract_ros_extrinsics_calibration_correction(ifm3d::Frame::Ptr frame)
 {
   RCLCPP_DEBUG(logger_, "Handling Polar Occupancy Grid");
   if (!frame->HasBuffer(ifm3d::buffer_id::O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION))
@@ -182,26 +208,35 @@ ifm3d_ros2::msg::ExtrinsicsCalibrationCorrection OdsModule::extract_ros_extrinsi
     RCLCPP_INFO(logger_, "OdsModule: No extrinsics calibration correction information in frame");
   }
   RCLCPP_DEBUG(logger_, "Deserializing extrinsics calibration correction data");
-  auto extrinsicsCalibrationCorrection_data = ifm3d::ODSExtrinsicCalibrationCorrectionV1::Deserialize(frame->GetBuffer(ifm3d::buffer_id::O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION));
+  auto extrinsicsCalibrationCorrection_data = ifm3d::ODSExtrinsicCalibrationCorrectionV1::Deserialize(
+      frame->GetBuffer(ifm3d::buffer_id::O3R_ODS_EXTRINSIC_CALIBRATION_CORRECTION));
 
   RCLCPP_DEBUG(logger_, "Filling the ROS message with extrinsics calibration correction data");
   ifm3d_ros2::msg::ExtrinsicsCalibrationCorrection extrinsicsCalibrationCorrection_msg;
   // Define the header
   extrinsicsCalibrationCorrection_msg.header = std_msgs::msg::Header();
   extrinsicsCalibrationCorrection_msg.header.frame_id = frame_id_;
-  
-  // No timestamps in deserialized structs explicitly so we use frame timestamps
-  std::vector<ifm3d::TimePointT> timestamps = frame->TimeStamps();
-  if (!timestamps.empty())
+
+  if (use_timestamp_from_device_)
   {
+    // No timestamps in deserialized structs explicitly so we use frame timestamps
+    std::vector<ifm3d::TimePointT> timestamps = frame->TimeStamps();
+    if (!timestamps.empty())
+    {
       auto ts = timestamps[0];  // Or whichever index is meaningful
       auto ns_since_epoch = std::chrono::duration_cast<std::chrono::nanoseconds>(ts.time_since_epoch()).count();
 
       // Construct from nanoseconds
       extrinsicsCalibrationCorrection_msg.header.stamp = rclcpp::Time(ns_since_epoch);
-  }else
-  {
+    }
+    else
+    {
       RCLCPP_WARN(logger_, "Frame timestamps are empty; header.stamp not set");
+    }
+  }
+  else
+  {
+    extrinsicsCalibrationCorrection_msg.header.stamp = frame_received_stamp_;
   }
 
   // Extrinsics calibration correction data
@@ -218,6 +253,8 @@ ifm3d_ros2::msg::ExtrinsicsCalibrationCorrection OdsModule::extract_ros_extrinsi
 void OdsModule::handle_frame(ifm3d::Frame::Ptr frame)
 {
   RCLCPP_DEBUG(logger_, "Handle frame");
+
+  frame_received_stamp_ = node_ptr_->now();
 
   RCLCPP_DEBUG(logger_, "Creating ods zones message.");
   ZonesMsg zones_msg;
@@ -267,19 +304,25 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn OdsModule::on_configure(const rc
   node_ptr_->get_parameter(frame_id_descriptor_.name, frame_id_);
   node_ptr_->get_parameter(publish_occupancy_grid_descriptor_.name, publish_occupancy_grid_);
   node_ptr_->get_parameter(publish_polar_occupancy_grid_descriptor_.name, publish_polar_occupancy_grid_);
-  node_ptr_->get_parameter(publish_extrinsics_calibration_correction_descriptor_.name, publish_extrinsics_calibration_correction_);
+  node_ptr_->get_parameter(publish_extrinsics_calibration_correction_descriptor_.name,
+                           publish_extrinsics_calibration_correction_);
   node_ptr_->get_parameter(publish_costmap_descriptor_.name, publish_costmap_);
   RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'", frame_id_descriptor_.name.c_str(), frame_id_.c_str());
   RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'", publish_occupancy_grid_descriptor_.name.c_str(),
               publish_occupancy_grid_ ? "true" : "false");
   RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'", publish_polar_occupancy_grid_descriptor_.name.c_str(),
               publish_polar_occupancy_grid_ ? "true" : "false");
-  RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'", publish_extrinsics_calibration_correction_descriptor_.name.c_str(),
+  RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'",
+              publish_extrinsics_calibration_correction_descriptor_.name.c_str(),
               publish_extrinsics_calibration_correction_ ? "true" : "false");
   RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'", publish_costmap_descriptor_.name.c_str(),
               publish_costmap_ ? "true" : "false");
 
-  const auto qos = ifm3d_ros2::LowLatencyQoS();
+  rclcpp::QoS qos = ifm3d_ros2::ReliableLowLatencyQoS();
+  if (publish_best_effort_)
+  {
+    qos = ifm3d_ros2::BestEffortLowLatencyQoS();
+  }
 
   if (publish_occupancy_grid_)
   {

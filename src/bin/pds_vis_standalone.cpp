@@ -14,6 +14,7 @@ int main(int argc, char** argv)
   rclcpp::init(argc, argv);
   rclcpp::executors::MultiThreadedExecutor exec;
   rclcpp::NodeOptions options;
+  options.use_intra_process_comms(true);
   auto pds_vis_node = std::make_shared<ifm3d_ros2::PdsVisNode>(options);
   exec.add_node(pds_vis_node->get_node_base_interface());
   exec.spin();

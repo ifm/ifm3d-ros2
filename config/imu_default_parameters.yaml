@@ -6,6 +6,8 @@
     config_file: "config/o3r_configs/imu.json"
     ip: 192.168.0.69
     pcic_port: 50016
+    publish_best_effort: false # If true, most sensor messages will be published best_effort instead of reliable
+    use_timestamp_from_device: true # Use device time instead of ROS time for message stamping
     imu:
       publish_averaged_data: false
       publish_bulk_data: true

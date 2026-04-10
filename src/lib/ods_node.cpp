@@ -8,15 +8,12 @@
 
 #include <ifm3d_ros2/ods_node.hpp>
 
-#include <ament_index_cpp/get_package_share_directory.hpp>
-
 #include <algorithm>
 #include <chrono>
 #include <functional>
 #include <filesystem>
 #include <fstream>
 #include <exception>
-#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -33,25 +30,6 @@ using namespace std::chrono_literals;
 
 namespace ifm3d_ros2
 {
-namespace
-{
-std::string ResolveConfigPath(const std::string& config_file)
-{
-  if (config_file.empty())
-  {
-    return config_file;
-  }
-
-  const std::filesystem::path p(config_file);
-  if (p.is_absolute())
-  {
-    return config_file;
-  }
-
-  const std::filesystem::path share_dir(ament_index_cpp::get_package_share_directory("ifm3d_ros2"));
-  return (share_dir / p).string();
-}
-}  // namespace
 
 OdsNode::OdsNode(const rclcpp::NodeOptions& opts) : OdsNode::OdsNode("ods_node", opts)
 {
@@ -114,25 +92,31 @@ TC_RETVAL OdsNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   ifm3d::json config_json;
   if (this->config_file_ != "")
   {
-    const auto resolved_config_path = ResolveConfigPath(this->config_file_);
-    std::ifstream file(resolved_config_path);
-    if (!file.is_open())
-    {
-      throw std::runtime_error("Could not open config file: " + resolved_config_path);
-    }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    RCLCPP_INFO(this->logger_, "Setting configuration: %s", buffer.str().c_str());
+    std::string absolute_file_path;
 
     try
     {
-      config_json = json::parse(buffer.str());
+      absolute_file_path = BaseServices::get_absolute_config_path(this->config_file_);
     }
-    catch (json::parse_error& ex)
+    catch (const ament_index_cpp::PackageNotFoundError& e)
     {
-      RCLCPP_ERROR(this->logger_, "Could not parse config file %s", this->config_file_.c_str());
-      return TC_RETVAL::FAILURE;
+      RCLCPP_ERROR(logger_, "Could not open config file: %s. what: %s", this->config_file_.c_str(), e.what());
+      return TC_RETVAL::ERROR;
     }
+
+    RCLCPP_INFO(logger_, "Trying to read config file: %s", absolute_file_path.c_str());
+
+    std::ifstream file(absolute_file_path);
+    if (!file.is_open())
+    {
+      RCLCPP_ERROR(logger_, "Could not open config file: %s", this->config_file_.c_str());
+      return TC_RETVAL::ERROR;
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    RCLCPP_INFO(this->logger_, "Setting configuration from file: %s", buffer.str().c_str());
+    config_json = json::parse(buffer.str());
   }
 
   //
@@ -147,29 +131,8 @@ TC_RETVAL OdsNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   RCLCPP_DEBUG(this->logger_, "Find out which data stream we are handling");
 
   // If a configuration file is provided, configure the device.
-  if (this->config_file_!=""){
-    std::string config_file_path = this->config_file_;
-    
-    // If it's a relative path, resolve it relative to the package share directory
-    if (!config_file_path.empty() && config_file_path[0] != '/') {
-      // Try to find the package share directory using ament_index
-      try {
-        std::string package_share_directory = ament_index_cpp::get_package_share_directory("ifm3d_ros2");
-        config_file_path = package_share_directory + "/" + config_file_path;
-        RCLCPP_INFO(this->logger_, "Resolved relative config file path to: %s", config_file_path.c_str());
-      } catch (const std::exception& e) {
-        RCLCPP_WARN(this->logger_, "Could not resolve package directory, using relative path as-is: %s", e.what());
-      }
-    }
-    
-    std::ifstream file(config_file_path);
-    if (!file.is_open()) {
-      throw std::runtime_error("Could not open config file: " + config_file_path);
-    }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    RCLCPP_INFO(this->logger_, "Setting configuration from file '%s': %s", config_file_path.c_str(), buffer.str().c_str());
-    ifm3d::json config_json = json::parse(buffer.str()) ;
+  if (this->config_file_ != "")
+  {
     this->o3r_->Set(config_json);
   }
 
@@ -186,7 +149,7 @@ TC_RETVAL OdsNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   // Initialize ODS Module
   //
   RCLCPP_INFO(this->logger_, "Creating OdsModule...");
-  this->ods_module_ = std::make_shared<OdsModule>(this->get_logger(), shared_from_this());
+  this->ods_module_ = std::make_shared<OdsModule>(this->get_logger(), shared_from_this(), publish_best_effort_, use_timestamp_from_device_);
   RCLCPP_INFO(this->logger_, "OdsModule created.");
   //
   // Initialize diagnostic Module
@@ -420,6 +383,20 @@ void OdsNode::init_params()  // TODO cleanup params
   xmlrpc_port_range.step = 1;
   xmlrpc_port_descriptor.integer_range.push_back(xmlrpc_port_range);
   this->declare_parameter("xmlrpc_port", ifm3d::DEFAULT_XMLRPC_PORT, xmlrpc_port_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor publish_best_effort_descriptor;
+  publish_best_effort_descriptor.name = "publish_best_effort";
+  publish_best_effort_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  publish_best_effort_descriptor.description =
+      "Sets QoS for published sensor messages to best_effort. Is false by default";
+  this->declare_parameter("publish_best_effort", false, publish_best_effort_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor use_timestamp_from_device_descriptor;
+  use_timestamp_from_device_descriptor.name = "use_timestamp_from_device";
+  use_timestamp_from_device_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  use_timestamp_from_device_descriptor.description =
+      "Uses timestamp from VPU for messages if true; uses ROS time if false; default is true";
+  this->declare_parameter("use_timestamp_from_device", true, use_timestamp_from_device_descriptor);
 }
 
 void OdsNode::parse_params()
@@ -440,6 +417,12 @@ void OdsNode::parse_params()
 
   this->get_parameter("xmlrpc_port", this->xmlrpc_port_);
   RCLCPP_INFO(this->logger_, "xmlrpc_port: %u", this->xmlrpc_port_);
+
+  this->get_parameter("publish_best_effort", this->publish_best_effort_);
+  RCLCPP_INFO(this->logger_, "publish_best_effort: %s", this->publish_best_effort_ ? "true" : "false");
+
+  this->get_parameter("use_timestamp_from_device", this->use_timestamp_from_device_);
+  RCLCPP_INFO(this->logger_, "use_timestamp_from_device_: %s", this->use_timestamp_from_device_ ? "true" : "false");
 }
 
 void OdsNode::set_parameter_event_callbacks()
@@ -472,6 +455,20 @@ void OdsNode::set_parameter_event_callbacks()
     RCLCPP_INFO(logger_, "New xmlrpc_port: %d", this->xmlrpc_port_);
   };
   registered_param_callbacks_["xmlrpc_port"] = param_subscriber_->add_parameter_callback("xmlrpc_port", xmlrpc_port_cb);
+
+  auto publish_best_effort_cb = [this](const rclcpp::Parameter& p) {
+    RCLCPP_WARN(logger_, "This new publish_best_effort setting will be used after CONFIGURE transition was called: %s",
+                p.as_bool() ? "true" : "false");
+  };
+  registered_param_callbacks_["publish_best_effort"] =
+      param_subscriber_->add_parameter_callback("publish_best_effort", publish_best_effort_cb);
+
+  auto use_timestamp_from_device_cb = [this](const rclcpp::Parameter& p) {
+    RCLCPP_WARN(logger_, "This new timestamp behavior will be used after CONFIGURE transition was called: %s",
+                p.as_bool() ? "true" : "false");
+  };
+  registered_param_callbacks_["use_timestamp_from_device"] =
+      param_subscriber_->add_parameter_callback("use_timestamp_from_device", use_timestamp_from_device_cb);
 }
 
 void OdsNode::frame_callback(ifm3d::Frame::Ptr frame)

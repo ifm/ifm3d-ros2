@@ -15,8 +15,13 @@
 
 namespace ifm3d_ros2
 {
-ImuModule::ImuModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr)
-  : FunctionModule(logger), node_ptr_(node_ptr), tf_publisher_(node_ptr)
+ImuModule::ImuModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr,
+                     bool publish_best_effort, bool use_timestamp_from_device)
+  : FunctionModule(logger)
+  , node_ptr_(node_ptr)
+  , tf_publisher_(node_ptr)
+  , publish_best_effort_(publish_best_effort)
+  , use_timestamp_from_device_(use_timestamp_from_device)
 {
   RCLCPP_INFO(logger_, "ImuModule contructor called.");
 
@@ -48,6 +53,8 @@ ImuModule::ImuModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::Sha
 bool ImuModule::extract_imu_data(ifm3d::Frame::Ptr frame, std::vector<ImuMsg>& imu_msgs_output,
                                  TfMsg& mounting_tf_output, TfMsg& base_tf_output)
 {
+  const rclcpp::Time now = node_ptr_->now();
+
   imu_msgs_output.clear();
 
   RCLCPP_DEBUG(logger_, "Handling imu data");
@@ -132,7 +139,7 @@ bool ImuModule::extract_imu_data(ifm3d::Frame::Ptr frame, std::vector<ImuMsg>& i
       sensor_msgs::msg::Imu imu_msg;
 
       imu_msg.header.frame_id = tf_publisher_.tf_sensor_link_frame_name_;
-      imu_msg.header.stamp = rclcpp::Time(timestamp);
+      imu_msg.header.stamp = use_timestamp_from_device_ ? rclcpp::Time(timestamp) : now;
       imu_msg.orientation_covariance[0] = -1.0;  // indicating no data
       imu_msg.linear_acceleration.x = accel_x;
       imu_msg.linear_acceleration.y = accel_y;
@@ -267,7 +274,11 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn ImuModule::on_configure(const rc
   RCLCPP_INFO(this->logger_, "Parameter %s set to '%s'", publish_bulk_data_descriptor_.name.c_str(),
               this->publish_bulk_data_ ? "true" : "false");
 
-  const auto qos = ifm3d_ros2::LowLatencyQoS();
+  rclcpp::QoS qos = ifm3d_ros2::ReliableLowLatencyQoS();
+  if (publish_best_effort_)
+  {
+    qos = ifm3d_ros2::BestEffortLowLatencyQoS();
+  }
 
   if (publish_averaged_data_)
   {

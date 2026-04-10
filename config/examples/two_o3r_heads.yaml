@@ -1,52 +1,25 @@
-# Example configuration for a two O3R camera setup.
-# Cameras are differentiated by their hypothetical position: left or right.
-# Expected to be used with example/two_o3r_heads.launch.py
+# Example configuration for four camera nodes for two O3R heads
+# Expected to be used with examples/two_o3r_heads.launch.py using default name and namespace
+# Default setup: 2D camera heads connected to port0 and port1 (pcic_port 50010 and 50011)
+# and 3d connected to port2 and port3 (pcic_port 50012 and 50013)
 
 /ifm3d/left_camera_2d:
   ros__parameters:
+    config_file: ""
     buffer_id_list:
+      - EXTRINSIC_CALIB
+      - INTRINSIC_CALIB
+      - INVERSE_INTRINSIC_CALIBRATION
       - JPEG_IMAGE
       - RGB_INFO
-    frame_latency_thresh: 1.0
     ip: 192.168.0.69
-    password: ""
-    pcic_port: 50010  # 2D stream of left camera connected to port 0
+    pcic_port: 50010  # port0 of the VPU (2D data)
+    publish_best_effort: false # If true, most sensor messages will be published best_effort instead of reliable
     publish_uncompressed: true  # If true, launch will spawn a republish node to provide rgb_uncompressed image only for RGB
-
-    sync_clocks: false
-    timeout_millis: 500
-    timeout_tolerance_secs: 5.0
     tf:
       base_frame_name: "ifm_base_link"
-      mounting_frame_name: "left_camera_2d_mounting_link"
+      mounting_frame_name: "left_camera_mounting_link"
       optical_frame_name: "left_camera_2d_optical_link"
-      publish_base_to_mounting: true
-      publish_mounting_to_optical: true
-    use_sim_time: false
-    xmlrpc_port: 80
-
-/ifm3d/left_camera_3d:
-  ros__parameters:
-    buffer_id_list:
-      - CONFIDENCE_IMAGE
-      - EXTRINSIC_CALIB
-      - NORM_AMPLITUDE_IMAGE
-      - RADIAL_DISTANCE_IMAGE
-      - RADIAL_DISTANCE_NOISE
-      - REFLECTIVITY
-      - TOF_INFO
-      - XYZ
-    frame_latency_thresh: 1.0
-    ip: 192.168.0.69
-    password: ""
-    pcic_port: 50012  # 3D stream of left camera connected to port 2
-    sync_clocks: false
-    timeout_millis: 500
-    timeout_tolerance_secs: 5.0
-    tf:
-      base_frame_name: "ifm_base_link"
-      mounting_frame_name: "left_camera_3d_mounting_link"
-      optical_frame_name: "left_camera_3d_optical_link"
       publish_base_to_mounting: true
       publish_mounting_to_optical: true
     use_sim_time: false
@@ -54,49 +27,76 @@
 
 /ifm3d/right_camera_2d:
   ros__parameters:
+    config_file: ""
     buffer_id_list:
+      - EXTRINSIC_CALIB
+      - INTRINSIC_CALIB
+      - INVERSE_INTRINSIC_CALIBRATION
       - JPEG_IMAGE
       - RGB_INFO
-    frame_latency_thresh: 1.0
     ip: 192.168.0.69
-    password: ""
-    pcic_port: 50011  # 2D stream of right camera connected to port 1
+    pcic_port: 50011  # port1 of the VPU (2D data)
+    publish_best_effort: false # If true, most sensor messages will be published best_effort instead of reliable
     publish_uncompressed: true  # If true, launch will spawn a republish node to provide rgb_uncompressed image only for RGB
-    sync_clocks: false
-    timeout_millis: 500
-    timeout_tolerance_secs: 5.0
     tf:
       base_frame_name: "ifm_base_link"
-      mounting_frame_name: "right_camera_2d_mounting_link"
+      mounting_frame_name: "right_camera_mounting_link"
       optical_frame_name: "right_camera_2d_optical_link"
       publish_base_to_mounting: true
       publish_mounting_to_optical: true
     use_sim_time: false
     xmlrpc_port: 80
 
-/ifm3d/right_camera_3d:
+/ifm3d/left_camera_3d:
   ros__parameters:
+    config_file: ""
     buffer_id_list:
       - CONFIDENCE_IMAGE
       - EXTRINSIC_CALIB
+      - INTRINSIC_CALIB
+      - INVERSE_INTRINSIC_CALIBRATION
       - NORM_AMPLITUDE_IMAGE
       - RADIAL_DISTANCE_IMAGE
       - RADIAL_DISTANCE_NOISE
       - REFLECTIVITY
       - TOF_INFO
       - XYZ
-    frame_latency_thresh: 1.0
     ip: 192.168.0.69
-    password: ""
-    pcic_port: 50013  # 3D stream of right camera connected to port 3
-    sync_clocks: false
-    timeout_millis: 500
-    timeout_tolerance_secs: 5.0
+    pcic_port: 50012  # port2 of the VPU (3D data)
+    publish_best_effort: false # If true, most sensor messages will be published best_effort instead of reliable
+    publish_uncompressed: true  # If true, launch will spawn a republish node to provide rgb_uncompressed image only for RGB
     tf:
       base_frame_name: "ifm_base_link"
-      mounting_frame_name: "right_camera_3d_mounting_link"
+      mounting_frame_name: "left_camera_mounting_link"
+      optical_frame_name: "left_camera_3d_optical_link"
+      publish_base_to_mounting: false  # already published by 2d node
+      publish_mounting_to_optical: true
+    use_sim_time: false
+    xmlrpc_port: 80
+
+/ifm3d/right_camera_3d:
+  ros__parameters:
+    config_file: ""
+    buffer_id_list:
+      - CONFIDENCE_IMAGE
+      - EXTRINSIC_CALIB
+      - INTRINSIC_CALIB
+      - INVERSE_INTRINSIC_CALIBRATION
+      - NORM_AMPLITUDE_IMAGE
+      - RADIAL_DISTANCE_IMAGE
+      - RADIAL_DISTANCE_NOISE
+      - REFLECTIVITY
+      - TOF_INFO
+      - XYZ
+    ip: 192.168.0.69
+    pcic_port: 50013  # port3 of the VPU (3D data)
+    publish_best_effort: false # If true, most sensor messages will be published best_effort instead of reliable
+    publish_uncompressed: true  # If true, launch will spawn a republish node to provide rgb_uncompressed image only for RGB
+    tf:
+      base_frame_name: "ifm_base_link"
+      mounting_frame_name: "right_camera_mounting_link"
       optical_frame_name: "right_camera_3d_optical_link"
-      publish_base_to_mounting: true
+      publish_base_to_mounting: false  # already published by 2d node
       publish_mounting_to_optical: true
     use_sim_time: false
     xmlrpc_port: 80

@@ -3,12 +3,12 @@
 
 | Name    | Service Definition                          | Description                                                                                                               |
 | ------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `Dump`    | <a href="srv/Dump.srv">ifm3d_ros2/srv/Dump</a>       | Dumps the state of the camera parameters to JSON                                                                          |
-| `Config`  | <a href="srv/Config.srv">ifm3d_ros2/srv/Config</a>   | Provides a means to configure the camera and imager settings, declaratively from a JSON encoding of the desired settings. |
-| `GetDiag` | <a href="srv/GetDiag.srv">ifm3d_ros2/srv/GetDiag</a> | Get all the diagnostic messages corresponding to a JSON filter. <br>The filter can be left blank to get all active and dormant error messages: `ros2 service call /ifm3d/camera/GetDiag ifm3d_ros2/srv/GetDiag "{filter: '{}'}"`.|
-| `Softon`  | <a href="srv/Softon.srv">ifm3d_ros2/srv/Softon</a> | Provides a means to quickly change the camera state from IDLE to RUN.                                                     |
-| `Softoff` | <a href="srv/Softoff.srv">ifm3d_ros2/srv/Softoff</a> | Provides a means to quickly change the camera state from RUN to IDLE.                                                     |
-| `SetPdsMode` | <a href="srv/SetPdsMode.srv">ifm3d_ros2/srv/SetPdsMode</a> | Sets PDS operation mode (`ACTION_ONLY`, `GET_PALLET_CONTINUOUS`, `GET_RACK_CONTINUOUS`, `VOLUME_CHECK_CONTINUOUS`) and optional mode-specific request payload. |
+| `Dump`    | [ifm3d_ros2/srv/Dump](../srv/Dump.srv)       | Dumps the state of the camera parameters to JSON                                                                          |
+| `Config`  | [ifm3d_ros2/srv/Config](../srv/Config.srv)   | Provides a means to configure the camera and imager settings, declaratively from a JSON encoding of the desired settings. |
+| `GetDiag` | [ifm3d_ros2/srv/GetDiag](../srv/GetDiag.srv) | Get all the diagnostic messages corresponding to a JSON filter. <br>The filter can be left blank to get all active and dormant error messages: `ros2 service call /ifm3d/camera/GetDiag ifm3d_ros2/srv/GetDiag "{filter: '{}'}"`.|
+| `Softon`  | [ifm3d_ros2/srv/Softon](../srv/Softon.srv) | Provides a means to quickly change the camera state from IDLE to RUN.                                                     |
+| `Softoff` | [ifm3d_ros2/srv/Softoff](../srv/Softoff.srv) | Provides a means to quickly change the camera state from RUN to IDLE.                                                     |
+| `SetPdsMode` | [ifm3d_ros2/srv/SetPdsMode](../srv/SetPdsMode.srv) | Sets PDS operation mode (`ACTION_ONLY`, `GET_PALLET_CONTINUOUS`, `GET_RACK_CONTINUOUS`, `VOLUME_CHECK_CONTINUOUS`) and optional mode-specific request payload. |
 
 ## Dump and Config
 

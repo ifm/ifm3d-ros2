@@ -72,7 +72,7 @@ class PdsModule : public FunctionModule, public std::enable_shared_from_this<Pds
 
 public:
   PdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr, std::shared_ptr<ifm3d::O3R> o3r,
-            std::string app_instance);
+            std::string app_instance, bool publish_best_effort = false, bool use_timestamp_from_device = true);
 
   // Main functions that take care of deserializing
   // and publishing the PDS data
@@ -100,7 +100,7 @@ public:
    * @return true if parsed without execption
    * @return false if parsring exeption was raised
    */
-  bool parse_get_pallet_result(const ifm3d::json result_json, ifm3d_ros2::msg::PalletDetectionArray& out_msg) const;
+  bool parse_get_pallet_result(const ifm3d::json& result_json, ifm3d_ros2::msg::PalletDetectionArray& out_msg) const;
 
   /**
    * @brief Populates provides message with GetRack result data from json.
@@ -110,7 +110,7 @@ public:
    * @return true if parsed without execption
    * @return false if parsring exeption was raised
    */
-  bool parse_get_rack_result(const ifm3d::json result_json, ifm3d_ros2::msg::RackDetection& out_msg) const;
+  bool parse_get_rack_result(const ifm3d::json& result_json, ifm3d_ros2::msg::RackDetection& out_msg) const;
 
   /**
    * @brief Populates provides message with VolumeCheck result data from json.
@@ -120,7 +120,7 @@ public:
    * @return true if parsed without execption
    * @return false if parsring exeption was raised
    */
-  bool parse_volume_check_result(const ifm3d::json result_json, ifm3d_ros2::msg::VolumeCheck& out_msg) const;
+  bool parse_volume_check_result(const ifm3d::json& result_json, ifm3d_ros2::msg::VolumeCheck& out_msg) const;
 
   /**
    * @brief Populates provides message with all result data from json.
@@ -130,7 +130,7 @@ public:
    * @return true if parsed without execption
    * @return false if parsring exeption was raised
    */
-  bool parse_full_result(const ifm3d::json result_json, ifm3d_ros2::msg::PdsFullResult& out_msg) const;
+  bool parse_full_result(const ifm3d::json& result_json, ifm3d_ros2::msg::PdsFullResult& out_msg) const;
 
   rclcpp_lifecycle::LifecycleNode::CallbackReturn on_configure(const rclcpp_lifecycle::State& previous_state);
 
@@ -202,11 +202,14 @@ private:
 
   std::shared_ptr<ifm3d::O3R> o3r_;
   std::string app_instance_;
+  bool publish_best_effort_;
+  bool use_timestamp_from_device_;
   std::string frame_id_;
   rcl_interfaces::msg::ParameterDescriptor frame_id_descriptor_;
   u_int8_t mode_;
 
   action_state action_state_;
+  rclcpp::Time frame_received_stamp_;
   std::shared_ptr<GoalHandleGetPallet> current_get_pallet_goal_handle_;
   std::shared_ptr<GoalHandleGetRack> current_get_rack_goal_handle_;
   std::shared_ptr<GoalHandleVolumeCheck> current_volume_check_goal_handle_;

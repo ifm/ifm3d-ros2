@@ -16,8 +16,15 @@
 namespace ifm3d_ros2
 {
 RgbModule::RgbModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr,
-                     ifm3d::O3R::Ptr o3r_ptr, std::string port, uint32_t width, uint32_t height)
-  : FunctionModule(logger), node_ptr_(node_ptr), tf_publisher_(node_ptr, o3r_ptr, port), width_(width), height_(height)
+                     ifm3d::O3R::Ptr o3r_ptr, std::string port, uint32_t width, uint32_t height,
+                     bool publish_best_effort, bool use_timestamp_from_device)
+  : FunctionModule(logger)
+  , node_ptr_(node_ptr)
+  , tf_publisher_(node_ptr, o3r_ptr, port)
+  , width_(width)
+  , height_(height)
+  , publish_best_effort_(publish_best_effort)
+  , use_timestamp_from_device_(use_timestamp_from_device)
 {
   RCLCPP_INFO(logger_, "RgbModule contructor called.");
 
@@ -52,7 +59,8 @@ void RgbModule::handle_frame(ifm3d::Frame::Ptr frame)
                    buffer_id_utils::vector_to_string(this->buffer_id_list_).c_str());
   RCLCPP_DEBUG(logger_, "Received new Frame.");
 
-  rclcpp::Time frame_ts = ifm3d_ros2::ifm3d_to_ros_time(frame->TimeStamps()[0]);
+  rclcpp::Time frame_ts =
+      use_timestamp_from_device_ ? ifm3d_ros2::ifm3d_to_ros_time(frame->TimeStamps()[0]) : this->node_ptr_->now();
   RCLCPP_DEBUG(logger_, "Frame timestamp: %f", frame_ts.seconds());
 
   auto optical_header = std_msgs::msg::Header();
@@ -66,7 +74,8 @@ void RgbModule::handle_frame(ifm3d::Frame::Ptr frame)
     // Helper for logging
     auto& clk = *this->node_ptr_->get_clock();
     std::string id_string;
-    if (!buffer_id_utils::convert(id, id_string)){
+    if (!buffer_id_utils::convert(id, id_string))
+    {
       RCLCPP_ERROR(logger_, "Cannot convert the buffer id to a string.");
     }
 
@@ -167,8 +176,8 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn RgbModule::on_configure(const rc
   }
 
   // Remove buffer_ids unfit for the given data type
-  this->buffer_id_list_ =
-      buffer_id_utils::buffer_ids_for_data_stream_type(this->buffer_id_list_, ifm3d_ros2::buffer_id_utils::data_stream_type::rgb_2d);
+  this->buffer_id_list_ = buffer_id_utils::buffer_ids_for_data_stream_type(
+      this->buffer_id_list_, ifm3d_ros2::buffer_id_utils::data_stream_type::rgb_2d);
   RCLCPP_INFO(logger_, "After removing buffer_ids unfit for the given data stream type, the final list is: [%s].",
               buffer_id_utils::vector_to_string(this->buffer_id_list_).c_str());
 
@@ -178,7 +187,11 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn RgbModule::on_configure(const rc
   {
     // Create Publishers in node namespace to make multi-camera setups easier
     const std::string topic_name = "~/" + buffer_id_utils::topic_name_map[id];
-    const auto qos = ifm3d_ros2::LowLatencyQoS();
+    rclcpp::QoS qos = ifm3d_ros2::ReliableLowLatencyQoS();
+    if (publish_best_effort_)
+    {
+      qos = ifm3d_ros2::BestEffortLowLatencyQoS();
+    }
     const buffer_id_utils::message_type message_type = buffer_id_utils::message_type_map[id];
 
     switch (message_type)

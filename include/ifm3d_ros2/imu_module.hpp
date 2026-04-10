@@ -31,7 +31,8 @@ class ImuModule : public FunctionModule, public std::enable_shared_from_this<Imu
   using TfMsg = geometry_msgs::msg::Transform;
 
 public:
-  ImuModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr);
+  ImuModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr,
+            bool publish_best_effort = false, bool use_timestamp_from_device = true);
   // Main functions that take care of deserializing
   // and publishing the IMU data
   void handle_frame(ifm3d::Frame::Ptr frame);
@@ -58,6 +59,8 @@ public:
 private:
   rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr_;
   ImuTfPublisher tf_publisher_;
+  bool publish_best_effort_;
+  bool use_timestamp_from_device_;
 
   ImuPublisher average_imu_publisher_;
   ImuBurstPublisher imu_burst_publisher_;

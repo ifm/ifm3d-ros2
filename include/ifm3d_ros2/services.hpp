@@ -12,6 +12,7 @@
 #include <rclcpp/logger.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
+#include <ament_index_cpp/get_package_prefix.hpp>
 
 #include <ifm3d/device.h>
 
@@ -55,6 +56,19 @@ class BaseServices : public rclcpp_lifecycle::node_interfaces::LifecycleNodeInte
 public:
   BaseServices(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr, ifm3d::O3R::Ptr cam,
                ifm3d::PortInfo port_info, std::shared_ptr<std::mutex> ifm3d_mutex);
+
+  /**
+   * @brief Parse a config path, return a valid absolute path to the config file.
+   *
+   * Return a given absolute path as is.
+   * Detect "package://" prefix and try to parse an absolute.
+   * Assume "ifm3d_ros2" as package if relative path is given.
+   *
+   * @throws PackageNotFoundError if extracted package path was not found
+   * @param input_path
+   * @return std::string the absolute path
+   */
+  static std::string get_absolute_config_path(const std::string& input_path);
 
 protected:
   void Dump(std::shared_ptr<rmw_request_id_t> request_header, DumpRequest req, DumpResponse resp);
