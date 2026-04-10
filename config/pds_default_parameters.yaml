@@ -7,5 +7,7 @@
     ip: 192.168.0.69
     pcic_port: 51011
     app_instance: "app1"
+    publish_best_effort: false # If true, most sensor messages will be published best_effort instead of reliable
+    use_timestamp_from_device: true # Use device time instead of ROS time for message stamping
     pds:
       frame_id: "ifm_pds_link"

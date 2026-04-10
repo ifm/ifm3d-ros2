@@ -6,8 +6,8 @@ This section describes the basic hardware setup and configuration needed to test
 
 You can follow the guide provided at [ifm3d.com](https://ifm3d.com/latest/GettingStarted/Unboxing/hw_unboxing.html) on how to wire and setup the O3R system.
 
-To use the `camera.launch.py` or `pds.launch.py` examples, at least one camera head is needed.
-To use the `ods.launch.py`, two camera heads are needed.
+The default example configurations assume one camera head for `camera.launch.py` and `pds.launch.py`, and two camera heads for `ods.launch.py`.
+If your setup uses fewer or more camera heads than these defaults, update the corresponding default configuration files to match your hardware.
 `imu.launch.py` does not require a connected camera.
 
 Follow the instructions provided in [the building section](building.md) to install and/or build the required ifm3d SDK and ROS 2 packages.
@@ -20,6 +20,7 @@ The provided launch files and configuration files are designed to work out of th
 |--------------------|---------|--------------|-------------|
 | `camera.launch.py` (3D) | port4 | 50014 | 3D camera head |
 | `camera.launch.py` (2D) | port0 | 50010 | 2D camera head (requires changing `pcic_port` in config) |
+| `combined_2d_3d.launch.py` | port0, port4 | 50010, 50014 | One 2D and one 3D camera head |
 | `ods.launch.py` | port2, port3 | 51010 (app0) | Two 3D camera heads for ODS |
 | `pds.launch.py` | port5 | 51011 (app1) | One 3D camera head for PDS |
 | `imu.launch.py` | port6 | 50016 | IMU (fixed, cannot be changed) |
@@ -64,7 +65,7 @@ The default configuration does **not** include camera head calibration. To inclu
 
 You may run `ros2 launch ifm3d_ros2 camera.launch.py visualization:=true` to open a RViz2 window to visualize the published data.
 
-For detailed information, see [here](doc/camera_node/index_camera_node.md).
+For detailed information, see [here](camera_node/index_camera_node.md).
 
 ### imu.launch.py
 
@@ -75,7 +76,7 @@ IMU readings are measured at a higher rate than they can be published.
 By default, they are published in bulk on the `~/imu_burst` topic.
 To publish singular messages containing averaged data, set the `imu.publish_averaged_data` parameter to true.
 
-For detailed information, see [here](doc/imu_node/index_imu_node.md).
+For detailed information, see [here](imu_node/index_imu_node.md).
 
 ### ods.launch.py
 
@@ -88,7 +89,7 @@ Running `ros2 launch ifm3d_ros2 ods.launch.py` uses the `config/ods_default_para
 By default, ODS is configured to use two 3D camera heads on port2 and port3.
 You may run `ros2 launch ifm3d_ros2 ods.launch.py visualization:=true` to open a RViz2 window to visualize the published occupancy grid.
 
-For detailed information, see [here](doc/ods_node/index_ods_node.md).
+For detailed information, see [here](ods_node/index_ods_node.md).
 
 ### pds.launch.py
 
@@ -99,4 +100,37 @@ More information on PDS calibration can be found [here](https://ifm3d.com/latest
 
 Running `ros2 launch ifm3d_ros2 pds.launch.py` uses the `config/pds_default_parameters.yaml` to start a `pds_node` which uses a 3D camera head on port5.
 
-For detailed information, see [here](doc/pds_node/index_pds_node.md).
+For detailed information, see [here](pds_node/index_pds_node.md).
+
+## Further examples
+
+In the `launch/examples` and `config/examples` directories, further launch scripts and configs are provided.
+
+### Combines 2d and 3d launch
+
+`combined_2d_3d.launch.py` and the corresponding `combined_2d_3d.yaml` showcase how to launch two `camera_nodes` from one launch script and config, to capture both 2d and 3d data from a sensor.
+It expects the 2d connection on port 0 and the 3d connection on port 4.
+If your camera heads are connected to different ports, update `config/examples/combined_2d_3d.yaml` accordingly.
+
+
+### Two O3R sensor setup
+
+`two_o3r_heads.launch.py` and the corresponding `two_o3r_heads.yaml` showcase how to launch four `camera_nodes` from one launch script and config, to capture both 2d and 3d data from two sensors, e.g. a left and a right camera.
+It expects the 2d connections on port 0/1 and the 3d connections on port 2/3.
+This example might not work if the 3d connections on port 2/3 are already part of an application (as in ODS claiming the port).
+
+### Rectifying an image
+
+`undistort_image.launch.py` expects a 2d sensor input on port 0 and a 3d sensor input on port 4.
+It uses `combined_2d_3d.yaml` to launch two `camera_nodes`, capturing and publishing data from the attached sensor.
+Additionally, two nodes to publish rectified image to `/ifm3d/camera_2d/image_rect` and `/ifm3d/camera_3d/image_rect` are started.
+
+### Custom Pallet specification
+
+To further specify the expected pallet dimensions for PDS, a JSON config needs to be set, using the `Config` service.
+`config/examples/o3r_pds_custom_pallet.json` configures PDS as app0 and provides a custom pallet definition for a pallet with the index 6.
+
+### Advanced ODS preset and port calibration
+
+`config/examples/o3r_ods_with_preset_and_ports_calib.json` adds an extrinsic calibration for the camera at port 0, configures ODS, and configures zones.
+It can be applied using the `Config` service.

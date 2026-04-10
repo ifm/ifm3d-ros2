@@ -176,6 +176,8 @@ private:
   std::string app_instance_{};
   std::uint16_t pcic_port_{};
   std::uint16_t xmlrpc_port_{};
+  bool publish_best_effort_{};
+  bool use_timestamp_from_device_{};
 
   ifm3d::PortInfo port_info_{};
 

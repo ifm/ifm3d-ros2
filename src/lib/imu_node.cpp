@@ -8,8 +8,6 @@
 
 #include <ifm3d_ros2/imu_node.hpp>
 
-#include <ament_index_cpp/get_package_share_directory.hpp>
-
 #include <algorithm>
 #include <chrono>
 #include <functional>
@@ -32,25 +30,6 @@ using namespace std::chrono_literals;
 
 namespace ifm3d_ros2
 {
-namespace
-{
-std::string ResolveConfigPath(const std::string& config_file)
-{
-  if (config_file.empty())
-  {
-    return config_file;
-  }
-
-  const std::filesystem::path p(config_file);
-  if (p.is_absolute())
-  {
-    return config_file;
-  }
-
-  const std::filesystem::path share_dir(ament_index_cpp::get_package_share_directory("ifm3d_ros2"));
-  return (share_dir / p).string();
-}
-}  // namespace
 
 ImuNode::ImuNode(const rclcpp::NodeOptions& opts) : ImuNode::ImuNode("imu_node", opts)
 {
@@ -113,25 +92,31 @@ TC_RETVAL ImuNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   ifm3d::json config_json;
   if (this->config_file_ != "")
   {
-    const auto resolved_config_path = ResolveConfigPath(this->config_file_);
-    std::ifstream file(resolved_config_path);
-    if (!file.is_open())
-    {
-      throw std::runtime_error("Could not open config file: " + resolved_config_path);
-    }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    RCLCPP_INFO(this->logger_, "Setting configuration: %s", buffer.str().c_str());
+    std::string absolute_file_path;
 
     try
     {
-      config_json = json::parse(buffer.str());
+      absolute_file_path = BaseServices::get_absolute_config_path(this->config_file_);
     }
-    catch (json::parse_error& ex)
+    catch (const ament_index_cpp::PackageNotFoundError& e)
     {
-      RCLCPP_ERROR(this->logger_, "Could not parse config file %s", this->config_file_.c_str());
-      return TC_RETVAL::FAILURE;
+      RCLCPP_ERROR(logger_, "Could not open config file: %s. what: %s", this->config_file_.c_str(), e.what());
+      return TC_RETVAL::ERROR;
     }
+
+    RCLCPP_INFO(logger_, "Trying to read config file: %s", absolute_file_path.c_str());
+
+    std::ifstream file(absolute_file_path);
+    if (!file.is_open())
+    {
+      RCLCPP_ERROR(logger_, "Could not open config file: %s", this->config_file_.c_str());
+      return TC_RETVAL::ERROR;
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    RCLCPP_INFO(this->logger_, "Setting configuration from file: %s", buffer.str().c_str());
+    config_json = json::parse(buffer.str());
   }
 
   //
@@ -164,7 +149,7 @@ TC_RETVAL ImuNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   // Initialize IMU Module
   //
   RCLCPP_INFO(this->logger_, "Creating ImuModule...");
-  this->imu_module_ = std::make_shared<ImuModule>(this->get_logger(), shared_from_this());
+  this->imu_module_ = std::make_shared<ImuModule>(this->get_logger(), shared_from_this(), publish_best_effort_, use_timestamp_from_device_);
   RCLCPP_INFO(this->logger_, "ImuModule created.");
   //
   // Initialize diagnostic Module
@@ -390,6 +375,20 @@ void ImuNode::init_params()
   xmlrpc_port_range.step = 1;
   xmlrpc_port_descriptor.integer_range.push_back(xmlrpc_port_range);
   this->declare_parameter("xmlrpc_port", ifm3d::DEFAULT_XMLRPC_PORT, xmlrpc_port_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor publish_best_effort_descriptor;
+  publish_best_effort_descriptor.name = "publish_best_effort";
+  publish_best_effort_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  publish_best_effort_descriptor.description =
+      "Sets QoS for published sensor messages to best_effort. Is false by default";
+  this->declare_parameter("publish_best_effort", false, publish_best_effort_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor use_timestamp_from_device_descriptor;
+  use_timestamp_from_device_descriptor.name = "use_timestamp_from_device";
+  use_timestamp_from_device_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  use_timestamp_from_device_descriptor.description =
+      "Uses timestamp from VPU for messages if true; uses ROS time if false; default is true";
+  this->declare_parameter("use_timestamp_from_device", true, use_timestamp_from_device_descriptor);
 }
 
 void ImuNode::parse_params()
@@ -410,6 +409,12 @@ void ImuNode::parse_params()
 
   this->get_parameter("xmlrpc_port", this->xmlrpc_port_);
   RCLCPP_INFO(this->logger_, "xmlrpc_port: %u", this->xmlrpc_port_);
+
+  this->get_parameter("publish_best_effort", this->publish_best_effort_);
+  RCLCPP_INFO(this->logger_, "publish_best_effort: %s", this->publish_best_effort_ ? "true" : "false");
+
+  this->get_parameter("use_timestamp_from_device", this->use_timestamp_from_device_);
+  RCLCPP_INFO(this->logger_, "use_timestamp_from_device_: %s", this->use_timestamp_from_device_ ? "true" : "false");
 }
 
 void ImuNode::set_parameter_event_callbacks()
@@ -442,6 +447,20 @@ void ImuNode::set_parameter_event_callbacks()
     RCLCPP_INFO(logger_, "New xmlrpc_port: %d", this->xmlrpc_port_);
   };
   registered_param_callbacks_["xmlrpc_port"] = param_subscriber_->add_parameter_callback("xmlrpc_port", xmlrpc_port_cb);
+
+  auto publish_best_effort_cb = [this](const rclcpp::Parameter& p) {
+    RCLCPP_WARN(logger_, "This new publish_best_effort setting will be used after CONFIGURE transition was called: %s",
+                p.as_bool() ? "true" : "false");
+  };
+  registered_param_callbacks_["publish_best_effort"] =
+      param_subscriber_->add_parameter_callback("publish_best_effort", publish_best_effort_cb);
+
+  auto use_timestamp_from_device_cb = [this](const rclcpp::Parameter& p) {
+    RCLCPP_WARN(logger_, "This new timestamp behavior will be used after CONFIGURE transition was called: %s",
+                p.as_bool() ? "true" : "false");
+  };
+  registered_param_callbacks_["use_timestamp_from_device"] =
+      param_subscriber_->add_parameter_callback("use_timestamp_from_device", use_timestamp_from_device_cb);
 }
 
 void ImuNode::frame_callback(ifm3d::Frame::Ptr frame)

@@ -21,7 +21,7 @@ The Ports on the VPU should be connected as follows:
 * Right Camera 2D: Port 1
 * Right Camera 3D: Port 3
 
-The configuration for all four nodes is read from a single file: two_o3r_heads.yaml
+The configuration for all four nodes is read from a single file: examples/two_o3r_heads.yaml
 """
 
 

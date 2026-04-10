@@ -13,7 +13,6 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
-#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <limits>
 #include <sstream>
 #include <string>
@@ -92,24 +91,31 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   ifm3d::json config_json;
   if (this->config_file_ != "")
   {
-    std::ifstream file(this->config_file_);
-    if (!file.is_open())
-    {
-      throw std::runtime_error("Could not open config file: " + this->config_file_);
-    }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
+    std::string absolute_file_path;
 
-    RCLCPP_INFO(this->logger_, "Setting configuration: %s", buffer.str().c_str());
     try
     {
-      config_json = json::parse(buffer.str());
+      absolute_file_path = BaseServices::get_absolute_config_path(this->config_file_);
     }
-    catch (json::parse_error& ex)
+    catch (const ament_index_cpp::PackageNotFoundError& e)
     {
-      RCLCPP_ERROR(this->logger_, "Could not parse config file %s", this->config_file_.c_str());
-      return TC_RETVAL::FAILURE;
+      RCLCPP_ERROR(logger_, "Could not open config file: %s. what: %s", this->config_file_.c_str(), e.what());
+      return TC_RETVAL::ERROR;
     }
+
+    RCLCPP_INFO(logger_, "Trying to read config file: %s", absolute_file_path.c_str());
+
+    std::ifstream file(absolute_file_path);
+    if (!file.is_open())
+    {
+      RCLCPP_ERROR(logger_, "Could not open config file: %s", this->config_file_.c_str());
+      return TC_RETVAL::ERROR;
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    RCLCPP_INFO(this->logger_, "Setting configuration from file: %s", buffer.str().c_str());
+    config_json = json::parse(buffer.str());
   }
 
   //
@@ -122,29 +128,9 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   RCLCPP_DEBUG(this->logger_, "Initializing FrameGrabber for diagnostics");
   this->fg_diag_ = std::make_shared<ifm3d::FrameGrabber>(this->o3r_, this->o3r_->Port("diagnostics").pcic_port);
 
-  if (this->config_file_!=""){
-    std::string config_file_path = this->config_file_;
-    
-    // If it's a relative path, resolve it relative to the package share directory
-    if (!config_file_path.empty() && config_file_path[0] != '/') {
-      // Try to find the package share directory using ament_index
-      try {
-        std::string package_share_directory = ament_index_cpp::get_package_share_directory("ifm3d_ros2");
-        config_file_path = package_share_directory + "/" + config_file_path;
-        RCLCPP_INFO(this->logger_, "Resolved relative config file path to: %s", config_file_path.c_str());
-      } catch (const std::exception& e) {
-        RCLCPP_WARN(this->logger_, "Could not resolve package directory, using relative path as-is: %s", e.what());
-      }
-    }
-    
-    std::ifstream file(config_file_path);
-    if (!file.is_open()) {
-      throw std::runtime_error("Could not open config file: " + config_file_path);
-    }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    RCLCPP_INFO(this->logger_, "Setting configuration from file '%s': %s", config_file_path.c_str(), buffer.str().c_str());
-    ifm3d::json config_json = json::parse(buffer.str()) ;
+  // Apply config if config file was provided
+  if (this->config_file_ != "")
+  {
     this->o3r_->Set(config_json);
   }
 
@@ -171,8 +157,8 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   if (this->data_stream_type_ == ifm3d_ros2::buffer_id_utils::data_stream_type::rgb_2d)
   {
     RCLCPP_INFO(logger_, "Data type is 2D");
-    this->data_module_ =
-        std::make_shared<RgbModule>(this->get_logger(), shared_from_this(), o3r_, this->port_info_.port, width, height);
+    this->data_module_ = std::make_shared<RgbModule>(this->get_logger(), shared_from_this(), o3r_,
+                                                     this->port_info_.port, width, height, publish_best_effort_, this->use_timestamp_from_device_);
     this->buffer_list_.insert(this->buffer_list_.end(),
                               std::get<std::shared_ptr<RgbModule>>(this->data_module_)->buffer_id_list_.begin(),
                               std::get<std::shared_ptr<RgbModule>>(this->data_module_)->buffer_id_list_.end());
@@ -182,8 +168,8 @@ TC_RETVAL CameraNode::on_configure(const rclcpp_lifecycle::State& prev_state)
   else if (this->data_stream_type_ == ifm3d_ros2::buffer_id_utils::data_stream_type::tof_3d)
   {
     RCLCPP_INFO(logger_, "Data type is 3D");
-    this->data_module_ =
-        std::make_shared<TofModule>(this->get_logger(), shared_from_this(), o3r_, this->port_info_.port, width, height);
+    this->data_module_ = std::make_shared<TofModule>(this->get_logger(), shared_from_this(), o3r_,
+                                                     this->port_info_.port, width, height, publish_best_effort_, this->use_timestamp_from_device_);
     this->buffer_list_.insert(this->buffer_list_.end(),
                               std::get<std::shared_ptr<TofModule>>(this->data_module_)->buffer_id_list_.begin(),
                               std::get<std::shared_ptr<TofModule>>(this->data_module_)->buffer_id_list_.end());
@@ -422,6 +408,20 @@ void CameraNode::init_params()
   xmlrpc_port_descriptor.integer_range.push_back(xmlrpc_port_range);
   this->declare_parameter("xmlrpc_port", ifm3d::DEFAULT_XMLRPC_PORT, xmlrpc_port_descriptor);
 
+  rcl_interfaces::msg::ParameterDescriptor publish_best_effort_descriptor;
+  publish_best_effort_descriptor.name = "publish_best_effort";
+  publish_best_effort_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  publish_best_effort_descriptor.description =
+      "Sets QoS for published sensor messages to best_effort. Is false by default";
+  this->declare_parameter("publish_best_effort", false, publish_best_effort_descriptor);
+
+  rcl_interfaces::msg::ParameterDescriptor use_timestamp_from_device_descriptor;
+  use_timestamp_from_device_descriptor.name = "use_timestamp_from_device";
+  use_timestamp_from_device_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  use_timestamp_from_device_descriptor.description =
+      "Uses timestamp from VPU for messages if true; uses ROS time if false; default is true";
+  this->declare_parameter("use_timestamp_from_device", true, use_timestamp_from_device_descriptor);
+
   // TODO: extend parameter description to include required params:
   // password: for lock / unlock of JSON configuration
 }
@@ -445,6 +445,12 @@ void CameraNode::parse_params()
 
   this->get_parameter("xmlrpc_port", this->xmlrpc_port_);
   RCLCPP_INFO(this->logger_, "xmlrpc_port: %u", this->xmlrpc_port_);
+
+  this->get_parameter("publish_best_effort", this->publish_best_effort_);
+  RCLCPP_INFO(this->logger_, "publish_best_effort: %s", this->publish_best_effort_ ? "true" : "false");
+
+  this->get_parameter("use_timestamp_from_device", this->use_timestamp_from_device_);
+  RCLCPP_INFO(this->logger_, "use_timestamp_from_device: %s", this->use_timestamp_from_device_ ? "true" : "false");
 }
 
 void CameraNode::set_parameter_event_callbacks()
@@ -458,7 +464,8 @@ void CameraNode::set_parameter_event_callbacks()
    *   - Add lambda to parameter subscriber
    */
   auto config_file_cb = [this](const rclcpp::Parameter& p) {
-    RCLCPP_WARN(logger_, "This new config_file will be used after CONFIGURE transition was called: '%s'", p.as_string().c_str());
+    RCLCPP_WARN(logger_, "This new config_file will be used after CONFIGURE transition was called: '%s'",
+                p.as_string().c_str());
   };
   registered_param_callbacks_["config_file"] = param_subscriber_->add_parameter_callback("config_file", config_file_cb);
 
@@ -477,6 +484,20 @@ void CameraNode::set_parameter_event_callbacks()
     RCLCPP_INFO(logger_, "New xmlrpc_port: %d", this->xmlrpc_port_);
   };
   registered_param_callbacks_["xmlrpc_port"] = param_subscriber_->add_parameter_callback("xmlrpc_port", xmlrpc_port_cb);
+
+  auto publish_best_effort_cb = [this](const rclcpp::Parameter& p) {
+    RCLCPP_WARN(logger_, "This new publish_best_effort setting will be used after CONFIGURE transition was called: %s",
+                p.as_bool() ? "true" : "false");
+  };
+  registered_param_callbacks_["publish_best_effort"] =
+      param_subscriber_->add_parameter_callback("publish_best_effort", publish_best_effort_cb);
+
+  auto use_timestamp_from_device_cb = [this](const rclcpp::Parameter& p) {
+    RCLCPP_WARN(logger_, "This new timestamp behavior will be used after CONFIGURE transition was called: %s",
+                p.as_bool() ? "true" : "false");
+  };
+  registered_param_callbacks_["use_timestamp_from_device"] =
+      param_subscriber_->add_parameter_callback("use_timestamp_from_device", use_timestamp_from_device_cb);
 }
 
 void CameraNode::frame_callback(ifm3d::Frame::Ptr frame)

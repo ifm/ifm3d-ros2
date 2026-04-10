@@ -44,15 +44,29 @@ public:
 };
 
 /**
- * Specializes the `SensorDataQoS` in an attempt to minimize latency.
+ * Reliable specialization of the `SensorDataQoS` in an attempt to minimize latency.
  */
-class IFM3D_ROS2_PUBLIC LowLatencyQoS : public rclcpp::SensorDataQoS
+class IFM3D_ROS2_PUBLIC ReliableLowLatencyQoS : public rclcpp::SensorDataQoS
 {
 public:
-  explicit LowLatencyQoS() : rclcpp::SensorDataQoS()
+  explicit ReliableLowLatencyQoS() : rclcpp::SensorDataQoS()
   {
-    // XXX: may ultimately want to make this configurable via parameter
+    // We are using the default rclcpp::SensorDataQoS, but reduce the history kept.
+    // Changing to reliable message transmission.
     this->reliable().keep_last(2);
+  }
+};
+
+/**
+ * Specializion of the `SensorDataQoS` in an attempt to minimize latency.
+ */
+class IFM3D_ROS2_PUBLIC BestEffortLowLatencyQoS : public rclcpp::SensorDataQoS
+{
+public:
+  explicit BestEffortLowLatencyQoS() : rclcpp::SensorDataQoS()
+  {
+    // We are using the default rclcpp::SensorDataQoS, but reduce the history kept.
+    this->best_effort().keep_last(2);
   }
 };
 

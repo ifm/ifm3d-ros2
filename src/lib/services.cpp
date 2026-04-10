@@ -5,6 +5,7 @@
 #include <ifm3d/device/o3r.h>
 #include <lifecycle_msgs/msg/state.hpp>
 #include <string>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include "ifm3d_ros2/services.hpp"
 
@@ -42,6 +43,50 @@ BaseServices::BaseServices(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNod
                              std::placeholders::_3));
 
   RCLCPP_INFO(logger_, "Services created;");
+}
+
+std::string BaseServices::get_absolute_config_path(const std::string& input_path)
+{
+  if (input_path.empty())
+  {
+    return input_path;
+  }
+
+  if (input_path[0] == '/')
+  {
+    // Input path is absolute path
+    return input_path;
+  }
+
+  const std::string package_name_prefix = "package://";
+
+  if (input_path.find(package_name_prefix) == 0)
+  {
+    // Config value contains relative path, package name is provided
+    const size_t package_name_start = package_name_prefix.size();
+    const size_t first_slash_after_prefix = input_path.find("/", package_name_start);
+
+    if (first_slash_after_prefix == std::string::npos)
+    {
+      throw ament_index_cpp::PackageNotFoundError("Can't derive package name from given path");
+    }
+
+    std::string config_package_name =
+        input_path.substr(package_name_start, first_slash_after_prefix - package_name_start);
+
+    // Try to find the package share directory using ament_index
+    // Might throw PackageNotFoundError
+    return ament_index_cpp::get_package_share_directory(config_package_name) +
+           input_path.substr(first_slash_after_prefix, input_path.size() - first_slash_after_prefix);
+  }
+  else
+  {
+    // Assume path relative to "ifm3d_ros2"
+
+    // Try to find the package share directory using ament_index
+    // Might throw PackageNotFoundError
+    return ament_index_cpp::get_package_share_directory("ifm3d_ros2") + "/" + input_path;
+  }
 }
 
 void BaseServices::Dump(std::shared_ptr<rmw_request_id_t> request_header, DumpRequest req, DumpResponse resp)

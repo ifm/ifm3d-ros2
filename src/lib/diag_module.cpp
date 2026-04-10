@@ -496,7 +496,7 @@ rclcpp_lifecycle::LifecycleNode::CallbackReturn DiagModule::on_configure(const r
   RCLCPP_DEBUG(logger_, "DiagModule: on_configure called");
   (void)previous_state;
 
-  const auto qos = ifm3d_ros2::LowLatencyQoS();
+  const auto qos = ifm3d_ros2::ReliableLowLatencyQoS();
 
   this->diagnostic_publisher_ = node_ptr_->create_publisher<DiagnosticArrayMsg>("/diagnostics", qos);
   // Timer for periodic publication of the full list of diagnostic messages

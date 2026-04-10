@@ -17,11 +17,14 @@
 namespace ifm3d_ros2
 {
 PdsModule::PdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::SharedPtr node_ptr,
-                     std::shared_ptr<ifm3d::O3R> o3r, std::string app_instance)
+                     std::shared_ptr<ifm3d::O3R> o3r, std::string app_instance, bool publish_best_effort,
+                     bool use_timestamp_from_device)
   : FunctionModule(logger)
   , node_ptr_(node_ptr)
   , o3r_(o3r)
   , app_instance_(app_instance)
+  , publish_best_effort_(publish_best_effort)
+  , use_timestamp_from_device_(use_timestamp_from_device)
   , frame_id_("ifm_pds_link")
   , mode_(SetPdsModeSrv::Request::ACTION_ONLY)
   , action_state_(PdsModule::action_state::NOT_RUNNING)
@@ -37,7 +40,11 @@ PdsModule::PdsModule(rclcpp::Logger logger, rclcpp_lifecycle::LifecycleNode::Sha
     node_ptr_->declare_parameter(frame_id_descriptor_.name, frame_id_, frame_id_descriptor_);
   }
 
-  const auto qos = ifm3d_ros2::LowLatencyQoS();
+  rclcpp::QoS qos = ifm3d_ros2::ReliableLowLatencyQoS();
+  if (publish_best_effort_)
+  {
+    qos = ifm3d_ros2::BestEffortLowLatencyQoS();
+  }
   pallet_detection_array_publisher_ = node_ptr_->create_publisher<PalletDetectionArrayMsg>("~/pallet_detection", qos);
   rack_detection_publisher_ = node_ptr_->create_publisher<RackDetectionMsg>("~/rack_detection", qos);
   volume_check_publisher_ = node_ptr_->create_publisher<VolumeCheckMsg>("~/volume_check", qos);
@@ -222,6 +229,8 @@ void PdsModule::handle_frame(ifm3d::Frame::Ptr frame)
 {
   RCLCPP_DEBUG(logger_, "Handle frame");
 
+  frame_received_stamp_ = node_ptr_->now();
+
   if (!frame->HasBuffer(ifm3d::buffer_id::O3R_RESULT_JSON))
   {
     RCLCPP_WARN(logger_, "PdsModule received frame without result json");
@@ -295,7 +304,7 @@ void PdsModule::handle_frame(ifm3d::Frame::Ptr frame)
         volume_check_publisher_->publish(full_result_parsed.volume_check);
         break;
       default:
-        RCLCPP_WARN(logger_, "Recieved data in unknown state '%d', only publishing full result message.", mode_);
+        RCLCPP_WARN(logger_, "Received data in unknown state '%d', only publishing full result message.", mode_);
     }
   }
 
@@ -427,12 +436,15 @@ ifm3d::json PdsModule::create_vol_check_command(const std::string& app_instance,
   return command;
 }
 
-bool PdsModule::parse_get_pallet_result(const ifm3d::json result_json,
+bool PdsModule::parse_get_pallet_result(const ifm3d::json& result_json,
                                         ifm3d_ros2::msg::PalletDetectionArray& out_msg) const
 {
   try
   {
-    out_msg.header.stamp = rclcpp::Time(std::stoul(result_json["timeStamp"].get<std::string>()));
+    // use timeStamp from device or provided replacement stamp
+    out_msg.header.stamp = use_timestamp_from_device_ ?
+                               rclcpp::Time(std::stoul(result_json["timeStamp"].get<std::string>())) :
+                               frame_received_stamp_;
     out_msg.header.frame_id = frame_id_;
 
     out_msg.depth_estimation_voi.header = out_msg.header;
@@ -500,11 +512,14 @@ bool PdsModule::parse_get_pallet_result(const ifm3d::json result_json,
   return true;
 }
 
-bool PdsModule::parse_get_rack_result(const ifm3d::json result_json, ifm3d_ros2::msg::RackDetection& out_msg) const
+bool PdsModule::parse_get_rack_result(const ifm3d::json& result_json, ifm3d_ros2::msg::RackDetection& out_msg) const
 {
   try
   {
-    out_msg.header.stamp = rclcpp::Time(std::stoul(result_json["timeStamp"].get<std::string>()));
+    // use timeStamp from device or provided replacement stamp
+    out_msg.header.stamp = use_timestamp_from_device_ ?
+                               rclcpp::Time(std::stoul(result_json["timeStamp"].get<std::string>())) :
+                               frame_received_stamp_;
     out_msg.header.frame_id = frame_id_;
 
     out_msg.position.header = out_msg.header;
@@ -558,11 +573,14 @@ bool PdsModule::parse_get_rack_result(const ifm3d::json result_json, ifm3d_ros2:
   return true;
 }
 
-bool PdsModule::parse_volume_check_result(const ifm3d::json result_json, ifm3d_ros2::msg::VolumeCheck& out_msg) const
+bool PdsModule::parse_volume_check_result(const ifm3d::json& result_json, ifm3d_ros2::msg::VolumeCheck& out_msg) const
 {
   try
   {
-    out_msg.header.stamp = rclcpp::Time(std::stoul(result_json["timeStamp"].get<std::string>()));
+    // use timeStamp from device or provided replacement stamp
+    out_msg.header.stamp = use_timestamp_from_device_ ?
+                               rclcpp::Time(std::stoul(result_json["timeStamp"].get<std::string>())) :
+                               frame_received_stamp_;
     out_msg.header.frame_id = frame_id_;
 
     out_msg.nearest_x = result_json["volCheck"]["nearestX"].get<double>();
@@ -577,7 +595,7 @@ bool PdsModule::parse_volume_check_result(const ifm3d::json result_json, ifm3d_r
   return true;
 }
 
-bool PdsModule::parse_full_result(const ifm3d::json result_json, ifm3d_ros2::msg::PdsFullResult& out_msg) const
+bool PdsModule::parse_full_result(const ifm3d::json& result_json, ifm3d_ros2::msg::PdsFullResult& out_msg) const
 {
   bool submessage_parsing_successful = true;
 
@@ -589,6 +607,7 @@ bool PdsModule::parse_full_result(const ifm3d::json result_json, ifm3d_ros2::msg
     out_msg.pds_version_major = result_json["pdsVersion"]["minor"].get<int32_t>();
     out_msg.pds_version_major = result_json["pdsVersion"]["patch"].get<int32_t>();
 
+    // Use device timestamp as is, even if use_timestamp_from_device_ is set to false
     out_msg.timestamp = result_json["timeStamp"].get<std::string>();
 
     out_msg.last_command = result_json["lastCommand"].get<std::string>();

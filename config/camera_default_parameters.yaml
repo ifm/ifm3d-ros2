@@ -21,6 +21,7 @@
       - XYZ
     ip: 192.168.0.69
     pcic_port: 50014  # port4 of the VPU (3D data)
+    publish_best_effort: false # If true, most sensor messages will be published best_effort instead of reliable
     publish_uncompressed: true  # If true, launch will spawn a republish node to provide rgb_uncompressed image only for RGB
     tf:
       base_frame_name: "ifm_base_link"
@@ -30,3 +31,4 @@
       publish_mounting_to_optical: true
     use_sim_time: false
     xmlrpc_port: 80
+    use_timestamp_from_device: true # Use device time instead of ROS time for message stamping

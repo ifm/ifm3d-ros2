@@ -17,8 +17,7 @@ The Ports on the VPU should be connected as follows:
 * Camera 2D: Port 0
 * Camera 3D: Port 4
 
-The configuration for the nodes is read from a two different files:
-o3r_2d.yaml and o3r_3d.yaml
+The configuration for the nodes is read from config/examples/combined_2d_3d.yaml
 """
 
 
@@ -46,7 +45,7 @@ def generate_launch_description():
             'camera_name': 'camera_2d',
             'parameter_file_package': 'ifm3d_ros2',
             'parameter_file_directory': 'config/examples',
-            'parameter_file_name': 'o3r_2d.yaml',
+            'parameter_file_name': 'combined_2d_3d.yaml',
             'log_level': LaunchConfiguration("log_level"),
         }.items(),
     )
@@ -57,7 +56,7 @@ def generate_launch_description():
             'camera_name': 'camera_3d',
             'parameter_file_package': 'ifm3d_ros2',
             'parameter_file_directory': 'config/examples',
-            'parameter_file_name': 'o3r_3d.yaml',
+            'parameter_file_name': 'combined_2d_3d.yaml',
             'log_level': LaunchConfiguration("log_level"),
         }.items(),
     )
